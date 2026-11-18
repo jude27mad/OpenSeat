@@ -1,0 +1,30 @@
+name: Delete idle demo rooms
+on:
+  schedule:
+    # Every day at 09:23 UTC (early morning in Toronto).
+    - cron: '23 9 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only list the rooms that would be deleted'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: demo-room-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Delete demo rooms with no activity in the last 24 hours
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENSEAT_FIREBASE_CONFIG: ${{ vars.OPENSEAT_FIREBASE_CONFIG }}
+        run: node backend/firebase/cleanup.mjs ${{ inputs.dry_run && '--dry-run' || '' }}

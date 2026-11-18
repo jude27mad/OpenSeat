@@ -29,6 +29,18 @@ Use Node 22.12+ or 24 and Java 21. Run `npm ci` and `npm test`. The browser test
 
 The public web settings (apiKey, projectId and databaseURL) belong in `backend/firebase/web.json`. A deployment can override them with the `OPENSEAT_FIREBASE_CONFIG` GitHub repository variable. A production build requires registered settings. On the Firebase project, enable Realtime Database and anonymous authentication, then publish the access rules with `npx firebase deploy --only database --project PROJECT_ID`. Publish them again whenever `backend/firebase/database.rules.json` changes. For example, a newer free report releasing an older check-in needs the current rules. GitHub Pages remains the public address for both the dashboard and its QR codes.
 
+### Cleaning up demo rooms
+
+Each demo session writes to its own room, `rooms/<id>`, and the release check adds a few more after every deploy. The live floor, `rooms/floor8`, keeps only the newest reading per seat, so it does not grow. Demo rooms would otherwise stay forever. The **Delete idle demo rooms** workflow runs every day and deletes each demo room with no report, check-in or reading in the last 24 hours. It never touches `floor8`. A shared demo link older than that opens an empty demo.
+
+To switch it on:
+
+1. In the Firebase console, open **Project settings → Service accounts** and choose **Generate new private key**. This downloads a JSON file.
+2. On GitHub, open **Settings → Secrets and variables → Actions** and add a repository secret named `FIREBASE_SERVICE_ACCOUNT` whose value is the whole JSON file.
+3. Delete the downloaded file. The key has full access to the project, so keep it only in that secret.
+
+To check what it would delete, open **Actions → Delete idle demo rooms → Run workflow** and tick **dry run**. Without the secret, the workflow deletes nothing and shows a warning. Locally, `node backend/firebase/cleanup.mjs --emulator --dry-run` runs it against the emulator.
+
 ## Connect a real input
 
 The iPhone publishes a full BLE2MQTT scan array to its own exact MQTT topic. Under **Device inputs → Bluetooth**, select the scanner’s actual section and enter a flespi token with read access to that topic. Keep the dashboard open as the bridge. It reduces the scan locally and sends only the count and measurement time. Saved JSON can also be counted locally. Scanner and bridge use the same local timezone for exports without an offset. Pasting a saved scan never updates live occupancy.
