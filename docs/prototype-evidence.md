@@ -16,7 +16,7 @@ A student should be able to choose an available study seat before walking to it.
 | 4. Wire the four inputs | Connect shared storage, explicit QR check-in/out, one-tap free/occupied reports, a sensor receiver and local BLE scan reduction. | Nov 17 · table QR screen below |
 | 5. Verify the student journey | Exercise the UI, shared service, QR code and state rules. Keep measured results separate from human or physical trials. | Nov 17 · verification table below |
 
-Existing materials were the floor drawing, phone, iPad, BLE2MQTT and a GitHub repo. No new sensor was purchased or installed in this build. GitHub Pages serves the dashboard and a managed database service shares observations across browsers.
+The planned phone, iPad, floor drawing and BLE2MQTT scans were already available. The estimated and actual additional hardware cost was $0. A simulated input replaced physical table hardware for this build. GitHub Pages serves the dashboard and a managed database service shares observations across browsers.
 
 ## Process evidence
 
@@ -52,6 +52,7 @@ These readings support a working threshold for the prototype. They were collecte
 | Inclusive −75 dBm threshold, within-scan deduplication and historical replay handling | Pass | Automated model tests covered −76, −75 and stronger readings, repeated identifiers and expired measurements. |
 | All four inputs persist in one session | Pass | The deployed API returned the QR, report, sensor and Bluetooth observations together. The runtime rejected another browser ticket’s checkout with HTTP 409 and accepted the original ticket’s checkout. |
 | A check-in appears on a second screen within 10 seconds | Pass | In a shared demo on the published site, the second browser showed Occupied 1.38 seconds after check-in. A free report showed Conflicting. After the original browser checked out, the chair showed Available. The two browsers used independent storage. |
+| A phone-sized browser can use the generated table QR and read the map without horizontal scrolling | Pass | GitHub Actions decoded the QR image, checked a chair in using mobile WebKit and saw it update in desktop Chromium in 1.46 seconds. It also verified that the mobile page fit its viewport. [Browser test run](https://github.com/jude27mad/OpenSeat/actions/runs/44208568779) |
 | Section and table signals do not create fake seat counts | Pass | A section count of 128 alongside an occupied table sensor left all 250 chairs unknown without chair-level reports. A separate free chair remained available at a table in use. |
 | Recent disagreement is visible and expired evidence gives unknown | Pass | Automated model tests checked both sources for a conflict and retained the stale report’s source and age. |
 | Solo student can choose a real open spot within 10 seconds before walking | Not measured | This requires a participant timing and an on-site observation of the chosen seat. |
