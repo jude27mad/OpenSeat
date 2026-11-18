@@ -1,6 +1,6 @@
 import { places, chairs, seats, byId, tables } from './floor.js'
 export const sources = {
-  report: 'Self-report',
+  report: 'Student report',
   qr: 'QR check-in',
   sensor: 'Table sensor',
   ble: 'Bluetooth',
@@ -20,10 +20,10 @@ export function lifetime(event) {
 export const fresh = (event, now) =>
   !!event && now >= event.at - 5000 && now - event.at < lifetime(event)
 export const statuses = {
-  free: 'Available',
-  occupied: 'Occupied',
-  unknown: 'Unknown',
-  mixed: 'Conflicting',
+  free: 'Free',
+  occupied: 'Taken',
+  unknown: 'No recent info',
+  mixed: 'Mixed reports',
 }
 export function age(at, now) {
   if (!Number.isFinite(at)) return 'No update'
@@ -178,14 +178,51 @@ export function scanCount(rows) {
 }
 export function placeDescription(p) {
   if (!p) return ''
-  if (p.status === 'mixed') return 'Sources disagree'
-  if (p.status === 'sensorfree') return 'Table reported free'
-  if (p.status === 'inuse') return 'Table in use'
-  if (p.status === 'unknown') return 'No current reading'
+  if (p.status === 'mixed') return 'Mixed reports'
+  if (p.status === 'sensorfree') return 'Table sensor says free'
+  if (p.status === 'unknown') return 'No recent info'
   if (p.ids.length === 1) return statuses[p.status]
+  if (p.status === 'inuse')
+    return p.tally.occupied
+      ? p.tally.occupied + ' of 4 chairs taken'
+      : 'Someone is at this table'
   return p.status === 'free'
-    ? p.tally.free + ' of 4 seats available'
-    : 'All 4 seats occupied'
+    ? p.tally.free + ' of 4 chairs free'
+    : 'All 4 chairs taken'
+}
+// A place worth suggesting: a reported free chair, or a table its sensor reports free.
+export const looksFree = (p) => p.tally.free > 0 || p.status === 'sensorfree'
+// Best suggestions first: most free chairs, then the freshest evidence.
+export function suggestions(locations, now, section = 'all') {
+  return [...locations.values()]
+    .filter((p) => looksFree(p) && (section === 'all' || p.section === section))
+    .sort(
+      (a, b) =>
+        b.tally.free - a.tally.free ||
+        (fresh(b.latest, now) ? b.latest.at : 0) -
+          (fresh(a.latest, now) ? a.latest.at : 0) ||
+        a.id.localeCompare(b.id),
+    )
+}
+// When the latest check-in on this seat stops holding it.
+export const holdsUntil = (event) => event.at + ttl.qr
+// Matches what people type: "table 5", "T5", "seat 12", "12", "T17-B".
+export function matchesQuery(p, query) {
+  const q = query.toLowerCase().trim()
+  if (!q) return true
+  const spot = parseSpot(q.replace(/\s+/g, ''))
+  if (spot) return spot.id === p.id
+  const words = q.match(/^(table|tbl|t|seat|s|i|chair)?\s*0*(\d+)$/)
+  if (words) {
+    const n = Number(words[2]),
+      kind = words[1]
+    const number = Number(p.id.slice(1))
+    if (n !== number) return false
+    if (!kind || kind === 'chair') return true
+    return /^t/.test(kind) ? p.section === 'tables' : p.section === 'individuals'
+  }
+  const area = p.section === 'tables' ? 'round table' : 'individual seat solo'
+  return area.includes(q)
 }
 export function parseSpot(input) {
   if (typeof input !== 'string') return null

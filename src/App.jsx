@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  Activity,
   Armchair,
   ArrowRight,
   Bluetooth,
@@ -13,78 +12,63 @@ import {
   Map as MapIcon,
   MapPin,
   Menu,
-  MessageSquare,
   PlugZap,
-  QrCode,
-  Radio,
   Search,
   Share2,
   UsersRound,
+  X,
 } from 'lucide-react'
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
-import { byId, chairs, individuals, label, rooms, seats, tables } from './floor.js'
-import {
-  age,
-  derive,
-  fresh,
-  parseSpot,
-  placeDescription,
-  sources,
-} from './model.js'
+import { individuals, label, rooms, seats, tables } from './floor.js'
+import { age, derive, fresh, parseSpot, suggestions } from './model.js'
 import { chosenRoom, roomUrl, useFloor } from './session.js'
 import { startScanner } from './ble.js'
+import { activeCheckIn, friendly, myCheckIns, remember } from './checkin.js'
 import FloorMap from './FloorMap.jsx'
 import { FeedControls, QRDialog } from './Controls.jsx'
-import SeatDetails, { Origin, Status } from './SeatDetails.jsx'
+import SeatDetails from './SeatDetails.jsx'
+import PhoneView from './Phone.jsx'
+import {
+  Activity,
+  CheckInBanner,
+  DemoBanner,
+  Legend,
+  SeatList,
+  SourceCards,
+} from './parts.jsx'
 
 const navigation = [
   ['overview', 'Floor overview', LayoutDashboard],
   ['finder', 'Find a seat', Search],
   ['sources', 'Data sources', Layers],
 ]
-const sourceIcons = {
-  ble: Bluetooth,
-  qr: QrCode,
-  report: MessageSquare,
-  sensor: Radio,
-}
-const sourceText = {
-  ble: 'Nearby devices in a section',
-  qr: 'Seat check-ins and check-outs',
-  report: 'Availability reported at a seat',
-  sensor: 'Occupancy observed at a table',
-}
-const names = {
-  free: 'Available',
-  occupied: 'Occupied',
-  unknown: 'Unknown',
-  mixed: 'Conflicting',
-  inuse: 'In use',
-  sensorfree: 'Sensor free',
-}
-const plural = (count, noun) => count + ' ' + noun + (count === 1 ? '' : 's')
+const PHONE = '(max-width: 720px)',
+  DRAWER = '(max-width: 950px)'
 const hash = () => new URLSearchParams(location.hash.slice(1))
 function initial() {
   return chosenRoom(hash().get('floor') === '8')
 }
 function setUrl(room, spot, checkin = false) {
-  history.replaceState(null, '', roomUrl(room, spot, checkin))
+  history.replaceState(history.state, '', roomUrl(room, spot, checkin))
 }
-function Legend() {
+function useMedia(query) {
+  const [matches, setMatches] = useState(() => matchMedia(query).matches)
+  useEffect(() => {
+    const list = matchMedia(query),
+      update = () => setMatches(list.matches)
+    list.addEventListener('change', update)
+    update()
+    return () => list.removeEventListener('change', update)
+  }, [query])
+  return matches
+}
+// The chair to show first: a free one, then one nobody has checked in to.
+function firstChair(place, model, now) {
   return (
-    <div className="legend">
-      {['free', 'occupied', 'unknown', 'mixed'].map((s) => (
-        <span key={s}>
-          <i className={s} />
-          {names[s]}
-        </span>
-      ))}
-      <span>
-        <i className="booked" />
-        Bookable room
-      </span>
-    </div>
+    place.ids.find((s) => model.states.get(s).status === 'free') ||
+    place.ids.find((s) => !activeCheckIn(model.states.get(s), now)) ||
+    place.ids[0]
   )
 }
 function Stat({ name, value, detail, icon: Icon, tone, percent }) {
@@ -106,121 +90,39 @@ function Stat({ name, value, detail, icon: Icon, tone, percent }) {
     </Card>
   )
 }
-function SourceCards({ events, now, onDevices, full }) {
-  return (
-    <div className={'source-cards ' + (full ? 'full' : '')}>
-      {['ble', 'qr', 'report', 'sensor'].map((s) => {
-        const Icon = sourceIcons[s],
-          rows = events
-            .filter((e) => e.source === s)
-            .sort((a, b) => b.at - a.at),
-          latest = rows[0]
-        return (
-          <Card key={s} className="panel source-card">
-            <div className={'source-icon ' + s}>
-              <Icon size={17} />
-            </div>
-            <div>
-              <h3>{sources[s]}</h3>
-              <p>{sourceText[s]}</p>
-              <div className="source-age">
-                <i className={fresh(latest, now) ? 'current' : ''} />
-                {latest
-                  ? (latest.simulated ? 'Simulated · ' : '') +
-                    age(latest.at, now) +
-                    (fresh(latest, now) ? '' : ' · Stale')
-                  : 'Awaiting first reading'}
-              </div>
-            </div>
-            {full && (s === 'ble' || s === 'sensor') && (
-              <button className="text-btn" onClick={() => onDevices(s)}>
-                Open input <ArrowRight size={14} />
-              </button>
-            )}
-          </Card>
-        )
-      })}
-    </div>
-  )
-}
-function SeatList({
-  locations,
-  section,
-  filter,
-  query,
-  onPick,
-  now,
-  selected,
-}) {
-  const q = query.toLowerCase().replace(/[^a-z0-9]/g, ''),
-    seatId = parseSpot(query.trim())
-  const rows = [...locations.values()].filter(
-    (p) =>
-      (section === 'all' || section === p.section) &&
-      (filter !== 'free' || p.tally.free > 0) &&
-      (!q ||
-        p.id.toLowerCase().includes(q) ||
-        label(p.id).toLowerCase().replace(/\s/g, '').includes(q) ||
-        seatId?.id === p.id),
-  )
-  if (filter === 'free')
-    rows.sort((a, b) => b.tally.free - a.tally.free || a.id.localeCompare(b.id))
-  return (
-    <div className="seat-list" aria-label="Floor locations">
-      {rows.length ? (
-        <>
-          <p className="list-total">{plural(rows.length, 'location')}</p>
-          {rows.map((p) => (
-            <button
-              key={p.id}
-              className={'list-location ' + (selected === p.id ? 'picked' : '')}
-              onClick={() =>
-                onPick(p.id, seatId?.id === p.id ? seatId.seat : null)
-              }
-            >
-              <span className={'list-icon ' + p.status}>
-                <Armchair size={17} />
-              </span>
-              <span>
-                <b>{label(p.id)}</b>
-                <small>
-                  {placeDescription(p)} · <Origin event={p.latest} now={now} />
-                </small>
-              </span>
-              <ChevronRight size={15} />
-            </button>
-          ))}
-        </>
-      ) : (
-        <div className="empty">
-          <Search size={24} />
-          <h3>No matching locations</h3>
-          <p>Try another ID or switch to all seats.</p>
-        </div>
-      )}
-    </div>
-  )
-}
 function Dashboard({ room, onRoom, startSpot, qrPlace }) {
   const demo = room.id !== 'floor8'
-  const [page, setPage] = useState('overview'),
+  const phone = useMedia(PHONE),
+    drawerMode = useMedia(DRAWER)
+  const [page, setPage] = useState(() => history.state?.openseatPage || 'overview'),
     [view, setView] = useState('map'),
     [section, setSection] = useState('all'),
     [filter, setFilter] = useState('all'),
     [query, setQuery] = useState(''),
     [drawer, setDrawer] = useState(false),
-    [modal, setModal] = useState(null)
-  const [selected, setSelected] = useState(startSpot?.id || 'T01'),
-    [seat, setSeat] = useState(
-      startSpot?.seat || chairs(byId.get(startSpot?.id || 'T01'))[0],
-    ),
+    [modal, setModal] = useState(null),
     [now, setNow] = useState(Date.now),
     [bridge, setBridge] = useState('')
   const { events, online, record } = useFloor(room),
-    model = derive(events, now),
-    place = model.locations.get(selected),
-    bridgeStop = useRef(null),
+    model = derive(events, now)
+  const [selected, setSelected] = useState(startSpot?.id || null),
+    [seat, setSeat] = useState(() => {
+      if (startSpot?.seat) return startSpot.seat
+      return firstChair(model.locations.get(startSpot?.id || 'T01'), model, now)
+    }),
+    [sheet, setSheet] = useState(startSpot ? (qrPlace ? 'full' : 'peek') : 'closed'),
+    [focus, setFocus] = useState(startSpot ? 1 : 0),
+    [found, setFound] = useState(-1),
+    [busyMine, setBusyMine] = useState(false),
+    [mineNote, setMineNote] = useState('')
+  // Desktop always shows a location in its side panel; the phone starts with none.
+  const shownId = selected || (phone ? null : 'T01'),
+    place = shownId ? model.locations.get(shownId) : null,
+    shownSeat = place && seat?.split('-')[0] === place.id ? seat : place && firstChair(place, model, now)
+  const bridgeStop = useRef(null),
     detail = useRef(null)
+  const mine = myCheckIns(room, model, now)
+  const choices = suggestions(model.locations, now, section)
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 4000)
     return () => {
@@ -228,41 +130,166 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
       bridgeStop.current?.()
     }
   }, [])
-  function pick(id, specific = null, scroll = false) {
+  // Back and forward move between pages instead of leaving the app.
+  useEffect(() => {
+    const onPop = () => setPage(history.state?.openseatPage || 'overview')
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+  useEffect(() => {
+    if (!mineNote) return
+    const t = setTimeout(() => setMineNote(''), 5000)
+    return () => clearTimeout(t)
+  }, [mineNote])
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key !== 'Escape' || document.querySelector('[role="dialog"]')) return
+      if (drawer) setDrawer(false)
+      else if (phone && sheet !== 'closed') close()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+  useEffect(() => setFound(-1), [section])
+
+  function pick(id, specific = null, opts = {}) {
     const p = model.locations.get(id)
     setSelected(id)
-    setSeat(
-      specific ||
-        p.ids.find((s) => model.states.get(s).status === 'free') ||
-        p.ids[0],
-    )
+    setSeat(specific || firstChair(p, model, now))
     setUrl(room, specific || id, qrPlace === id)
-    if (scroll && innerWidth <= 850)
+    if (phone) setSheet(qrPlace === id ? 'full' : 'peek')
+    if (opts.focus) setFocus((f) => f + 1)
+    if (!phone && opts.scroll && innerWidth <= 850) {
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
       setTimeout(
         () =>
           detail.current?.scrollIntoView({
-            behavior: 'smooth',
+            behavior: reduce ? 'auto' : 'smooth',
             block: 'start',
           }),
         10,
       )
+    }
+  }
+  function close() {
+    setSheet('closed')
+    setSelected(null)
+    setUrl(room)
   }
   function nav(key) {
-    setPage(key)
     setDrawer(false)
     if (key === 'finder') setFilter('free')
     else setFilter('all')
+    if (key !== page) {
+      if (phone && page === 'sources' && key === 'overview') history.back()
+      else history.pushState({ ...history.state, openseatPage: key }, '', location.href)
+      setPage(key)
+    }
     window.scrollTo({ top: 0 })
+  }
+  function onFind() {
+    if (!choices.length) return
+    const next = (found + 1) % choices.length
+    setFound(next)
+    setView('map')
+    pick(choices[next].id, null, { focus: true })
+  }
+  async function checkOutMine(target) {
+    setBusyMine(true)
+    try {
+      await record({ source: 'qr', target, value: 'free' })
+      remember(room, target, null)
+      setMineNote('Checked out of ' + label(target) + '. Thanks for freeing it up.')
+    } catch (e) {
+      setMineNote(friendly(e))
+    } finally {
+      setBusyMine(false)
+    }
   }
   async function onBridge(options) {
     bridgeStop.current?.()
     bridgeStop.current = await startScanner(options, record, setBridge)
     setBridge('Connecting to the scanner…')
   }
+  const dialogs = (
+    <>
+      {(modal === 'share' || modal === 'qr') && (
+        <QRDialog
+          room={room}
+          place={modal === 'qr' ? place : null}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {(modal === 'ble' || modal === 'sensor') && (
+        <FeedControls
+          demo={demo}
+          place={place || model.locations.get('T01')}
+          record={record}
+          started={modal}
+          onClose={() => setModal(null)}
+          onBridge={onBridge}
+          bridge={bridge}
+        />
+      )}
+      {mineNote && (
+        <p className="floating-note" role="status">
+          {mineNote}
+        </p>
+      )}
+    </>
+  )
+
+  if (phone)
+    return (
+      <>
+        <PhoneView
+          {...{
+            room,
+            demo,
+            model,
+            events,
+            now,
+            online,
+            onRoom,
+            place,
+            seat: shownSeat,
+            setSeat: (id) => {
+              setSeat(id)
+              setUrl(room, id, qrPlace === place?.id)
+            },
+            pick,
+            qrPlace,
+            record,
+            sheet,
+            setSheet,
+            focus,
+            view,
+            setView,
+            filter,
+            setFilter,
+            section,
+            setSection,
+            query,
+            setQuery,
+            page,
+            nav,
+            setModal,
+            mine,
+            checkOutMine,
+            busyMine,
+            onFind,
+            found,
+            choices: choices.length,
+            close,
+          }}
+        />
+        {dialogs}
+      </>
+    )
+
   const zone = section === 'individuals' ? 'individuals' : 'tables',
     ble = model.ble[zone],
     n = model.counts
-  const rows = [...events].sort((a, b) => b.at - a.at)
   return (
     <div className="app-shell">
       {drawer && (
@@ -272,11 +299,26 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
           onClick={() => setDrawer(false)}
         />
       )}
-      <aside className={'sidebar ' + (drawer ? 'open' : '')}>
-        <button className="brand" onClick={() => nav('overview')}>
-          <img src="./mark.svg" alt="" />
-          <span>OpenSeat</span>
-        </button>
+      <aside
+        id="openseat-nav"
+        className={'sidebar ' + (drawer ? 'open' : '')}
+        inert={drawerMode && !drawer}
+      >
+        <div className="sidebar-top">
+          <button className="brand" onClick={() => nav('overview')}>
+            <img src="./mark.svg" alt="" />
+            <span>OpenSeat</span>
+          </button>
+          {drawerMode && (
+            <button
+              className="icon-btn"
+              aria-label="Close navigation"
+              onClick={() => setDrawer(false)}
+            >
+              <X size={20} />
+            </button>
+          )}
+        </div>
         <div className="campus">
           <div>
             <Building2 size={18} />
@@ -315,7 +357,9 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
           </span>
           <div>
             <b>OpenSeat</b>
-            <small><a href="./evidence/">Prototype evidence</a></small>
+            <small>
+              <a href="./evidence/">Prototype evidence</a>
+            </small>
           </div>
         </div>
       </aside>
@@ -324,6 +368,8 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
           <button
             className="only-mobile icon-btn"
             aria-label="Open navigation"
+            aria-expanded={drawer}
+            aria-controls="openseat-nav"
             onClick={() => setDrawer(true)}
           >
             <Menu size={20} />
@@ -344,6 +390,17 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                 : 'Connecting'}
           </span>
         </header>
+        {demo && <DemoBanner onLive={() => onRoom(true)} />}
+        <CheckInBanner
+          checkIns={mine}
+          now={now}
+          busy={busyMine}
+          onShow={(s) => {
+            nav('overview')
+            pick(s.split('-')[0], s)
+          }}
+          onCheckOut={checkOutMine}
+        />
         <main>
           <div className="page-lead">
             <div>
@@ -361,7 +418,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                 {page === 'overview'
                   ? 'Floor 8 · The Sky'
                   : page === 'finder'
-                    ? 'Choose a spot with a recent availability update.'
+                    ? 'Places with a recent free report come first.'
                     : 'The four inputs behind the Floor 8 map.'}
               </p>
             </div>
@@ -384,28 +441,28 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
           {page === 'overview' && (
             <div className="metrics">
               <Stat
-                name="Available seats"
+                name="Free seats"
                 value={n.free}
-                detail={`of ${seats.length} open-access seats`}
+                detail={`of ${seats.length} open seats`}
                 icon={Armchair}
                 tone="green"
                 percent={(n.free * 100) / seats.length}
               />
               <Stat
-                name="Occupied seats"
+                name="Taken seats"
                 value={n.occupied}
-                detail="Current seat observations"
+                detail="Checked in or reported taken"
                 icon={UsersRound}
                 tone="orange"
                 percent={(n.occupied * 100) / seats.length}
               />
               <Stat
-                name="Unconfirmed seats"
+                name="No recent info"
                 value={n.unknown + n.mixed}
                 detail={
                   n.mixed
-                    ? n.mixed + ' with conflicting sources'
-                    : 'Awaiting a current reading'
+                    ? n.mixed + ' with mixed reports'
+                    : 'Waiting for a check-in or report'
                 }
                 icon={Clock3}
                 tone="stone"
@@ -415,7 +472,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                 name="Nearby devices"
                 value={fresh(ble, now) ? ble.value : '—'}
                 detail={
-                  (zone === 'tables' ? 'Table area' : 'Individual area') +
+                  (zone === 'tables' ? 'Round-table area' : 'Individual-seat area') +
                   ' · ' +
                   (ble ? age(ble.at, now) : 'No scan')
                 }
@@ -432,7 +489,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                     <h2>{page === 'finder' ? 'Seat finder' : 'Floor plan'}</h2>
                     <p>
                       {page === 'finder'
-                        ? 'Select a location to see its chairs and evidence.'
+                        ? 'Select a place to see its chairs and report them.'
                         : `${tables.length} round tables · ${individuals.length} individual seats`}
                     </p>
                   </div>
@@ -468,16 +525,12 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                     <option value="individuals">Individual seats</option>
                   </select>
                   <button
-                    className={
-                      'filter-pill ' + (filter === 'free' ? 'selected' : '')
-                    }
+                    className={'filter-pill ' + (filter === 'free' ? 'selected' : '')}
                     aria-pressed={filter === 'free'}
-                    onClick={() =>
-                      setFilter(filter === 'free' ? 'all' : 'free')
-                    }
+                    onClick={() => setFilter(filter === 'free' ? 'all' : 'free')}
                   >
                     <span />
-                    Available only
+                    Free only
                   </button>
                 </div>
                 {page === 'finder' || view === 'list' ? (
@@ -486,33 +539,41 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                       <Search size={15} />
                       <input
                         aria-label="Search seats"
-                        placeholder="Search table or seat ID"
+                        placeholder="Search: table 5, seat 12"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                       />
                     </label>
                     <SeatList
                       locations={model.locations}
-                      {...{ section, filter, query, now, selected }}
-                      onPick={(id, s) => pick(id, s, true)}
+                      {...{ section, filter, query, now }}
+                      selected={shownId}
+                      onPick={(id, s) => pick(id, s, { scroll: true })}
+                      onShowAll={() => {
+                        setFilter('all')
+                        setSection('all')
+                      }}
                     />
                   </>
                 ) : (
                   <FloorMap
-                    {...{ model, selected, section, filter, now }}
-                    onSelect={(id) => pick(id, null, true)}
+                    {...{ model, section, filter, now, focus }}
+                    selected={shownId}
+                    onSelect={(id) => pick(id, null, { scroll: true })}
                   />
                 )}
                 <Legend />
               </Card>
               <div ref={detail} className="inspector-wrap">
                 <SeatDetails
-                  key={seat}
-                  {...{ room, place, seat, model, now, record }}
-                  canCheckIn={qrPlace === selected}
+                  key={shownSeat}
+                  {...{ room, place, model, now, record }}
+                  seat={shownSeat}
+                  canCheckIn={qrPlace === shownId}
                   onSeat={(id) => {
+                    setSelected(place.id)
                     setSeat(id)
-                    setUrl(room, id, qrPlace === selected)
+                    setUrl(room, id, qrPlace === place.id)
                   }}
                   openQR={() => setModal('qr')}
                 />
@@ -523,14 +584,9 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
             <section className="sources-section">
               <div className="section-heading">
                 <div>
-                  <h2>
-                    {page === 'sources' ? 'Connected sources' : 'Data sources'}
-                  </h2>
+                  <h2>{page === 'sources' ? 'Connected sources' : 'Data sources'}</h2>
                   {page === 'sources' && (
-                    <p>
-                      Each observation carries its own location, source and
-                      measurement time.
-                    </p>
+                    <p>Each reading carries its own place, source and time.</p>
                   )}
                 </div>
                 {page === 'overview' ? (
@@ -552,76 +608,19 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
               />
             </section>
           )}
-          {page === 'sources' && (
-            <Card className="panel activity">
-              <div className="panel-heading">
-                <div>
-                  <h2>Latest observations</h2>
-                  <p>Most recent reading per source and location.</p>
-                </div>
-                <Activity size={19} />
-              </div>
-              {rows.length ? (
-                rows.slice(0, 25).map((e) => {
-                  const Icon = sourceIcons[e.source]
-                  return (
-                    <div className="activity-row" key={e.id}>
-                      <span className={'source-icon ' + e.source}>
-                        <Icon size={15} />
-                      </span>
-                      <span>
-                        <b>{label(e.target)}</b>
-                        <small>
-                          <Origin event={e} now={now} />
-                        </small>
-                      </span>
-                      <strong>
-                        {e.source === 'ble'
-                          ? plural(e.value, 'device')
-                          : e.value === 'free'
-                            ? 'Free'
-                            : 'Occupied'}
-                      </strong>
-                    </div>
-                  )
-                })
-              ) : (
-                <div className="empty">
-                  <Radio />
-                  <p>Waiting for the first floor update.</p>
-                </div>
-              )}
-            </Card>
-          )}
+          {page === 'sources' && <Activity events={events} now={now} />}
           <footer>
             <span>
               <MapPin size={13} /> SLC Floor 8
             </span>
-            <span>{seats.length} open-access seats · {rooms.length} bookable rooms excluded</span>
-            {demo && (
-              <button onClick={() => onRoom(false, true)}>Restart demo</button>
-            )}
+            <span>
+              {seats.length} open seats · {rooms.length} bookable rooms not counted
+            </span>
+            {demo && <button onClick={() => onRoom(false, true)}>Restart demo</button>}
           </footer>
         </main>
       </div>
-      {(modal === 'share' || modal === 'qr') && (
-        <QRDialog
-          room={room}
-          place={modal === 'qr' ? place : null}
-          onClose={() => setModal(null)}
-        />
-      )}
-      {(modal === 'ble' || modal === 'sensor') && (
-        <FeedControls
-          demo={demo}
-          place={place}
-          record={record}
-          started={modal}
-          onClose={() => setModal(null)}
-          onBridge={onBridge}
-          bridge={bridge}
-        />
-      )}
+      {dialogs}
     </div>
   )
 }
@@ -647,11 +646,7 @@ export default function App() {
   }
   return (
     <Dashboard
-      key={[
-        entry.room.id,
-        entry.spot?.seat || entry.spot?.id,
-        entry.qrPlace,
-      ].join('/')}
+      key={[entry.room.id, entry.spot?.seat || entry.spot?.id, entry.qrPlace].join('/')}
       room={entry.room}
       startSpot={entry.spot}
       qrPlace={entry.qrPlace}

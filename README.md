@@ -6,9 +6,9 @@ A live seat map for Floor 8 of Toronto Metropolitan University’s Student Learn
 
 ## Try it on your phone and iPad
 
-Open **Find a seat**, select a result and inspect its source and age. The first visit opens a labelled demo with example readings. **Live floor** opens the shared, unseeded campus map. Unknown seats stay unknown until a current observation arrives.
+On a phone, the first screen shows how many seats are free and a **Find me a free seat** button. Tap any seat or table on the map, or pick one from the list, and a sheet slides up with its status, where that status came from and two buttons: **It's free** and **It's taken**. A table can be reported in one tap with **All free** or **All taken**. A tap on a crowded part of the map zooms in first, so the seat you pick is the one you meant. The first visit opens a demo with example readings, marked by a banner. **Live floor** opens the shared, unseeded campus map. Seats with nothing recent say **No recent info** until a current reading arrives.
 
-Select a table and **Show table QR code**. Scan it with another device, choose a chair and check in. An explicit check-out ends that chair’s check-in. Students can also report a chair free or occupied. **Data sources → Device inputs** lets one tester exercise sensor and Bluetooth events in a shared demo. **Share map** opens the same session on another device. **Restart demo** starts a fresh example.
+Select a table and **Show table QR code**. Scan it with another device. The code opens straight to the check-in for that table: choose a chair and check in. The chair is held for 60 minutes and a banner shows when the hold ends. **Check out** ends it from the banner or the sheet. **Data sources → Device inputs** (**Menu → How the data works** on a phone) lets one tester exercise sensor and Bluetooth events in a shared demo. **Share map** opens the same session on another device. **Restart demo** starts a fresh example.
 
 ## What each input means
 
@@ -16,16 +16,16 @@ Select a table and **Show table QR code**. Scan it with another device, choose a
 | --- | --- | --- | --- |
 | BLE2MQTT via flespi | The scanner’s assigned section | 2 minutes | Distinct devices meeting RSSI ≥ −75 dBm in one scan |
 | QR check-in | One chair or individual seat | 60 minutes in use, 5 minutes after check-out | Occupied or free |
-| Self-report | One chair or individual seat | 15 minutes | Free or occupied |
+| Student report | One chair or individual seat | 15 minutes | Free or taken |
 | Table sensor | The mapped table or an individually instrumented seat | 5 minutes | Shared table in use or free, or an exact individual-seat reading |
 
-Each location retains the latest observation from each source. Fresh, contradictory seat observations display **Conflicting**. Stale evidence remains visible with its age. Shared-table readings describe the whole table, and nearby-device totals describe a section. Seat totals add up to 252 across available, occupied, unknown and conflicting seats. The map does not request browser location.
+Each location retains the latest observation from each source. Fresh, contradictory seat observations display **Mixed reports**. Stale evidence remains visible with its age. Shared-table readings describe the whole table, and nearby-device totals describe a section. Seat totals add up to 252 across free, taken, no-recent-info and mixed seats. The map does not request browser location.
 
 ## Implementation and deployment
 
 GitHub Pages serves the React dashboard and evidence. Firebase Realtime Database on Spark streams each room’s latest observations. Visitors can read the map immediately. On the first write, Firebase Authentication assigns the browser an anonymous identity so the same visitor can release their chair. Users never have to register. The public readings contain a source, target, observation ID, value, time and simulation flag. QR ownership and station authorization are private.
 
-Use Node 22.12+ or 24 and Java 21. Run `npm ci` and `npm test`. To work locally, start `npx firebase emulators:start --project demo-openseat --only auth,database` and run `VITE_OPENSEAT_EMULATORS=1 npm run dev` in another terminal. `npm run test:firebase` starts a fresh emulator for the ownership, validation, retry and station tests. GitHub Actions runs the mobile WebKit and desktop Chromium sharing test against the emulators before a Pages release.
+Use Node 22.12+ or 24 and Java 21. Run `npm ci` and `npm test`. The browser tests drive the phone with WebKit; set `OPENSEAT_PHONE_ENGINE=chromium` where WebKit is not installed. To work locally, start `npx firebase emulators:start --project demo-openseat --only auth,database` and run `VITE_OPENSEAT_EMULATORS=1 npm run dev` in another terminal. `npm run test:firebase` starts a fresh emulator for the ownership, validation, retry and station tests. GitHub Actions runs the mobile WebKit and desktop Chromium sharing test against the emulators before a Pages release.
 
 The public web settings (apiKey, projectId and databaseURL) belong in `backend/firebase/web.json`. A deployment can override them with the `OPENSEAT_FIREBASE_CONFIG` GitHub repository variable. A production build requires registered settings. On the Firebase project, enable Realtime Database and anonymous authentication, then publish the access rules with `npx firebase deploy --only database --project PROJECT_ID`. GitHub Pages remains the public address for both the dashboard and its QR codes.
 

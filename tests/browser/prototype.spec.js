@@ -2,6 +2,8 @@ import { test, expect, devices } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 import { PNG } from 'pngjs'
 import jsQR from 'jsqr'
+// CI drives the phone with WebKit. Set OPENSEAT_PHONE_ENGINE=chromium where WebKit is unavailable.
+const phoneEngine = process.env.OPENSEAT_PHONE_ENGINE || 'webkit'
 const demo = () => './#demo=' + randomUUID() + '&start=' + Date.now()
 function observeService(page, label) {
   page.on('requestfailed', (request) => {
@@ -39,10 +41,10 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   await expect(page.getByRole('button', { name: /^Seat 92,/ })).toBeVisible()
   await page.getByRole('button', { name: 'Find a seat' }).click()
   await expect(page.locator('.list-location').first()).toContainText(
-    /available/i,
+    /chairs? free|^Free/i,
   )
   await page.locator('.list-location').first().click()
-  await expect(page.locator('.seat-reading .status')).toHaveText('Available')
+  await expect(page.locator('.seat-reading .status')).toHaveText('Free')
   await page.getByRole('button', { name: 'Floor overview' }).click()
   await page.getByRole('button', { name: /^Table 17,/ }).click()
   await page.getByRole('button', { name: 'Show table QR code' }).click()
@@ -54,7 +56,7 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   const decoded = jsQR(new Uint8ClampedArray(png.data), png.width, png.height)
   expect(decoded.data).toContain('spot=T17')
   expect(decoded.data).toContain('checkin=1')
-  const mobileBrowser = await playwright.webkit.launch()
+  const mobileBrowser = await playwright[phoneEngine].launch()
   const mobile = await mobileBrowser.newContext({
     ...devices['iPhone 13'],
     baseURL,
@@ -64,8 +66,8 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   await phone.goto(decoded.data)
   await phone.getByRole('button', { name: /^Chair B,/ }).click()
   await expect(
-    phone.getByRole('button', { name: 'Check in', exact: true }),
-  ).toBeVisible()
+    phone.getByRole('button', { name: 'Check in to Chair B', exact: true }),
+  ).toBeInViewport()
   await page.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: /^Chair B,/ }).click()
   await expect(page.locator('.sync')).toHaveText('Connected', {
@@ -75,24 +77,32 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
     timeout: 25000,
   })
   const t = Date.now()
-  await phone.getByRole('button', { name: 'Check in', exact: true }).click()
+  await phone.getByRole('button', { name: 'Check in to Chair B', exact: true }).click()
   await expect(page.locator('.inspector .origin').first()).toContainText(
     /^QR check-in ·/,
     { timeout: 10000 },
   )
-  await expect(page.locator('.seat-reading .status')).toHaveText('Occupied')
+  await expect(page.locator('.seat-reading .status')).toHaveText('Taken')
   console.log(
     'QR check-in propagated to independent browser in ' +
       (Date.now() - t) +
       ' ms',
   )
-  await page.getByRole('button', { name: 'Free', exact: true }).click()
+  await page.getByRole('button', { name: "It's free", exact: true }).click()
+  await page.getByRole('button', { name: "Yes, it's empty" }).click()
   await expect(phone.locator('.seat-reading .status')).toHaveText(
-    'Conflicting',
+    'Mixed reports',
     { timeout: 10000 },
   )
-  await phone.getByRole('button', { name: 'Check out', exact: true }).click()
-  await expect(page.locator('.seat-reading .status')).toHaveText('Available', {
+  await expect(phone.locator('.mine-banner')).toContainText(
+    "You're checked in at Table 17 · Chair B",
+  )
+  await phone
+    .locator('.sheet')
+    .getByRole('button', { name: 'Check out', exact: true })
+    .click()
+  await expect(phone.locator('.mine-banner')).toHaveCount(0)
+  await expect(page.locator('.seat-reading .status')).toHaveText('Free', {
     timeout: 10000,
   })
   await expect(phone.locator('body')).toBeVisible()
@@ -108,7 +118,7 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   await page.getByRole('button', { name: 'Data sources', exact: true }).click()
   await page.getByRole('button', { name: 'Device inputs' }).click()
   await page.getByRole('button', { name: 'Simulate in use' }).click()
-  await expect(page.getByRole('status')).toContainText(
+  await expect(page.getByRole('dialog').getByRole('status')).toContainText(
     'Simulated sensor reading saved.',
     { timeout: 17000 },
   )
@@ -116,7 +126,7 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   await page.getByText('Try a Bluetooth reading').click()
   await page.getByLabel('Simulated nearby devices').fill('37')
   await page.getByRole('button', { name: 'Apply demo count' }).click()
-  await expect(page.getByRole('status')).toContainText(
+  await expect(page.getByRole('dialog').getByRole('status')).toContainText(
     'Simulated section count saved.',
     { timeout: 17000 },
   )
@@ -126,20 +136,31 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   await expect(
     page.locator('.metric').filter({ hasText: 'Nearby devices' }),
   ).toContainText('37')
-  await expect(page.locator('.inspector')).toContainText('Table in use')
+  await expect(page.locator('.inspector')).toContainText(
+    "Table sensor: someone's at this table",
+  )
   await page.screenshot({
     path: testInfo.outputPath('dashboard.png'),
     fullPage: true,
   })
   await page.getByRole('button', { name: /^Seat 92,/ }).click()
-  await page.getByRole('button', { name: 'Free', exact: true }).click()
-  await expect(page.getByRole('status')).toHaveText('Report saved for Seat 92.')
+  await expect(page.getByRole('heading', { name: 'Seat 92' })).toBeVisible()
+  await page.getByRole('button', { name: "It's free", exact: true }).click()
+  const panelStatus = page.locator('.inspector').getByRole('status')
+  await expect(panelStatus).toHaveText(
+    'Thanks! Seat 92 marked free. Reports last 15 minutes.',
+  )
   await page.goto(roomUrl + '&spot=I091&checkin=1')
   await expect(page.getByRole('heading', { name: 'Seat 91' })).toBeVisible()
-  await page.getByRole('button', { name: 'Check in', exact: true }).click()
-  await expect(page.getByRole('status')).toHaveText('Checked in at Seat 91.')
-  await page.getByRole('button', { name: 'Check out', exact: true }).click()
-  await expect(page.getByRole('status')).toHaveText('Checked out of Seat 91.')
+  await page
+    .getByRole('button', { name: 'Check in to this seat', exact: true })
+    .click()
+  await expect(panelStatus).toContainText('Checked in at Seat 91. Held until')
+  await page
+    .locator('.inspector')
+    .getByRole('button', { name: 'Check out', exact: true })
+    .click()
+  await expect(panelStatus).toContainText('Checked out of Seat 91.')
   await mobile.close()
   await mobileBrowser.close()
 })
