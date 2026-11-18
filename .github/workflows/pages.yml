@@ -51,6 +51,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
     permissions:
       contents: write
       pages: write
@@ -67,6 +69,7 @@ jobs:
           name: production-site
           path: build
       - name: Publish the tested files to the Pages source branch
+        id: publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -85,3 +88,43 @@ jobs:
             git push origin HEAD:gh-pages
           fi
           gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent
+          echo 'published=true' >> "$GITHUB_OUTPUT"
+  verify-live:
+    needs: deploy
+    if: needs.deploy.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      OPENSEAT_TEST_URL: https://jude27mad.github.io/OpenSeat/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-site
+          path: build
+      - name: Wait for this build to reach the public map
+        run: |
+          set -euo pipefail
+          entry=$(grep -oE 'src="\./assets/[^"]+\.js"' build/index.html | head -n 1)
+          for attempt in {1..36}; do
+            if curl -fsSL --max-time 10 "${OPENSEAT_TEST_URL}?release=${GITHUB_SHA}&attempt=${attempt}" -o "$RUNNER_TEMP/openseat.html" && grep -Fq "$entry" "$RUNNER_TEMP/openseat.html"; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'GitHub Pages has not served this build yet.' >&2
+          exit 1
+      - name: Verify the published map, QR sharing and evidence
+        run: npm run test:ui
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-browser-evidence
+          path: test-results/
+          retention-days: 14

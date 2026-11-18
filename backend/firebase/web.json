@@ -1,1 +1,5 @@
-{}
+{
+  "apiKey": "AIzaSyAUC7ZDmVk9bv2YBc9vwXpwOO-h1CXQFEE",
+  "projectId": "openseat-25489",
+  "databaseURL": "https://openseat-25489-default-rtdb.firebaseio.com"
+}
