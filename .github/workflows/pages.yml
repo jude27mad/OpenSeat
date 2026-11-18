@@ -17,9 +17,24 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build the emulator-backed test site
+        run: npm run build
+        env:
+          VITE_OPENSEAT_EMULATORS: '1'
       - run: npx playwright install --with-deps chromium webkit
-      - run: npm run test:ui
+      - name: Verify database rules and two-device updates
+        env:
+          VITE_OPENSEAT_EMULATORS: '1'
+        run: ./node_modules/.bin/firebase emulators:exec --project demo-openseat --only auth,database 'node --test tests/firebase/*.test.js && npm run test:ui'
+      - name: Build the production site with its registered Firebase web app
+        if: github.ref == 'refs/heads/main'
+        env:
+          VITE_OPENSEAT_FIREBASE_CONFIG: ${{ vars.OPENSEAT_FIREBASE_CONFIG }}
+        run: npm run build
       - name: Save browser test evidence
         uses: actions/upload-artifact@v4
         if: always()

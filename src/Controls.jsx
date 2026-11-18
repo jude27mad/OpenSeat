@@ -221,8 +221,8 @@ export function FeedControls({
             </div>
           ) : (
             <p>
-              Hardware can post to the operator endpoint described in the
-              repository. The feed stays pending until a sensor sends a reading.
+              The station sends observations using the hardware client in the
+              repository. Its first reading activates this feed.
             </p>
           )}
         </>
