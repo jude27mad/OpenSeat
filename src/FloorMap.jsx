@@ -8,7 +8,7 @@ import { MAX_ZOOM, mapPoints, resolveTap } from './hit.js'
 export const palette = {
   free: { fill: '#3a9d5d', stroke: '#1f6b3b' },
   occupied: { fill: '#f3d2b5', stroke: '#a35a26' },
-  unknown: { fill: '#ffffff', stroke: '#9aa79d' },
+  unknown: { fill: '#ffffff', stroke: '#7c8a80' },
   mixed: { fill: '#d9c7ef', stroke: '#6d4791' },
   inuse: { fill: '#f7e3d1', stroke: '#a35a26' },
   sensorfree: { fill: '#bfe3c9', stroke: '#2f7d49' },
@@ -38,9 +38,11 @@ export function PlanDrawing({
   const selectedPlace = selected && model.locations.get(selected)
   const [px, py] = selectedPlace ? mapPoints.get(selected) : [0, 0]
   // Keep labels, the selection ring and its name tag readable at any size.
-  const textSize = clamp(10 / pxPerUnit, 8, 20)
+  const textSize = clamp(11.5 / pxPerUnit, 8, 24)
   const tag = clamp(1.15 / pxPerUnit, 1, 2.6)
   const ring = clamp(13 / pxPerUnit, 18, 30)
+  // Numbers fit inside each seat once the map is zoomed in far enough.
+  const numbers = labels && pxPerUnit >= 1.3
   return (
     <svg
       ref={svgRef}
@@ -152,11 +154,6 @@ export function PlanDrawing({
                 : undefined
             }
           >
-            {onTap && (
-              <title>
-                {label(p.id) + ' · ' + placeDescription(location) + ' · ' + provenance}
-              </title>
-            )}
             {p.section === 'tables' ? (
               <g>
                 <circle r="15" fill="transparent" />
@@ -182,6 +179,7 @@ export function PlanDrawing({
                   fill={color.fill}
                   stroke={color.stroke}
                   strokeWidth={active ? 2.5 : 1.5}
+                  strokeDasharray={location.status === 'mixed' ? '3 2' : undefined}
                 />
               </g>
             ) : (
@@ -195,9 +193,23 @@ export function PlanDrawing({
                   fill={color.fill}
                   stroke={color.stroke}
                   strokeWidth="1.4"
+                  strokeDasharray={location.status === 'mixed' ? '3 2' : undefined}
                 />
                 <path d="M-4 4h8" stroke={color.stroke} strokeWidth="1.25" />
               </g>
+            )}
+            {numbers && (
+              <text
+                className="plan-number"
+                y={p.section === 'tables' ? 3.4 : 2.6}
+                textAnchor="middle"
+                fontSize={p.section === 'tables' ? 8.5 : 7}
+                fill={location.status === 'free' ? '#fff' : '#22352a'}
+                pointerEvents="none"
+                aria-hidden="true"
+              >
+                {Number(p.id.slice(1))}
+              </text>
             )}
           </g>
         )
@@ -241,7 +253,7 @@ export function PlanDrawing({
  * apart; a tap on a crowded area zooms in there first. Zoom keeps the spot
  * you are looking at in place, and two fingers pinch to zoom.
  */
-export default function FloorMap({ onSelect, focus, ...props }) {
+export default function FloorMap({ onSelect, focus, onPlaced, onShowList, ...props }) {
   const [zoom, setZoom] = useState(1),
     [ppu, setPpu] = useState(1),
     [hint, setHint] = useState(''),
@@ -262,12 +274,17 @@ export default function FloorMap({ onSelect, focus, ...props }) {
     const r = viewport.current.getBoundingClientRect()
     return [r.left + r.width / 2, r.top + r.height / 2]
   }
-  function zoomAt(next, clientX, clientY, target) {
+  // `center` keeps the point in the middle of the map, measured when the zoom
+  // is applied, so a page scroll in between cannot throw it off.
+  function zoomAt(next, clientX, clientY, target, center = false) {
     const z = clamp(next, 1, MAX_ZOOM)
     const at = target || toUnits(clientX, clientY)
-    if (at) anchor.current = { at, clientX, clientY }
+    if (at) anchor.current = { at, clientX, clientY, center, notify: center }
     setZoom(z)
-    if (z === zoomRef.current) place()
+    if (z === zoomRef.current) {
+      place()
+      if (center) onPlaced?.()
+    }
   }
   // Put the anchored plan point back under the finger or at the centre.
   function place() {
@@ -275,15 +292,18 @@ export default function FloorMap({ onSelect, focus, ...props }) {
       m = svg.current?.getScreenCTM(),
       v = viewport.current
     if (!a || !m || !v) return
+    const [cx, cy] = a.center ? viewCenter() : [a.clientX, a.clientY]
     const p = new DOMPoint(a.at[0], a.at[1]).matrixTransform(m)
-    v.scrollLeft += p.x - a.clientX
-    v.scrollTop += p.y - a.clientY
+    v.scrollLeft += p.x - cx
+    v.scrollTop += p.y - cy
     anchor.current = null
   }
   useLayoutEffect(() => {
+    const placing = !!anchor.current?.notify
     place()
     const m = svg.current?.getScreenCTM()
     if (m) setPpu(m.a)
+    if (placing) onPlaced?.()
   }, [zoom])
   useEffect(() => {
     const v = viewport.current
@@ -300,9 +320,8 @@ export default function FloorMap({ onSelect, focus, ...props }) {
     if (!focus || !props.selected) return
     const at = mapPoints.get(props.selected)
     if (!at) return
-    const [cx, cy] = viewCenter()
     const target = Math.max(zoomRef.current, props.selected.startsWith('I') ? 3 : 1.8)
-    zoomAt(target, cx, cy, at)
+    zoomAt(target, 0, 0, at, true)
   }, [focus])
   // Pinch with two fingers; one finger keeps scrolling natively.
   useEffect(() => {
@@ -354,6 +373,12 @@ export default function FloorMap({ onSelect, focus, ...props }) {
   }, [hint])
 
   function onTap(e) {
+    // Keyboard and screen-reader activation has no position: use the marker itself.
+    if (e.detail === 0) {
+      const id = e.target.closest?.('[data-id]')?.getAttribute('data-id')
+      if (id) onSelect(id)
+      return
+    }
     const at = toUnits(e.clientX, e.clientY),
       m = svg.current?.getScreenCTM()
     if (!at || !m) return
@@ -379,9 +404,17 @@ export default function FloorMap({ onSelect, focus, ...props }) {
   }
   return (
     <div className="map-canvas">
+      {onShowList && (
+        <button className="sr-only skip-map" onClick={onShowList}>
+          Browse seats as a list instead of the map
+        </button>
+      )}
       <div
         className={'plan-viewport' + (zoom > 1 ? ' zoomed' : '')}
         ref={viewport}
+        tabIndex={zoom > 1 ? 0 : undefined}
+        role={zoom > 1 ? 'region' : undefined}
+        aria-label={zoom > 1 ? 'Zoomed floor map. Use the arrow keys to move around.' : undefined}
         onPointerDown={(e) => {
           pointer.current = e.pointerType || 'mouse'
         }}
@@ -393,11 +426,9 @@ export default function FloorMap({ onSelect, focus, ...props }) {
           <PlanDrawing {...props} pxPerUnit={ppu} onTap={onTap} svgRef={svg} />
         </div>
       </div>
-      {hint && (
-        <div className="map-hint" role="status">
-          {hint}
-        </div>
-      )}
+      <div className="map-hint-region" role="status" aria-live="polite">
+        {hint && <div className="map-hint">{hint}</div>}
+      </div>
       <div className="map-controls" role="group" aria-label="Map zoom">
         <button
           title="Zoom out"

@@ -15,7 +15,7 @@ import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
 import { label } from './floor.js'
 import { age, fresh, matchesQuery, looksFree, placeDescription, sources } from './model.js'
-import { clock, remaining } from './checkin.js'
+import { clock, endingSoon, remaining } from './checkin.js'
 import { holdsUntil } from './model.js'
 import { Origin } from './SeatDetails.jsx'
 
@@ -35,7 +35,7 @@ export const sourceText = {
 
 export function Legend() {
   return (
-    <div className="legend" aria-label="Map key">
+    <div className="legend" role="group" aria-label="Map key">
       {[
         ['free', 'Free'],
         ['occupied', 'Taken'],
@@ -69,24 +69,40 @@ export function DemoBanner({ onLive }) {
   )
 }
 
-export function CheckInBanner({ checkIns, now, onShow, onCheckOut, busy }) {
+// Not a live region: its countdown changes every minute.
+export function CheckInBanner({ checkIns, now, onShow, onCheckOut, onKeep, busy }) {
   if (!checkIns.length) return null
-  const { seat, event } = checkIns[0]
+  const { seat, event } = checkIns[0],
+    soon = endingSoon(event, now)
   return (
-    <div className="mine-banner" role="status">
+    <section className={'mine-banner' + (soon ? ' soon' : '')} aria-label="Your check-in">
       <Clock3 size={17} />
       <p>
         <b>You're checked in at {label(seat)}</b>
         <small>
-          Held until {clock(holdsUntil(event))} · {remaining(event, now)}
+          {soon ? 'Ending soon: ' : 'Held until '}
+          {soon ? remaining(event, now) : clock(holdsUntil(event)) + ' · ' + remaining(event, now)}
           {checkIns.length > 1 ? ' · and ' + plural(checkIns.length - 1, 'other seat') : ''}
         </small>
       </p>
-      <button onClick={() => onShow(seat)}>Show</button>
-      <button className="solid" disabled={busy} onClick={() => onCheckOut(seat)}>
+      {soon && onKeep ? (
+        <button aria-disabled={busy || undefined} onClick={() => !busy && onKeep(seat)}>
+          Keep it
+        </button>
+      ) : (
+        <button aria-label={'Show ' + label(seat)} onClick={() => onShow(seat)}>
+          Show
+        </button>
+      )}
+      <button
+        className="solid"
+        aria-label={'Check out of ' + label(seat)}
+        aria-disabled={busy || undefined}
+        onClick={() => !busy && onCheckOut(seat)}
+      >
         Check out
       </button>
-    </div>
+    </section>
   )
 }
 
@@ -135,26 +151,31 @@ export function SeatList({
   now,
   selected,
   onShowAll,
+  hiddenBy = [],
+  onReveal,
 }) {
   const spot = query.trim()
-  const rows = [...locations.values()].filter(
-    (p) =>
-      (section === 'all' || section === p.section) &&
-      (filter !== 'free' || looksFree(p)) &&
-      matchesQuery(p, spot),
+  const matching = [...locations.values()].filter((p) => matchesQuery(p, spot))
+  const rows = matching.filter(
+    (p) => (section === 'all' || section === p.section) && (filter !== 'free' || looksFree(p)),
   )
+  // A search that only the filters hide says so, with a way to show it.
+  const hidden = spot && !rows.length && matching.length <= 3 ? matching : []
   if (filter === 'free')
     rows.sort((a, b) => b.tally.free - a.tally.free || a.id.localeCompare(b.id))
   const chosenSeat = spot.toUpperCase().replace(/\s+/g, '')
   return (
-    <div className="seat-list" aria-label="Floor locations">
+    <div className="seat-list">
+      <p className="list-total" role="status" aria-live="polite">
+        {rows.length ? plural(rows.length, 'place') : ''}
+      </p>
       {rows.length ? (
-        <>
-          <p className="list-total">{plural(rows.length, 'place')}</p>
+        <ul aria-label="Floor locations">
           {rows.map((p) => (
+            <li key={p.id}>
             <button
-              key={p.id}
               className={'list-location ' + (selected === p.id ? 'picked' : '')}
+              aria-current={selected === p.id ? 'true' : undefined}
               onClick={() =>
                 onPick(p.id, chosenSeat.startsWith(p.id + '-') ? chosenSeat : null)
               }
@@ -172,12 +193,28 @@ export function SeatList({
               </span>
               <ChevronRight size={16} />
             </button>
+            </li>
           ))}
-        </>
+        </ul>
       ) : (
         <div className="empty">
           <Search size={24} />
-          {spot ? (
+          {hidden.length && hiddenBy.length && onReveal ? (
+            <>
+              <h3>
+                {hidden.map((p) => label(p.id)).join(' and ')}{' '}
+                {hidden.length === 1 ? 'is' : 'are'} hidden by {hiddenBy.join(' and ')}
+              </h3>
+              <p>{hidden.map((p) => label(p.id) + ': ' + placeDescription(p)).join('. ')}.</p>
+              <Button
+                onClick={() =>
+                  onReveal(hidden[0].id, chosenSeat.startsWith(hidden[0].id + '-') ? chosenSeat : null)
+                }
+              >
+                Show {hidden.length === 1 ? 'it' : label(hidden[0].id)}
+              </Button>
+            </>
+          ) : spot ? (
             <>
               <h3>Nothing matches “{spot}”</h3>
               <p>Try a table or seat number, like “table 5” or “seat 12”.</p>
@@ -190,7 +227,7 @@ export function SeatList({
           ) : (
             <h3>No places in this area</h3>
           )}
-          {onShowAll && (filter === 'free' || section !== 'all') && (
+          {onShowAll && !(hidden.length && hiddenBy.length && onReveal) && (filter === 'free' || section !== 'all') && (
             <Button variant="outline" onClick={onShowAll}>
               Show all seats
             </Button>

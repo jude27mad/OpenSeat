@@ -14,6 +14,14 @@ if (emulator) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
 }
 
+// How far this phone's clock is from the server's, so a slow clock does not
+// make a fresh check-in look out of date.
+let offset = 0
+onValue(ref(db, '.info/serverTimeOffset'), (snapshot) => {
+  offset = Number(snapshot.val()) || 0
+})
+export const serverNow = () => Date.now() + offset
+
 let signIn
 async function visitor() {
   await auth.authStateReady()

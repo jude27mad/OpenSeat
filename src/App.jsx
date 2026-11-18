@@ -21,10 +21,10 @@ import {
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
 import { individuals, label, rooms, seats, tables } from './floor.js'
-import { age, derive, fresh, parseSpot, suggestions } from './model.js'
-import { chosenRoom, roomUrl, useFloor } from './session.js'
+import { age, derive, fresh, parseSpot, placeDescription, suggestions } from './model.js'
+import { chosenRoom, roomUrl, serverNow, useFloor } from './session.js'
 import { startScanner } from './ble.js'
-import { activeCheckIn, friendly, myCheckIns, remember } from './checkin.js'
+import { activeCheckIn, friendly, myCheckIns, remember, uncertain } from './checkin.js'
 import FloorMap from './FloorMap.jsx'
 import { FeedControls, QRDialog } from './Controls.jsx'
 import SeatDetails from './SeatDetails.jsx'
@@ -43,14 +43,25 @@ const navigation = [
   ['finder', 'Find a seat', Search],
   ['sources', 'Data sources', Layers],
 ]
-const PHONE = '(max-width: 720px)',
+// Phones held sideways are short rather than narrow, so they keep the phone layout.
+const PHONE = '(max-width: 720px), (max-height: 520px) and (pointer: coarse)',
   DRAWER = '(max-width: 950px)'
 const hash = () => new URLSearchParams(location.hash.slice(1))
 function initial() {
   return chosenRoom(hash().get('floor') === '8')
 }
+// Closing a sheet or the menu steps back in history; the page should stay put.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+// Every history entry OpenSeat writes is marked, so Back and Forward between
+// them restore the screen instead of reloading the floor.
+function push(patch, url = location.href) {
+  history.pushState({ ...history.state, openseat: true, ...patch }, '', url)
+}
+function replace(patch, url = location.href) {
+  history.replaceState({ ...history.state, openseat: true, ...patch }, '', url)
+}
 function setUrl(room, spot, checkin = false) {
-  history.replaceState(history.state, '', roomUrl(room, spot, checkin))
+  replace({}, roomUrl(room, spot, checkin))
 }
 function useMedia(query) {
   const [matches, setMatches] = useState(() => matchMedia(query).matches)
@@ -101,64 +112,114 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
     [query, setQuery] = useState(''),
     [drawer, setDrawer] = useState(false),
     [modal, setModal] = useState(null),
-    [now, setNow] = useState(Date.now),
+    [now, setNow] = useState(serverNow),
     [bridge, setBridge] = useState('')
   const { events, online, record } = useFloor(room),
     model = derive(events, now)
   const [selected, setSelected] = useState(startSpot?.id || null),
-    [seat, setSeat] = useState(() => {
-      if (startSpot?.seat) return startSpot.seat
-      return firstChair(model.locations.get(startSpot?.id || 'T01'), model, now)
-    }),
+    // The chair the student picked. Until they pick one, the best chair is
+    // worked out again from the latest data on every update.
+    [seat, setSeat] = useState(startSpot?.seat || null),
     [sheet, setSheet] = useState(startSpot ? (qrPlace ? 'full' : 'peek') : 'closed'),
     [focus, setFocus] = useState(startSpot ? 1 : 0),
-    [found, setFound] = useState(-1),
+    [headingFocus, setHeadingFocus] = useState(startSpot ? 1 : 0),
+    [seen, setSeen] = useState([]),
+    [findId, setFindId] = useState(null),
+    [menu, setMenu] = useState(!!history.state?.openseatMenu),
+    [announce, setAnnounce] = useState(''),
     [busyMine, setBusyMine] = useState(false),
-    [mineNote, setMineNote] = useState('')
+    [mineNote, setMineNote] = useState(null)
   // Desktop always shows a location in its side panel; the phone starts with none.
   const shownId = selected || (phone ? null : 'T01'),
     place = shownId ? model.locations.get(shownId) : null,
     shownSeat = place && seat?.split('-')[0] === place.id ? seat : place && firstChair(place, model, now)
   const bridgeStop = useRef(null),
-    detail = useRef(null)
+    detail = useRef(null),
+    afterPop = useRef(null),
+    opener = useRef(null),
+    live = useRef({})
+  live.current = { phone, selected }
   const mine = myCheckIns(room, model, now)
   const choices = suggestions(model.locations, now, section)
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 4000)
+    const t = setInterval(() => setNow(serverNow()), 4000)
     return () => {
       clearInterval(t)
       bridgeStop.current?.()
     }
   }, [])
-  // Back and forward move between pages instead of leaving the app.
+  // On a phone, the seat sheet, the menu and List view each get a history
+  // entry, so the Back button closes them before it leaves OpenSeat.
   useEffect(() => {
-    const onPop = () => setPage(history.state?.openseatPage || 'overview')
+    if (phone && startSpot && !history.state?.openseatSheet) {
+      replace({ openseatSheet: undefined }, roomUrl(room))
+      push({ openseatSheet: startSpot.id }, roomUrl(room, startSpot.seat || startSpot.id, !!qrPlace))
+    } else replace({})
+  }, [])
+  useEffect(() => {
+    function onPop() {
+      const s = history.state || {}
+      setPage(s.openseatPage || 'overview')
+      if (!live.current.phone) setFilter(s.openseatPage === 'finder' ? 'free' : 'all')
+      else {
+        setMenu(!!s.openseatMenu)
+        setView(s.openseatView || 'map')
+        if (!s.openseatSheet) {
+          setSheet('closed')
+          setSelected(null)
+          const back = opener.current
+          opener.current = null
+          if (back?.isConnected) requestAnimationFrame(() => back.focus({ preventScroll: true }))
+        } else if (s.openseatSheet !== live.current.selected) {
+          setSelected(s.openseatSheet)
+          setSeat(null)
+          setSheet('peek')
+        }
+      }
+      const then = afterPop.current
+      afterPop.current = null
+      then?.()
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
   useEffect(() => {
     if (!mineNote) return
-    const t = setTimeout(() => setMineNote(''), 5000)
+    const t = setTimeout(() => setMineNote(null), mineNote.undo ? 8000 : 5000)
     return () => clearTimeout(t)
   }, [mineNote])
   useEffect(() => {
+    // Runs before dialogs handle the key, so Escape closes only the top layer.
     function onKey(e) {
-      if (e.key !== 'Escape' || document.querySelector('[role="dialog"]')) return
+      if (e.key !== 'Escape' || document.querySelector('[role="dialog"], .sheet .confirm'))
+        return
       if (drawer) setDrawer(false)
       else if (phone && sheet !== 'closed') close()
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   })
-  useEffect(() => setFound(-1), [section])
+  useEffect(() => setSeen([]), [section])
 
   function pick(id, specific = null, opts = {}) {
     const p = model.locations.get(id)
     setSelected(id)
-    setSeat(specific || firstChair(p, model, now))
-    setUrl(room, specific || id, qrPlace === id)
-    if (phone) setSheet(qrPlace === id ? 'full' : 'peek')
+    setSeat(specific || null)
+    if (!opts.fromFind) setFindId(null)
+    const url = roomUrl(room, specific || id, qrPlace === id)
+    if (phone) {
+      if (sheet === 'closed' || !history.state?.openseatSheet) {
+        opener.current = document.activeElement
+        push({ openseatSheet: id }, url)
+      } else replace({ openseatSheet: id }, url)
+      setSheet(opts.full || qrPlace === id ? 'full' : 'peek')
+    } else replace({}, url)
     if (opts.focus) setFocus((f) => f + 1)
+    if (opts.heading) setHeadingFocus((f) => f + 1)
+    if (phone)
+      setAnnounce(
+        label(id) + ': ' + placeDescription(p) + '. Details are at the bottom of the screen.',
+      )
     if (!phone && opts.scroll && innerWidth <= 850) {
       const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
       setTimeout(
@@ -172,36 +233,99 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
     }
   }
   function close() {
+    if (phone && history.state?.openseatSheet) return history.back()
     setSheet('closed')
     setSelected(null)
+    setFindId(null)
     setUrl(room)
   }
-  function nav(key) {
+  // `then` runs once the page has changed, after any history step settles.
+  function nav(key, then) {
     setDrawer(false)
     if (key === 'finder') setFilter('free')
     else setFilter('all')
     if (key !== page) {
-      if (phone && page === 'sources' && key === 'overview') history.back()
-      else history.pushState({ ...history.state, openseatPage: key }, '', location.href)
+      if (phone && page === 'sources' && history.state?.openseatPage === 'sources') {
+        afterPop.current = then || null
+        history.back()
+        setPage(key)
+        return
+      } else if (phone) {
+        push({ openseatPage: key, openseatSheet: undefined, openseatMenu: undefined })
+        setSheet('closed')
+      } else push({ openseatPage: key })
       setPage(key)
     }
     window.scrollTo({ top: 0 })
+    then?.()
   }
+  function openMenu() {
+    push({ openseatMenu: true })
+    setMenu(true)
+  }
+  // Close the menu first (through history when it has an entry), then act.
+  function closeMenu(then) {
+    if (history.state?.openseatMenu) {
+      afterPop.current = then || null
+      history.back()
+    } else {
+      setMenu(false)
+      then?.()
+    }
+  }
+  function changeView(next) {
+    if (next === view) return
+    if (!phone) return setView(next)
+    if (next === 'list') {
+      if (history.state?.openseatSheet) replace({ openseatView: 'list' })
+      else push({ openseatView: 'list' })
+      setView('list')
+    } else if (history.state?.openseatView === 'list' && !history.state?.openseatSheet) history.back()
+    else {
+      replace({ openseatView: 'map' })
+      setView('map')
+    }
+  }
+  // Each press shows a free spot not shown yet, best first, then starts over.
   function onFind() {
     if (!choices.length) return
-    const next = (found + 1) % choices.length
-    setFound(next)
-    setView('map')
-    pick(choices[next].id, null, { focus: true })
+    const ids = choices.map((c) => c.id)
+    let shown = seen.filter((id) => ids.includes(id))
+    let next = ids.find((id) => !shown.includes(id) && id !== selected)
+    if (!next) {
+      shown = []
+      next = ids.find((id) => id !== selected) || ids[0]
+    }
+    setSeen([...shown, next])
+    setFindId(next)
+    pick(next, null, { focus: true, heading: true, fromFind: true })
+  }
+  const findCount = { at: seen.length, of: choices.length }
+  async function checkInAgain(target) {
+    const id = crypto.randomUUID()
+    remember(room, target, id)
+    setBusyMine(true)
+    try {
+      await record({ source: 'qr', target, value: 'occupied', id })
+      setMineNote({ text: 'You have ' + label(target) + ' for another 60 minutes.' })
+    } catch (e) {
+      if (!uncertain(e)) remember(room, target, null)
+      setMineNote({ text: friendly(e) })
+    } finally {
+      setBusyMine(false)
+    }
   }
   async function checkOutMine(target) {
     setBusyMine(true)
     try {
       await record({ source: 'qr', target, value: 'free' })
       remember(room, target, null)
-      setMineNote('Checked out of ' + label(target) + '. Thanks for freeing it up.')
+      setMineNote({
+        text: 'Checked out of ' + label(target) + '. Thanks for freeing it up.',
+        undo: target,
+      })
     } catch (e) {
-      setMineNote(friendly(e))
+      setMineNote({ text: friendly(e) })
     } finally {
       setBusyMine(false)
     }
@@ -231,11 +355,25 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
           bridge={bridge}
         />
       )}
-      {mineNote && (
-        <p className="floating-note" role="status">
-          {mineNote}
-        </p>
-      )}
+      <div className="floating-note-region" role="status" aria-live="polite">
+        {mineNote && (
+          <p className="floating-note">
+            <span>{mineNote.text}</span>
+            {mineNote.undo && (
+              <button
+                className="toast-undo"
+                onClick={() => {
+                  const target = mineNote.undo
+                  setMineNote(null)
+                  checkInAgain(target)
+                }}
+              >
+                Undo
+              </button>
+            )}
+          </p>
+        )}
+      </div>
     </>
   )
 
@@ -255,7 +393,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
             seat: shownSeat,
             setSeat: (id) => {
               setSeat(id)
-              setUrl(room, id, qrPlace === place?.id)
+              replace({}, roomUrl(room, id, qrPlace === place?.id))
             },
             pick,
             qrPlace,
@@ -264,7 +402,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
             setSheet,
             focus,
             view,
-            setView,
+            setView: changeView,
             filter,
             setFilter,
             section,
@@ -278,9 +416,16 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
             checkOutMine,
             busyMine,
             onFind,
-            found,
+            findCount,
+            fromFind: !!findId && findId === selected,
             choices: choices.length,
             close,
+            menu,
+            openMenu,
+            closeMenu,
+            announce,
+            headingFocus,
+            checkInAgain,
           }}
         />
         {dialogs}
@@ -400,6 +545,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
             pick(s.split('-')[0], s)
           }}
           onCheckOut={checkOutMine}
+          onKeep={checkInAgain}
         />
         <main>
           <div className="page-lead">
@@ -560,13 +706,13 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                     {...{ model, section, filter, now, focus }}
                     selected={shownId}
                     onSelect={(id) => pick(id, null, { scroll: true })}
+                    onShowList={() => setView('list')}
                   />
                 )}
                 <Legend />
               </Card>
               <div ref={detail} className="inspector-wrap">
                 <SeatDetails
-                  key={shownSeat}
                   {...{ room, place, model, now, record }}
                   seat={shownSeat}
                   canCheckIn={qrPlace === shownId}
@@ -633,15 +779,27 @@ function readEntry() {
   }
 }
 export default function App() {
-  const [entry, setEntry] = useState(readEntry)
+  const [entry, setEntry] = useState(readEntry),
+    current = useRef(entry)
+  current.current = entry
   useEffect(() => {
-    const onHash = () => setEntry(readEntry())
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
+    // Back and Forward within OpenSeat are handled by the dashboard. A new
+    // link (a QR scan in this tab) or a different floor starts afresh.
+    const onNav = () => {
+      const next = readEntry()
+      if (next.room.id !== current.current.room.id || !history.state?.openseat) setEntry(next)
+    }
+    window.addEventListener('hashchange', onNav)
+    window.addEventListener('popstate', onNav)
+    return () => {
+      window.removeEventListener('hashchange', onNav)
+      window.removeEventListener('popstate', onNav)
+    }
   }, [])
+  // Switching floors is a step of its own, so Back returns to the last floor.
   function changeRoom(live, newSession = false) {
     const next = chosenRoom(live, newSession)
-    setUrl(next)
+    history.pushState({ openseat: true }, '', roomUrl(next))
     setEntry({ room: next, spot: null, qrPlace: null })
   }
   return (

@@ -86,14 +86,29 @@ test('A chair can be free at a table that is in use', () => {
   assert.equal(m.locations.get('T08').status, 'free')
   assert.equal(m.counts.free, 1)
 })
-test('Conflicting fresh sources show both observations', () => {
-  const m = derive(
-    [event('qr', 'I020', 'occupied'), event('report', 'I020', 'free', 100)],
+test('The newer of a report and a check-in wins, and both stay as evidence', () => {
+  const released = derive(
+    [event('qr', 'I020', 'occupied', 60000), event('report', 'I020', 'free', 100)],
     now,
   )
-  assert.equal(m.states.get('I020').status, 'mixed')
-  assert.equal(m.states.get('I020').evidence.length, 2)
-  assert.equal(m.counts.mixed, 1)
+  assert.equal(released.states.get('I020').status, 'free')
+  assert.equal(released.states.get('I020').evidence.length, 2)
+  assert.equal(released.counts.free, 1)
+  const seated = derive(
+    [event('report', 'I020', 'free', 60000), event('qr', 'I020', 'occupied', 100)],
+    now,
+  )
+  assert.equal(seated.states.get('I020').status, 'occupied')
+})
+test('A table sensor that disagrees with every chair still shows mixed reports', () => {
+  const m = derive(
+    [
+      ...['A', 'B', 'C', 'D'].map((c) => event('report', 'T08-' + c, 'free')),
+      event('sensor', 'T08', 'occupied'),
+    ],
+    now,
+  )
+  assert.equal(m.locations.get('T08').status, 'mixed')
 })
 test('Evidence expires at the specified boundary and retains its source and age', () => {
   const stale = event('report', 'I020', 'free', ttl.report)
@@ -193,4 +208,13 @@ test('Suggestions put the most free chairs first and include tables a sensor rep
   )
   assert.deepEqual(suggestions(m.locations, now).map((p) => p.id), ['T09', 'T03', 'T30'])
   assert.deepEqual(suggestions(m.locations, now, 'individuals'), [])
+})
+test('A tap between two round tables zooms in instead of guessing', async () => {
+  const { resolveTap, mapPoints } = await import('../src/hit.js')
+  const [ax, ay] = mapPoints.get('T13'),
+    [bx, by] = mapPoints.get('T14')
+  const between = [ax + (bx - ax) * 0.4, ay + (by - ay) * 0.4]
+  assert.equal(resolveTap({ at: between, pxPerUnit: 0.48, zoom: 1, touch: true }).action, 'zoom')
+  // A tap on the table itself still opens it at once.
+  assert.equal(resolveTap({ at: [ax + 2, ay], pxPerUnit: 0.48, zoom: 1, touch: true }).id, 'T13')
 })

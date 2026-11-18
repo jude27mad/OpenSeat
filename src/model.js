@@ -79,9 +79,13 @@ export function resolveSeat(events, now) {
       latest: ordered[0],
       stale: !!ordered.length,
     }
+  // A student's report and a check-in describe the same moment-to-moment fact,
+  // so the newer one wins: a confirmed "It's free" clears an abandoned check-in,
+  // and checking in after a free report shows the seat as taken.
+  const people = active.filter((e) => e.source === 'report' || e.source === 'qr')
+  const kept = people.length ? [people[0], ...active.filter((e) => !people.includes(e))] : active
   return {
-    status:
-      new Set(active.map((e) => e.value)).size > 1 ? 'mixed' : active[0].value,
+    status: new Set(kept.map((e) => e.value)).size > 1 ? 'mixed' : kept[0].value,
     evidence: ordered,
     latest: active[0],
     stale: false,

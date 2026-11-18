@@ -90,10 +90,10 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   )
   await page.getByRole('button', { name: "It's free", exact: true }).click()
   await page.getByRole('button', { name: "Yes, it's empty" }).click()
-  await expect(phone.locator('.seat-reading .status')).toHaveText(
-    'Mixed reports',
-    { timeout: 10000 },
-  )
+  // A confirmed free report clears the check-in for everyone else; the
+  // student who checked in is told and can keep the chair or check out.
+  await expect(phone.locator('.seat-reading .status')).toHaveText('Free', { timeout: 10000 })
+  await expect(phone.locator('.sheet')).toContainText('Someone marked your chair free')
   await expect(phone.locator('.mine-banner')).toContainText(
     "You're checked in at Table 17 · Chair B",
   )

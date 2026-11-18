@@ -23,6 +23,8 @@ export const MAX_ZOOM = 4
 const FINGER = 20
 // Spacing to aim for after a tap zooms into a crowded area.
 const COMFORT = 34
+// Below this spacing an in-between tap is a guess, so it zooms instead.
+const ROOMY = 32
 
 /*
  * Decide what a tap at `at` (plan units) means.
@@ -38,10 +40,18 @@ export function resolveTap({ at, pxPerUnit, zoom, touch, dim = () => false }) {
       return { id: p.id, d: Math.hypot(px - x, py - y) * pxPerUnit }
     })
     .sort((a, b) => a.d - b.d)
-  const nearest = near[0]
+  const nearest = near[0],
+    second = near[1]
   if (!nearest) return { action: 'none' }
   const gap = spacing.get(nearest.id) * pxPerUnit
-  if (touch && gap < FINGER && zoom < MAX_ZOOM && nearest.d < FINGER * 1.5)
+  // Zoom first when neighbours are too close for a fingertip, or when the tap
+  // lands between two places that are only a little further apart.
+  const between = gap < ROOMY && second && second.d < nearest.d * 1.5 + 4
+  if (
+    touch &&
+    zoom < MAX_ZOOM &&
+    ((gap < FINGER && nearest.d < FINGER * 1.5) || (between && nearest.d < gap))
+  )
     return {
       action: 'zoom',
       zoom: Math.min(MAX_ZOOM, Math.max(zoom * 1.5, (zoom * COMFORT) / gap)),

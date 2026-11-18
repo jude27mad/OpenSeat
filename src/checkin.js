@@ -1,52 +1,79 @@
 import { seats } from './floor.js'
-import { fresh, holdsUntil } from './model.js'
+import { fresh, holdsUntil, ttl } from './model.js'
 
 export const ownedKey = (room, seat) => 'openseat.owned.' + room.id + '.' + seat
 
+// Kept in memory as well, so a check-in stays yours when storage is blocked.
+const memory = new Map()
 function stored(room, seat) {
+  const key = ownedKey(room, seat)
   try {
-    return localStorage.getItem(ownedKey(room, seat))
+    return localStorage.getItem(key) ?? memory.get(key) ?? null
   } catch {
-    return null
+    return memory.get(key) ?? null
   }
 }
 export function remember(room, seat, id) {
+  const key = ownedKey(room, seat)
+  if (id) memory.set(key, id)
+  else memory.delete(key)
   try {
-    if (id) localStorage.setItem(ownedKey(room, seat), id)
-    else localStorage.removeItem(ownedKey(room, seat))
+    if (id) localStorage.setItem(key, id)
+    else localStorage.removeItem(key)
   } catch {
     /* Storage can be unavailable in private mode. */
   }
 }
 
-// The live check-in on a seat, whoever made it.
-export function activeCheckIn(state, now) {
+// The newest check-in on a seat while it still holds the seat, whoever made it.
+function liveCheckIn(state, now) {
   const qr = state?.evidence.find((e) => e.source === 'qr' && !e.fixture)
   return qr && qr.value === 'occupied' && fresh(qr, now) ? qr : null
 }
+// A student confirmed the seat is empty after this check-in was made.
+export function released(state, qr, now) {
+  return !!state?.evidence.some(
+    (e) => e.source === 'report' && e.value === 'free' && e.at > qr.at && fresh(e, now),
+  )
+}
+// The check-in that is holding a seat for someone, if any.
+export function activeCheckIn(state, now) {
+  const qr = liveCheckIn(state, now)
+  return qr && !released(state, qr, now) ? qr : null
+}
+// This browser's own check-in, even if someone has since reported the seat free.
 export function ownCheckIn(room, seat, state, now) {
-  const qr = activeCheckIn(state, now)
+  const qr = liveCheckIn(state, now)
   return qr && stored(room, seat) === qr.id ? qr : null
 }
-// Every seat this browser currently holds on this floor.
+// Every seat this browser currently holds on this floor, newest first.
 export function myCheckIns(room, model, now) {
   return seats
     .map((seat) => ({ seat, event: ownCheckIn(room, seat, model.states.get(seat), now) }))
     .filter((c) => c.event)
+    .sort((a, b) => b.event.at - a.event.at)
 }
 
 export const clock = (at) =>
   new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 export function remaining(event, now) {
-  const minutes = Math.max(1, Math.ceil((holdsUntil(event) - now) / 60000))
+  const minutes = Math.min(
+    ttl.qr / 60000,
+    Math.max(1, Math.ceil((holdsUntil(event) - now) / 60000)),
+  )
   return minutes + ' min left'
 }
+// Under ten minutes left: worth offering to keep the seat.
+export const endingSoon = (event, now) => holdsUntil(event) - now < 10 * 60000
+
+// Errors where the request never got a definite answer.
+export const uncertain = (error) =>
+  /network|fetch|timed? ?out|offline|load failed|abort/i.test(String(error?.message || error || ''))
 
 // Turn transport and service errors into something a student can act on.
 export function friendly(error) {
   const text = String(error?.message || error || '')
-  if (/network|fetch|timed? ?out|offline|load failed|abort/i.test(text))
-    return 'Could not reach OpenSeat. Check your connection and try again.'
+  if (uncertain(error)) return 'Could not reach OpenSeat. Check your connection and try again.'
   if (/belongs to another browser|already ended/i.test(text))
     return 'Someone else is checked in to this seat, or your check-in has already ended.'
   if (/declined/i.test(text)) return 'That update was not accepted. Please try again.'

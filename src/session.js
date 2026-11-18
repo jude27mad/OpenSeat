@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { merge, seedDemo } from './model.js'
-import { sendObservation, watchFloor } from './firebase.js'
+import { sendObservation, serverNow, watchFloor } from './firebase.js'
+export { serverNow }
 const SESSION = 'openseat.room.v1',
   uuid =
     /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i
@@ -28,8 +29,11 @@ export function chosenRoom(live = false, forceNew = false) {
     uuid.test(id || '') &&
     anchor > 0 &&
     anchor <= Date.now() + 60000
-  )
+  ) {
+    // Remember a demo opened from a link, so Live floor and back returns to it.
+    if (Date.now() - anchor < 6 * 3600000) set(SESSION, { id, anchor })
     return { id, anchor }
+  }
   const existing = get(SESSION)
   if (!forceNew && existing && Date.now() - existing.anchor < 6 * 3600000)
     return existing
