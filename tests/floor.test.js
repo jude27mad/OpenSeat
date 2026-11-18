@@ -59,7 +59,12 @@ test('Historical Bluetooth readings do not become fresh through replay', () => {
     observation([{ addr: 'x', rssi: -68, measuredAt: now - ttl.ble }], now),
   )
   assert.deepEqual(
-    observation([{ addr: 'a', rssi: -75, measuredAt: now }], now),
+    observation([
+      { addr: 'a', rssi: -75, measuredAt: now },
+      { addr: 'stale', rssi: -62, measuredAt: now - ttl.ble },
+      { addr: 'future', rssi: -60, measuredAt: now + 60000 },
+      { addr: 'undated', rssi: -68 },
+    ], now),
     { value: 1, measuredAt: now },
   )
 })

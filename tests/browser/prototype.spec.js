@@ -3,12 +3,26 @@ import { randomUUID } from 'node:crypto'
 import { PNG } from 'pngjs'
 import jsQR from 'jsqr'
 const demo = () => './#demo=' + randomUUID() + '&start=' + Date.now()
+function observeService(page, label) {
+  page.on('requestfailed', (request) => {
+    const path = new URL(request.url()).pathname
+    if (path.startsWith('/_api/'))
+      console.log(label, path, request.failure()?.errorText)
+  })
+  page.on('response', (response) => {
+    const path = new URL(response.url()).pathname
+    if (path.startsWith('/_api/') && !response.ok())
+      console.log(label, path, response.status())
+  })
+  page.on('pageerror', (error) => console.log(label, error.message))
+}
 test('Floor inventory, filter and independent mobile QR session use all four sources', async ({
   page,
-  browser,
+  playwright,
   baseURL,
 }, testInfo) => {
   const roomUrl = demo()
+  observeService(page, 'desktop')
   await page.goto(roomUrl)
   await expect(
     page.getByRole('heading', { name: 'Floor overview' }),
@@ -37,12 +51,13 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   const decoded = jsQR(new Uint8ClampedArray(png.data), png.width, png.height)
   expect(decoded.data).toContain('spot=T17')
   expect(decoded.data).toContain('checkin=1')
-  const mobile = await browser.newContext({
+  const mobileBrowser = await playwright.webkit.launch()
+  const mobile = await mobileBrowser.newContext({
     ...devices['iPhone 13'],
-    defaultBrowserType: 'chromium',
     baseURL,
   })
   const phone = await mobile.newPage()
+  observeService(phone, 'mobile')
   await phone.goto(decoded.data)
   await phone.getByRole('button', { name: /^Chair B,/ }).click()
   await expect(
@@ -114,6 +129,7 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
     fullPage: true,
   })
   await mobile.close()
+  await mobileBrowser.close()
 })
 test('Live floor contains no demonstration fixtures', async ({ page }) => {
   await page.goto('./#floor=8')

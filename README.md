@@ -25,7 +25,7 @@ Each location retains the latest observation from each source. Fresh, contradict
 
 React, shadcn/ui primitives, Tailwind, Vite, GitHub Actions and GitHub Pages. A separately hosted Floot service persists observations in PostgreSQL and sends changes over WebSocket. The repository includes the endpoint implementation and database schema under `backend/`. QR links work on GitHub Pages project paths without a server rewrite.
 
-Use Node 22.12+ or 24. Run `npm ci`, then `npm run dev`. Run `npm test` for the model suite and `npm run build` for the production bundle. Run `npx playwright install chromium` followed by `npm run test:ui` for the browser flow against an isolated demo session on the hosted API. GitHub Actions runs these checks on changes. No API key is needed for the demo.
+Use Node 22.12+ or 24. Run `npm ci`, then `npm run dev`. Run `npm test` for the model suite and `npm run build` for the production bundle. Run `npx playwright install chromium webkit` followed by `npm run test:ui` for the desktop Chromium and mobile WebKit flow against an isolated demo session on the hosted API. GitHub Actions runs these checks on changes. No API key is needed for the demo.
 
 ## Connect a real input
 

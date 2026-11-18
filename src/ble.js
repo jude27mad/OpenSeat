@@ -2,20 +2,23 @@ import { scanCount, ttl } from './model.js'
 
 // BLE2MQTT exports a full scan with local wall-clock times. A station can also send epoch milliseconds.
 export function observation(rows, now = Date.now()) {
-  const value = scanCount(rows)
-  const times = rows
-    .map((row) => {
-      if (Number.isSafeInteger(row.measuredAt)) return row.measuredAt
-      if (typeof row.time !== 'string') return NaN
-      const t = Date.parse(row.time.replace(' ', 'T'))
-      return t + (row.msec && /^\d{1,3}$/.test(row.msec) ? Number(row.msec) : 0)
-    })
-    .filter(Number.isFinite)
-  if (!times.length) throw Error('The scanner message has no measurement time.')
-  const measuredAt = Math.max(...times)
-  if (measuredAt > now + 5000 || now - measuredAt >= ttl.ble)
+  if (!Array.isArray(rows) || rows.length > 20000)
+    throw Error('Select one BLE2MQTT JSON scan array.')
+  const recent = []
+  let measuredAt = -Infinity
+  for (const row of rows) {
+    let stamp = row?.measuredAt
+    if (!Number.isSafeInteger(stamp) && typeof row?.time === 'string') {
+      stamp = Date.parse(row.time.replace(' ', 'T'))
+      if (/^\d{1,3}$/.test(row.msec)) stamp += Number(row.msec)
+    }
+    if (!Number.isSafeInteger(stamp) || stamp > now + 5000 || now - stamp >= ttl.ble) continue
+    measuredAt = Math.max(measuredAt, stamp)
+    recent.push(row)
+  }
+  if (!recent.length)
     throw Error('Skipped an old scanner message. Waiting for a current scan.')
-  return { value, measuredAt }
+  return { value: scanCount(recent), measuredAt }
 }
 export async function startScanner(
   { token, topic, section, feedKey },
