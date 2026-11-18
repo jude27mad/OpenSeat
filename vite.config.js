@@ -8,6 +8,29 @@ import { marked } from 'marked'
 
 const evidence = fileURLToPath(new URL('./docs/prototype-evidence.md', import.meta.url))
 
+const detailRenderer = new marked.Renderer()
+detailRenderer.table = function ({ header, rows }) {
+  const renderInline = (cell) => this.parser.parseInline(cell.tokens)
+  const headings = header.map((cell) =>
+    `<th scope="col" role="columnheader">${renderInline(cell)}</th>`,
+  ).join('')
+  const body = rows.map(([title, ...cells]) => {
+    const details = cells.map((cell, index) => {
+      const text = renderInline(cell)
+      if (header[index + 1].text === 'Result') {
+        const passed = cell.text === 'Pass' ? ' passed' : ''
+        return `<td role="cell"><span class="test-result${passed}">${text}</span></td>`
+      }
+      return `<td role="cell">${text}</td>`
+    }).join('')
+    return `<tr role="row"><th scope="row" role="rowheader">${renderInline(title)}</th>${details}</tr>`
+  }).join('\n')
+  return `<table class="detail-table" role="table">
+    <thead role="rowgroup"><tr role="row">${headings}</tr></thead>
+    <tbody role="rowgroup">${body}</tbody>
+  </table>`
+}
+
 function renderEvidence() {
   const source = readFileSync(evidence, 'utf8')
   // The source lives under docs/. Resolve its images from the public evidence page.
@@ -21,7 +44,8 @@ function renderEvidence() {
   return source.split(/(?=^## )/m).map((section) => {
     const title = section.match(/^## (.+)/)?.[1]
     const id = title?.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-    const html = marked.parse(section, options)
+    const stackedOnMobile = id === 'build-plan-and-materials' || id === 'verification'
+    const html = marked.parse(section, stackedOnMobile ? { ...options, renderer: detailRenderer } : options)
     return id ? `<section id="${id}">${html}</section>` : html
   }).join('\n')
 }

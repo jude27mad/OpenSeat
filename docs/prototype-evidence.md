@@ -20,9 +20,9 @@ The planned phone, iPad, floor drawing and BLE2MQTT scans were already available
 
 ## Process evidence
 
-**Stage 1.** The layout component rendered with every chair unknown, before attaching the dashboard. Table positions follow the supplied drawing. Seat and table IDs are prototype assignments. Two small rectangular outlines in the drawing remained unassigned to match the supplied inventory of 90 individual seats.
+**Stage 1.** The floor-plan component is shown on its own with every chair marked Unknown. Table positions follow the supplied drawing. Seat and table IDs are prototype assignments. Two small rectangular outlines in the drawing remained unassigned to match the supplied inventory of 90 individual seats.
 
-![Floor 8 geometry during the initial layout stage](evidence/01-floor-trace.png)
+![Floor 8 plan with all chairs marked unknown](evidence/01-floor-trace.png)
 
 **Stage 2.** The integrated demo shows floor totals, area device count, selectable furniture, individual chairs, provenance and age. Live and demo sessions use different data. Each sample observation is explicitly labelled simulated.
 
