@@ -6,12 +6,12 @@ const demo = () => './#demo=' + randomUUID() + '&start=' + Date.now()
 function observeService(page, label) {
   page.on('requestfailed', (request) => {
     const path = new URL(request.url()).pathname
-    if (path.startsWith('/_api/'))
+    if (path.endsWith('.json'))
       console.log(label, path, request.failure()?.errorText)
   })
   page.on('response', (response) => {
     const path = new URL(response.url()).pathname
-    if (path.startsWith('/_api/') && !response.ok())
+    if (path.endsWith('.json') && !response.ok())
       console.log(label, path, response.status())
   })
   page.on('pageerror', (error) => console.log(label, error.message))

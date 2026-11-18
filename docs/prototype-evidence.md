@@ -46,13 +46,15 @@ These readings support a working threshold for the prototype. They were collecte
 
 ## Verification
 
+The current release uses Firebase Realtime Database on the Spark plan. The migration preserved all 38 observations and their timestamps across 10 demo sessions. The release check opens the published dashboard in desktop Chromium and mobile WebKit, follows a generated table QR code, verifies that both browsers see the same chair updates, and opens this evidence page. It uses a new demo session for each run. [View release checks and browser screenshots](https://github.com/jude27mad/OpenSeat/actions/workflows/pages.yml)
+
 | Criterion | Result | Evidence |
 | --- | --- | --- |
 | All 250 open seats accounted for and 20 bookable rooms excluded | Pass | Automated inventory and total checks. An empty live data set produces 250 unknown seats. |
 | Inclusive −75 dBm threshold, within-scan deduplication and historical replay handling | Pass | Automated model tests covered −76, −75 and stronger readings, repeated identifiers and expired measurements. |
-| All four inputs persist in one session | Pass | The deployed API returned the QR, report, sensor and Bluetooth observations together. The runtime rejected another browser ticket’s checkout with HTTP 409 and accepted the original ticket’s checkout. |
-| A check-in appears on a second screen within 10 seconds | Pass | In a shared demo on the published site, the second browser showed Occupied 1.38 seconds after check-in. A free report showed Conflicting. After the original browser checked out, the chair showed Available. The two browsers used independent storage. |
-| A phone-sized browser can use the generated table QR and read the map without horizontal scrolling | Pass | GitHub Actions decoded the QR image, checked a chair in using mobile WebKit and saw it update in desktop Chromium in 1.46 seconds. It also verified that the mobile page fit its viewport. [Browser test run](https://github.com/jude27mad/OpenSeat/actions/runs/44208568779) |
+| All four inputs persist in one session | Pass | The original Floot API returned QR, report, sensor and Bluetooth observations together. It rejected another browser’s checkout with HTTP 409 and accepted the original browser’s ticket. The Firebase rules tests also verify checkout ownership. |
+| A check-in appears on a second screen within 10 seconds | Pass | During the original Floot-backed demo on the published site, the second browser showed Occupied 1.38 seconds after check-in. A free report showed Conflicting. After the original browser checked out, the chair showed Available. The two browsers used independent storage. |
+| A phone-sized browser can use the generated table QR and read the map without horizontal scrolling | Pass | In the original Floot-backed build, GitHub Actions decoded the QR image, checked a chair in using mobile WebKit and saw it update in desktop Chromium in 1.46 seconds. It also verified that the mobile page fit its viewport. [Browser test run](https://github.com/jude27mad/OpenSeat/actions/runs/44208568779) |
 | Section and table signals do not create fake seat counts | Pass | A section count of 128 alongside an occupied table sensor left all 250 chairs unknown without chair-level reports. A separate free chair remained available at a table in use. |
 | Recent disagreement is visible and expired evidence gives unknown | Pass | Automated model tests checked both sources for a conflict and retained the stale report’s source and age. |
 | Solo student can choose a real open spot within 10 seconds before walking | Not measured | This requires a participant timing and an on-site observation of the chosen seat. |

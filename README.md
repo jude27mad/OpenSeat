@@ -23,19 +23,20 @@ Each location retains the latest observation from each source. Fresh, contradict
 
 ## Implementation and deployment
 
-React, shadcn/ui primitives, Tailwind, Vite, GitHub Actions and GitHub Pages. A separately hosted Floot service persists observations in PostgreSQL and sends changes over WebSocket. The repository includes the endpoint implementation and database schema under `backend/`. QR links work on GitHub Pages project paths without a server rewrite.
+GitHub Pages serves the React dashboard and evidence. Firebase Realtime Database on Spark streams each room’s latest observations. Visitors can read the map immediately. On the first write, Firebase Authentication assigns the browser an anonymous identity so the same visitor can release their chair. Users never have to register. The public readings contain a source, target, observation ID, value, time and simulation flag. QR ownership and station authorization are private.
 
-Use Node 22.12+ or 24. Run `npm ci`, then `npm run dev`. Run `npm test` for the model suite and `npm run build` for the production bundle. Run `npx playwright install chromium webkit` followed by `npm run test:ui` for the desktop Chromium and mobile WebKit flow against an isolated demo session on the hosted API. GitHub Actions runs these checks on changes. No API key is needed for the demo.
+Use Node 22.12+ or 24 and Java 21. Run `npm ci` and `npm test`. To work locally, start `npx firebase emulators:start --project demo-openseat --only auth,database` and run `VITE_OPENSEAT_EMULATORS=1 npm run dev` in another terminal. `npm run test:firebase` starts a fresh emulator for the ownership, validation, retry and station tests. GitHub Actions runs the mobile WebKit and desktop Chromium sharing test against the emulators before a Pages release.
+
+The public web settings (apiKey, projectId and databaseURL) belong in `backend/firebase/web.json`. A deployment can override them with the `OPENSEAT_FIREBASE_CONFIG` GitHub repository variable. A production build requires registered settings. On the Firebase project, enable Realtime Database and anonymous authentication, then publish the access rules with `npx firebase deploy --only database --project PROJECT_ID`. GitHub Pages remains the public address for both the dashboard and its QR codes.
 
 ## Connect a real input
 
 The iPhone publishes a full BLE2MQTT scan array to its own exact MQTT topic. Under **Device inputs → Bluetooth**, select the scanner’s actual section and enter a flespi token with read access to that topic. Keep the dashboard open as the bridge. It reduces the scan locally and sends only the count and measurement time. Saved JSON can also be counted locally. Scanner and bridge use the same local timezone for exports without an offset. Pasting a saved scan never updates live occupancy.
 
-A physical table station sends a JSON observation to the endpoint below. Generate a stable UUID per measurement for retry. Set the same private `OPENSEAT_FEED_KEY` on the backend and station before posting to the live floor. Supply absolute measurement time in Unix milliseconds. An operator can also enter that key when using the live browser bridge. Use an environment secret on the station. No sensor credentials belong in the frontend bundle.
+A physical table station runs `node backend/firebase/station.mjs` with `OPENSEAT_FEED_KEY` in its environment. On the database, an administrator sets the private `/private/feedDigest` to the lowercase hex SHA-256 of that key. The same key authorizes the iPhone bridge. The database checks it on every live hardware write, so replacing the digest revokes earlier station authorizations.
 
-```text
-POST https://openseat-slc-data.floot.app/_api/seat-update
-Content-Type: text/plain;charset=UTF-8
-```
+The station reads one JSON object per line on standard input. Each line supplies a stable UUIDv4 `id`, a `source` of `sensor` or `ble`, its mapped `target`, a `value`, and `measuredAt` in Unix milliseconds. A sensor reports `free` or `occupied` for T01–T40 or I001–I090. Bluetooth reports an integer count for `tables` or `individuals`. Keep the process open between measurements and reuse the original ID and time if retrying a sample.
 
-The JSON object contains `room` (`floor8`), `source` (`sensor` or `ble`), `target` (`T01`–`T40`, `I001`–`I090`, or section `tables`/`individuals` for Bluetooth), `value` (`occupied`/`free` or device count), `id` (UUIDv4), `measuredAt` and `feedKey`. No raw Bluetooth names or addresses are retained. The frontend service URL can be overridden at build time with `VITE_OPENSEAT_API`.
+## Moving existing sessions
+
+The owner can run `node backend/firebase/import-archive.mjs < private-export.json` with an authenticated Google Cloud CLI or an administrator access token in `GOOGLE_OAUTH_ACCESS_TOKEN`. Export the original database rows with room, source, target, value, at (Unix milliseconds), simulated, id and owner_hash. Keep the export private. The importer preserves times and QR ownership and can be rerun while newer observations arrive. The original service implementation is archived under `backend/floot`.

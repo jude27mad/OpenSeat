@@ -1,0 +1,64 @@
+// Shared by the dashboard and the hardware station client. Only aggregates leave the scanner.
+export async function digest(text) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+export function databaseRequest(settings, emulator, path, token, options = {}) {
+  const url = emulator
+    ? new URL(path + '.json', 'http://127.0.0.1:9000')
+    : new URL(path + '.json', settings.databaseURL)
+  if (emulator) url.searchParams.set('ns', 'demo-openseat-default-rtdb')
+  if (token) url.searchParams.set('auth', token)
+  return fetch(url, {
+    cache: 'no-store',
+    credentials: 'omit',
+    referrerPolicy: 'no-referrer',
+    signal: AbortSignal.timeout(12000),
+    ...options,
+  })
+}
+
+export async function postObservation({ request, room, uid, input, previousTicket }) {
+  const { source, target, value, measuredAt, simulated = false, id = crypto.randomUUID() } = input
+  const isDevice = source === 'sensor' || source === 'ble'
+  const event = { id, value, simulated, at: isDevice && !simulated ? measuredAt : { '.sv': 'timestamp' } }
+  const eventPath = 'events/' + source + '/' + target
+  const roomPath = '/rooms/' + room
+  const patch = { [eventPath]: event }
+  if (source === 'qr') {
+    const claim = { uid, id }
+    if (previousTicket) claim.previous = await digest(previousTicket)
+    patch['owners/' + target] = claim
+  }
+  const result = await request(roomPath, { method: 'PATCH', body: JSON.stringify(patch) })
+  if (result.ok) {
+    const response = await result.json()
+    const saved = response.events?.[source]?.[target] ?? response[eventPath]
+    if (saved?.id !== id || !Number.isFinite(saved.at)) throw new Error('The shared service did not confirm this observation.')
+    return { ...saved, source, target }
+  }
+  if (result.status === 401 || result.status === 403) {
+    // Rules reject duplicate IDs. A station may have lost the first acknowledgement.
+    const response = await request(roomPath + '/' + eventPath)
+    const prior = response.ok ? await response.json() : null
+    if (prior?.id === id && prior.value === value && prior.simulated === simulated &&
+        (!isDevice || simulated || prior.at === measuredAt)) return { ...prior, source, target }
+    if (source === 'qr') throw new Error('This check-in belongs to another browser or has already ended.')
+    if (isDevice) throw new Error('Reading declined. Check the station authorization, target and measurement time.')
+    throw new Error('The shared map declined this observation.')
+  }
+  throw new Error('The shared service could not save this update.')
+}
+
+export function stationPairing() {
+  let last
+  return async (request, uid, key) => {
+    if (!key) throw new Error('Enter the OpenSeat operator key for this live feed.')
+    const proof = await digest(key)
+    if (last?.uid === uid && last.proof === proof) return
+    const response = await request('/private/stations/' + uid, { method: 'PUT', body: JSON.stringify(proof) })
+    if (!response.ok) throw new Error('The live feed could not verify the operator key.')
+    last = { uid, proof }
+  }
+}
