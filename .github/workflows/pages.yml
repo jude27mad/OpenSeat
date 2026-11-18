@@ -80,7 +80,10 @@ jobs:
             echo 'A newer main commit owns the next release.'
             exit 0
           fi
-          rsync -a --delete --exclude='/.git/' --exclude='/.github/' --exclude='/CNAME' ../build/ ./
+          # Compare contents even when a rebuilt HTML file has the same size and timestamp.
+          rsync -a --checksum --delete --exclude='/.git/' --exclude='/.github/' --exclude='/CNAME' ../build/ ./
+          cmp ../build/index.html index.html
+          cmp ../build/evidence/index.html evidence/index.html
           touch .nojekyll
           git add --all
           if ! git diff --cached --quiet; then
