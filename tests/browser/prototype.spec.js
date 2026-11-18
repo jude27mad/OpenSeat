@@ -48,7 +48,6 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   await page.getByRole('button', { name: 'Show table QR code' }).click()
   const img = page.getByRole('img', { name: 'QR code for Table 17' })
   await expect(img).toBeVisible()
-  await page.screenshot({ path: testInfo.outputPath('table-qr.png'), animations: 'disabled' })
   const png = PNG.sync.read(
     Buffer.from((await img.getAttribute('src')).split(',')[1], 'base64'),
   )
