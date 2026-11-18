@@ -27,16 +27,16 @@ const event = (source, target, value, offset = 0) => ({
   value,
   at: now - offset,
 })
-test('Floor 8 has exactly 250 distinct open seats and 20 separate rooms', () => {
+test('Floor 8 has exactly 252 distinct open seats and 20 separate rooms', () => {
   assert.equal(tables.length, 40)
-  assert.equal(individuals.length, 90)
+  assert.equal(individuals.length, 92)
   assert.equal(rooms.length, 20)
-  assert.equal(new Set(seats).size, 250)
+  assert.equal(new Set(seats).size, 252)
   assert.equal(chairs(byId.get('T40')).length, 4)
 })
 test('All live seats start unknown without evidence', () =>
   assert.deepEqual(derive([], now).counts, {
-    unknown: 250,
+    unknown: 252,
     free: 0,
     occupied: 0,
     mixed: 0,
@@ -75,7 +75,7 @@ test('Nearby device counts and shared-table sensors never occupy four chairs', (
   )
   assert.equal(m.ble.tables.value, 128)
   assert.equal(m.locations.get('T12').status, 'inuse')
-  assert.equal(m.counts.unknown, 250)
+  assert.equal(m.counts.unknown, 252)
 })
 test('A chair can be free at a table that is in use', () => {
   const m = derive(
@@ -112,7 +112,9 @@ test('Replays keep the newer event and duplicate packets keep one result', () =>
 test('QR deep links validate table, chair and exact seat', () => {
   assert.deepEqual(parseSpot('t01-b'), { id: 'T01', seat: 'T01-B' })
   assert.deepEqual(parseSpot('I090'), { id: 'I090', seat: 'I090' })
-  assert.equal(parseSpot('I091'), null)
+  assert.deepEqual(parseSpot('I091'), { id: 'I091', seat: 'I091' })
+  assert.deepEqual(parseSpot('I092'), { id: 'I092', seat: 'I092' })
+  assert.equal(parseSpot('I093'), null)
   assert.equal(parseSpot('T40-Z'), null)
 })
 test('Demo fixtures are labelled and actual input supersedes a fixture at its location', () => {
@@ -123,6 +125,6 @@ test('Demo fixtures are labelled and actual input supersedes a fixture at its lo
   assert.equal(m.states.get('T01-A').status, 'occupied')
   assert.equal(
     Object.values(m.counts).reduce((s, n) => s + n, 0),
-    250,
+    252,
   )
 })

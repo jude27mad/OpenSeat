@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Minus, Plus, Maximize2, MapPin } from 'lucide-react'
-import { places, rooms, unassigned, label } from './floor.js'
+import { places, rooms, label } from './floor.js'
 import { age, sources, placeDescription } from './model.js'
 export const palette = {
   free: { fill: '#d8efcf', stroke: '#39734b' },
@@ -86,17 +86,6 @@ export function PlanDrawing({
               />
               <rect x="-10" y="-7" width="20" height="14" rx="4" />
             </g>
-          ))}
-          {unassigned.map(([x, y]) => (
-            <rect
-              key={x + ':' + y}
-              {...roomShape(x, y)}
-              x="-8"
-              y="-7"
-              width="16"
-              height="14"
-              fill="#e9ede6"
-            />
           ))}
         </g>
       </g>

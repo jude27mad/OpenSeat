@@ -79,15 +79,12 @@ export const tables = TABLE_ROWS.flat().map(([x, y], i) => ({
   y,
   section: 'tables',
 }))
-export const individuals = positions
-  .slice(0, 90)
-  .map(([x, y], i) => ({
-    id: 'I' + String(i + 1).padStart(3, '0'),
-    x,
-    y,
-    section: 'individuals',
-  }))
-export const unassigned = positions.slice(90)
+export const individuals = positions.map(([x, y], i) => ({
+  id: 'I' + String(i + 1).padStart(3, '0'),
+  x,
+  y,
+  section: 'individuals',
+}))
 export const places = [...tables, ...individuals]
 export const byId = new Map(places.map((p) => [p.id, p]))
 export const chairs = (place) =>

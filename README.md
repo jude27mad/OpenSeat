@@ -1,6 +1,6 @@
 # OpenSeat
 
-A live seat map for Floor 8 of Toronto Metropolitan University’s Student Learning Centre. The map covers 40 four-chair tables and 90 individual seats. The 20 bookable rooms appear as landmarks and are excluded from the 250-seat total.
+A live seat map for Floor 8 of Toronto Metropolitan University’s Student Learning Centre. The map covers 40 four-chair tables and 92 individual seats. The 20 bookable rooms appear as landmarks and are excluded from the 252-seat total.
 
 [Open the prototype](https://jude27mad.github.io/OpenSeat/) · [Open the live floor](https://jude27mad.github.io/OpenSeat/#floor=8) · [CEN100 build and test evidence](https://jude27mad.github.io/OpenSeat/evidence/)
 
@@ -19,7 +19,7 @@ Select a table and **Show table QR code**. Scan it with another device, choose a
 | Self-report | One chair or individual seat | 15 minutes | Free or occupied |
 | Table sensor | The mapped table or an individually instrumented seat | 5 minutes | Shared table in use or free, or an exact individual-seat reading |
 
-Each location retains the latest observation from each source. Fresh, contradictory seat observations display **Conflicting**. Stale evidence remains visible with its age. Shared-table readings describe the whole table, and nearby-device totals describe a section. Seat totals add up to 250 across available, occupied, unknown and conflicting seats. The map does not request browser location.
+Each location retains the latest observation from each source. Fresh, contradictory seat observations display **Conflicting**. Stale evidence remains visible with its age. Shared-table readings describe the whole table, and nearby-device totals describe a section. Seat totals add up to 252 across available, occupied, unknown and conflicting seats. The map does not request browser location.
 
 ## Implementation and deployment
 
@@ -35,7 +35,7 @@ The iPhone publishes a full BLE2MQTT scan array to its own exact MQTT topic. Und
 
 A physical table station runs `node backend/firebase/station.mjs` with `OPENSEAT_FEED_KEY` in its environment. On the database, an administrator sets the private `/private/feedDigest` to the lowercase hex SHA-256 of that key. The same key authorizes the iPhone bridge. The database checks it on every live hardware write, so replacing the digest revokes earlier station authorizations.
 
-The station reads one JSON object per line on standard input. Each line supplies a stable UUIDv4 `id`, a `source` of `sensor` or `ble`, its mapped `target`, a `value`, and `measuredAt` in Unix milliseconds. A sensor reports `free` or `occupied` for T01–T40 or I001–I090. Bluetooth reports an integer count for `tables` or `individuals`. Keep the process open between measurements and reuse the original ID and time if retrying a sample.
+The station reads one JSON object per line on standard input. Each line supplies a stable UUIDv4 `id`, a `source` of `sensor` or `ble`, its mapped `target`, a `value`, and `measuredAt` in Unix milliseconds. A sensor reports `free` or `occupied` for T01–T40 or I001–I092. Bluetooth reports an integer count for `tables` or `individuals`. Keep the process open between measurements and reuse the original ID and time if retrying a sample.
 
 ## Moving existing sessions
 
