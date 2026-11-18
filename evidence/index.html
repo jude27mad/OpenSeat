@@ -104,6 +104,7 @@
 <p>These readings support a working threshold for the prototype. They were collected in the library and do not establish the number of people, exact seat positions or accuracy on SLC Floor 8. Several people can share a table, and one person can carry multiple devices.</p>
 </section>
 <section id="verification"><h2>Verification</h2>
+<p>The current release uses Firebase Realtime Database on the Spark plan. The migration preserved all 38 observations and their timestamps across 10 demo sessions. The release check opens the published dashboard in desktop Chromium and mobile WebKit, follows a generated table QR code, verifies that both browsers see the same chair updates, and opens this evidence page. It uses a new demo session for each run. <a href="https://github.com/jude27mad/OpenSeat/actions/workflows/pages.yml">View release checks and browser screenshots</a></p>
 <table>
 <thead>
 <tr>
@@ -125,17 +126,17 @@
 <tr>
 <td>All four inputs persist in one session</td>
 <td>Pass</td>
-<td>The deployed API returned the QR, report, sensor and Bluetooth observations together. The runtime rejected another browser ticket’s checkout with HTTP 409 and accepted the original ticket’s checkout.</td>
+<td>The original Floot API returned QR, report, sensor and Bluetooth observations together. It rejected another browser’s checkout with HTTP 409 and accepted the original browser’s ticket. The Firebase rules tests also verify checkout ownership.</td>
 </tr>
 <tr>
 <td>A check-in appears on a second screen within 10 seconds</td>
 <td>Pass</td>
-<td>In a shared demo on the published site, the second browser showed Occupied 1.38 seconds after check-in. A free report showed Conflicting. After the original browser checked out, the chair showed Available. The two browsers used independent storage.</td>
+<td>During the original Floot-backed demo on the published site, the second browser showed Occupied 1.38 seconds after check-in. A free report showed Conflicting. After the original browser checked out, the chair showed Available. The two browsers used independent storage.</td>
 </tr>
 <tr>
 <td>A phone-sized browser can use the generated table QR and read the map without horizontal scrolling</td>
 <td>Pass</td>
-<td>GitHub Actions decoded the QR image, checked a chair in using mobile WebKit and saw it update in desktop Chromium in 1.46 seconds. It also verified that the mobile page fit its viewport. <a href="https://github.com/jude27mad/OpenSeat/actions/runs/44208568779">Browser test run</a></td>
+<td>In the original Floot-backed build, GitHub Actions decoded the QR image, checked a chair in using mobile WebKit and saw it update in desktop Chromium in 1.46 seconds. It also verified that the mobile page fit its viewport. <a href="https://github.com/jude27mad/OpenSeat/actions/runs/44208568779">Browser test run</a></td>
 </tr>
 <tr>
 <td>Section and table signals do not create fake seat counts</td>
