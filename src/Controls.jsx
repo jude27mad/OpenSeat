@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
   X,
+  Share2,
   Copy,
   Check,
   QrCode,
@@ -16,6 +17,8 @@ import { label } from './floor.js'
 import { scanCount } from './model.js'
 import { roomUrl } from './session.js'
 export function Modal({ title, description, onClose, children }) {
+  // Dialogs here open without a trigger, so focus is returned by hand.
+  const opener = useRef(typeof document !== 'undefined' ? document.activeElement : null)
   return (
     <Dialog.Root
       open
@@ -25,7 +28,16 @@ export function Modal({ title, description, onClose, children }) {
     >
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="dialog-content">
+        <Dialog.Content
+          className="dialog-content"
+          onCloseAutoFocus={(e) => {
+            const back = opener.current
+            if (back?.isConnected && back !== document.body) {
+              e.preventDefault()
+              back.focus({ preventScroll: true })
+            }
+          }}
+        >
           <div className="dialog-head">
             <Dialog.Title>{title}</Dialog.Title>
             <Dialog.Close asChild>
@@ -71,8 +83,12 @@ export function QRDialog({ room, place, onClose }) {
       title={place ? label(place.id) + ' QR code' : 'Share this map'}
       description={
         place
-          ? 'Scan on a second device to open this location and check in or out.'
-          : 'Open the same floor session on your phone or iPad.'
+          ? room.id === 'floor8'
+            ? 'This is the code for the ' +
+              (place.section === 'tables' ? 'table' : 'seat') +
+              '. Scanning it opens check-in for this spot.'
+            : 'Scan with another phone to try checking in here.'
+          : 'Send this link to a friend, or open it on another phone.'
       }
       onClose={onClose}
     >
@@ -93,7 +109,18 @@ export function QRDialog({ room, place, onClose }) {
         <input readOnly value={url} onFocus={(e) => e.target.select()} />
       </label>
       <div className="btn-row">
+        {!place && typeof navigator !== 'undefined' && navigator.share && (
+          <Button
+            onClick={() =>
+              navigator.share({ title: 'OpenSeat · SLC Floor 8', url }).catch(() => {})
+            }
+          >
+            <Share2 />
+            Share
+          </Button>
+        )}
         <Button
+          variant={!place && typeof navigator !== 'undefined' && navigator.share ? 'outline' : 'default'}
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(url)
@@ -118,7 +145,7 @@ export function QRDialog({ room, place, onClose }) {
           </Button>
         )}
       </div>
-      {place && (
+      {place && room.id !== 'floor8' && (
         <a className="text-btn open-checkin" href={url} onClick={onClose}>
           Open check-in on this device
         </a>

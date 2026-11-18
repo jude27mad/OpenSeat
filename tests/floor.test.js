@@ -86,14 +86,29 @@ test('A chair can be free at a table that is in use', () => {
   assert.equal(m.locations.get('T08').status, 'free')
   assert.equal(m.counts.free, 1)
 })
-test('Conflicting fresh sources show both observations', () => {
-  const m = derive(
-    [event('qr', 'I020', 'occupied'), event('report', 'I020', 'free', 100)],
+test('The newer of a report and a check-in wins, and both stay as evidence', () => {
+  const released = derive(
+    [event('qr', 'I020', 'occupied', 60000), event('report', 'I020', 'free', 100)],
     now,
   )
-  assert.equal(m.states.get('I020').status, 'mixed')
-  assert.equal(m.states.get('I020').evidence.length, 2)
-  assert.equal(m.counts.mixed, 1)
+  assert.equal(released.states.get('I020').status, 'free')
+  assert.equal(released.states.get('I020').evidence.length, 2)
+  assert.equal(released.counts.free, 1)
+  const seated = derive(
+    [event('report', 'I020', 'free', 60000), event('qr', 'I020', 'occupied', 100)],
+    now,
+  )
+  assert.equal(seated.states.get('I020').status, 'occupied')
+})
+test('A table sensor that disagrees with every chair still shows mixed reports', () => {
+  const m = derive(
+    [
+      ...['A', 'B', 'C', 'D'].map((c) => event('report', 'T08-' + c, 'free')),
+      event('sensor', 'T08', 'occupied'),
+    ],
+    now,
+  )
+  assert.equal(m.locations.get('T08').status, 'mixed')
 })
 test('Evidence expires at the specified boundary and retains its source and age', () => {
   const stale = event('report', 'I020', 'free', ttl.report)
@@ -127,4 +142,79 @@ test('Demo fixtures are labelled and actual input supersedes a fixture at its lo
     Object.values(m.counts).reduce((s, n) => s + n, 0),
     252,
   )
+})
+test('A tap picks the seat a fingertip can tell apart and zooms into crowded seats first', async () => {
+  const { resolveTap, mapPoints, MAX_ZOOM } = await import('../src/hit.js')
+  const at = mapPoints.get('I020')
+  // Whole floor on a phone: seats are about 9 px apart, so the tap zooms instead of guessing.
+  const crowded = resolveTap({ at, pxPerUnit: 0.48, zoom: 1, touch: true })
+  assert.equal(crowded.action, 'zoom')
+  assert.ok(crowded.zoom > 3 && crowded.zoom <= MAX_ZOOM)
+  // Zoomed in, the same tap selects that exact seat, even slightly off centre.
+  const near = [at[0] + 4, at[1] - 3]
+  assert.deepEqual(resolveTap({ at: near, pxPerUnit: 1.75, zoom: 3.6, touch: true }), {
+    action: 'select',
+    id: 'I020',
+  })
+  // A mouse is precise enough at desktop size.
+  assert.deepEqual(resolveTap({ at, pxPerUnit: 0.63, zoom: 1, touch: false }), {
+    action: 'select',
+    id: 'I020',
+  })
+  // Round tables are far enough apart to pick on a phone straight away.
+  assert.deepEqual(resolveTap({ at: mapPoints.get('T17'), pxPerUnit: 0.48, zoom: 1, touch: true }), {
+    action: 'select',
+    id: 'T17',
+  })
+  // Empty floor selects nothing.
+  assert.equal(resolveTap({ at: [700, 640], pxPerUnit: 1, zoom: 1, touch: false }).action, 'none')
+  // A highlighted neighbour wins over a faded seat within reach.
+  const [x, y] = mapPoints.get('I020')
+  const [neighbour] = [...mapPoints]
+    .filter(([id]) => id !== 'I020')
+    .sort(([, a], [, b]) => Math.hypot(a[0] - x, a[1] - y) - Math.hypot(b[0] - x, b[1] - y))[0]
+  const [nx, ny] = mapPoints.get(neighbour)
+  const between = [x + (nx - x) * 0.45, y + (ny - y) * 0.45]
+  assert.equal(resolveTap({ at: between, pxPerUnit: 2, zoom: 4, touch: true }).id, 'I020')
+  assert.equal(
+    resolveTap({ at: between, pxPerUnit: 2, zoom: 4, touch: true, dim: (id) => id === 'I020' }).id,
+    neighbour,
+  )
+})
+test('Search understands seat names the way people type them', async () => {
+  const { matchesQuery } = await import('../src/model.js')
+  const find = (q) => [...byId.values()].filter((p) => matchesQuery(p, q)).map((p) => p.id)
+  assert.deepEqual(find('table 5'), ['T05'])
+  assert.deepEqual(find('T5'), ['T05'])
+  assert.deepEqual(find('seat 1'), ['I001'])
+  assert.deepEqual(find('Seat 01'), ['I001'])
+  assert.deepEqual(find('12'), ['T12', 'I012'])
+  assert.deepEqual(find('t17-b'), ['T17'])
+  assert.deepEqual(find('I091'), ['I091'])
+  assert.equal(find('round').length, 40)
+  assert.equal(find('').length, 132)
+})
+test('Suggestions put the most free chairs first and include tables a sensor reports free', async () => {
+  const { suggestions } = await import('../src/model.js')
+  const m = derive(
+    [
+      event('report', 'T03-A', 'free'),
+      event('report', 'T09-A', 'free'),
+      event('report', 'T09-B', 'free'),
+      event('sensor', 'T30', 'free'),
+      event('report', 'I005', 'occupied'),
+    ],
+    now,
+  )
+  assert.deepEqual(suggestions(m.locations, now).map((p) => p.id), ['T09', 'T03', 'T30'])
+  assert.deepEqual(suggestions(m.locations, now, 'individuals'), [])
+})
+test('A tap between two round tables zooms in instead of guessing', async () => {
+  const { resolveTap, mapPoints } = await import('../src/hit.js')
+  const [ax, ay] = mapPoints.get('T13'),
+    [bx, by] = mapPoints.get('T14')
+  const between = [ax + (bx - ax) * 0.4, ay + (by - ay) * 0.4]
+  assert.equal(resolveTap({ at: between, pxPerUnit: 0.48, zoom: 1, touch: true }).action, 'zoom')
+  // A tap on the table itself still opens it at once.
+  assert.equal(resolveTap({ at: [ax + 2, ay], pxPerUnit: 0.48, zoom: 1, touch: true }).id, 'T13')
 })

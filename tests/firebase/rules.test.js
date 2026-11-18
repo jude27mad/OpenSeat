@@ -44,6 +44,18 @@ test('two visitors share observations and only the holder can release a chair', 
   await assert.rejects(record(holder, qr('free')), /belongs/)
 })
 
+test('a newer free report releases an abandoned check-in, and only a newer one', async () => {
+  const takeover = randomUUID(), chair = { source: 'qr', target: 'I030', value: 'occupied' }
+  await record(a, report('I030', 'free'), takeover)
+  await record(a, chair, takeover)
+  // The free report came before the check-in, so it does not release it.
+  await assert.rejects(record(b, chair, takeover), /belongs/)
+  await record(b, report('I030', 'free'), takeover)
+  assert.equal((await record(b, chair, takeover)).value, 'occupied')
+  // The first student can no longer end the new student's check-in.
+  await assert.rejects(record(a, { ...chair, value: 'free' }, takeover), /belongs/)
+})
+
 test('a legacy ticket can release its imported check-in and an expired chair can be claimed', async () => {
   const oldRoom = randomUUID(), ticket = randomUUID(), id = randomUUID()
   await seed('/rooms/' + oldRoom, {

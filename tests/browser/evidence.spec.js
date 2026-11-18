@@ -13,7 +13,7 @@ test('the evidence page keeps desktop tables and stacks long rows on iPhone', as
   }
   await expect(page.locator('#verification tbody tr').first()).toHaveCSS('display', 'table-row')
 
-  const browser = await playwright.webkit.launch()
+  const browser = await playwright[process.env.OPENSEAT_PHONE_ENGINE || 'webkit'].launch()
   try {
     const phone = await browser.newPage({ ...devices['iPhone 13'], baseURL })
     await phone.goto('./evidence/')

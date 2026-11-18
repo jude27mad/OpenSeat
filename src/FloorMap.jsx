@@ -1,41 +1,59 @@
-import React, { useRef, useState } from 'react'
-import { Minus, Plus, Maximize2, MapPin } from 'lucide-react'
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { Minus, Plus } from 'lucide-react'
 import { places, rooms, label } from './floor.js'
-import { age, sources, placeDescription } from './model.js'
+import { age, sources, placeDescription, looksFree } from './model.js'
+import { MAX_ZOOM, mapPoints, resolveTap } from './hit.js'
+
+// Free is the strongest mark on the plan, so it stands out without colour vision.
 export const palette = {
-  free: { fill: '#d8efcf', stroke: '#39734b' },
-  occupied: { fill: '#f7d8bb', stroke: '#975524' },
-  unknown: { fill: '#e6ebe6', stroke: '#8d9a90' },
-  mixed: { fill: '#e5d9f3', stroke: '#765395' },
-  inuse: { fill: '#fae5ce', stroke: '#986133' },
-  sensorfree: { fill: '#e3f2d7', stroke: '#4b7549' },
+  free: { fill: '#3a9d5d', stroke: '#1f6b3b' },
+  occupied: { fill: '#f3d2b5', stroke: '#a35a26' },
+  unknown: { fill: '#ffffff', stroke: '#7c8a80' },
+  mixed: { fill: '#d9c7ef', stroke: '#6d4791' },
+  inuse: { fill: '#f7e3d1', stroke: '#a35a26' },
+  sensorfree: { fill: '#bfe3c9', stroke: '#2f7d49' },
 }
-const point = (x, y) => [y, 662 - x]
 const roomShape = (x, y) => ({ transform: `translate(${x} ${y}) rotate(41)` })
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
+
+export function isDim(location, section, filter) {
+  return (
+    (section !== 'all' && location.section !== section) ||
+    (filter === 'free' && !looksFree(location))
+  )
+}
+
 export function PlanDrawing({
   model,
   selected,
   section = 'all',
   filter = 'all',
-  onSelect = () => {},
-  scale = 1,
   now = Date.now(),
+  pxPerUnit = 1,
+  labels = true,
+  onTap,
+  svgRef,
 }) {
-  const selectedPlace = model.locations.get(selected)
-  const [px, py] = selectedPlace
-    ? point(selectedPlace.x, selectedPlace.y)
-    : [0, 0]
+  const hatch = useId().replace(/:/g, '')
+  const selectedPlace = selected && model.locations.get(selected)
+  const [px, py] = selectedPlace ? mapPoints.get(selected) : [0, 0]
+  // Keep labels, the selection ring and its name tag readable at any size.
+  const textSize = clamp(11.5 / pxPerUnit, 8, 24)
+  const tag = clamp(1.15 / pxPerUnit, 1, 2.6)
+  const ring = clamp(13 / pxPerUnit, 18, 30)
+  // Numbers fit inside each seat once the map is zoomed in far enough.
+  const numbers = labels && pxPerUnit >= 1.3
   return (
     <svg
+      ref={svgRef}
       className="plan-svg"
-      width={790 * scale}
-      height={680 * scale}
       viewBox="0 0 790 680"
-      aria-label="Interactive floor plan of the Student Learning Centre, Floor 8"
+      aria-label="Floor plan of the Student Learning Centre, Floor 8"
+      onClick={onTap}
     >
       <defs>
         <pattern
-          id="roomHatch"
+          id={hatch}
           width="6"
           height="6"
           patternUnits="userSpaceOnUse"
@@ -44,7 +62,7 @@ export function PlanDrawing({
           <path d="M0 0V6" stroke="#cdd7cd" strokeWidth="1.2" />
         </pattern>
       </defs>
-      <g transform="translate(0 662) rotate(-90)">
+      <g transform="translate(0 662) rotate(-90)" pointerEvents="none">
         <path
           d="M232 23H620V754H130L57 639 14 88H232Z"
           fill="#fafcf7"
@@ -82,29 +100,35 @@ export function PlanDrawing({
                 width={i === 10 || i === 19 ? 60 : 42}
                 height="44"
                 rx="1"
-                fill="url(#roomHatch)"
+                fill={`url(#${hatch})`}
               />
               <rect x="-10" y="-7" width="20" height="14" rx="4" />
             </g>
           ))}
         </g>
       </g>
-      {[
-        [87, 156, 'LIFTS'],
-        [575, 102, 'BOOKABLE ROOMS'],
-        [666, 194, 'ROUND TABLES'],
-        [283, 32, 'INDIVIDUAL SEATS'],
-      ].map(([x, y, t]) => (
-        <text key={t} x={x} y={y} textAnchor="middle" className="plan-label">
-          {t}
-        </text>
-      ))}
+      {labels &&
+        [
+          [141, 103, 'LIFTS', 'middle'],
+          [745, 100, 'BOOKABLE ROOMS', 'end'],
+          [745, 198, 'ROUND TABLES', 'end'],
+          [283, 32, 'INDIVIDUAL SEATS', 'middle'],
+        ].map(([x, y, t, anchor]) => (
+          <text
+            key={t}
+            x={x}
+            y={y}
+            textAnchor={anchor}
+            className="plan-label"
+            fontSize={textSize}
+            pointerEvents="none"
+          >
+            {t}
+          </text>
+        ))}
       {places.map((p) => {
         const location = model.locations.get(p.id),
-          [x, y] = point(p.x, p.y)
-        const dim =
-          (section !== 'all' && p.section !== section) ||
-          (filter === 'free' && location.tally.free === 0)
+          [x, y] = mapPoints.get(p.id)
         const color = palette[location.status],
           active = p.id === selected
         const e = location.latest,
@@ -113,37 +137,28 @@ export function PlanDrawing({
               sources[e.source] +
               ' · ' +
               age(e.at, now)
-            : 'No source yet'
+            : 'No updates yet'
         return (
           <g
             key={p.id}
+            data-id={p.id}
             transform={`translate(${x} ${y})`}
-            className={'map-marker' + (active ? ' active' : '')}
-            opacity={dim ? 0.22 : 1}
-            role="button"
-            tabIndex={-1}
+            className={'map-marker ' + location.status + (active ? ' active' : '')}
+            opacity={isDim(location, section, filter) ? 0.22 : 1}
+            role={onTap ? 'button' : undefined}
+            tabIndex={onTap ? -1 : undefined}
+            aria-hidden={onTap ? undefined : true}
             aria-label={
-              label(p.id) +
-              ', ' +
-              placeDescription(location) +
-              ', ' +
-              provenance
+              onTap
+                ? label(p.id) + ', ' + placeDescription(location) + ', ' + provenance
+                : undefined
             }
-            onClick={() => onSelect(p.id)}
           >
-            <title>
-              {label(p.id) +
-                ' · ' +
-                placeDescription(location) +
-                ' · ' +
-                provenance}
-            </title>
-            <rect x="-16" y="-16" width="32" height="32" fill="transparent" />
             {p.section === 'tables' ? (
               <g>
+                <circle r="15" fill="transparent" />
                 {[0, 90, 180, 270].map((angle, i) => {
-                  const chair =
-                    palette[model.states.get(location.ids[i]).status]
+                  const chair = palette[model.states.get(location.ids[i]).status]
                   return (
                     <rect
                       key={angle}
@@ -164,8 +179,8 @@ export function PlanDrawing({
                   fill={color.fill}
                   stroke={color.stroke}
                   strokeWidth={active ? 2.5 : 1.5}
+                  strokeDasharray={location.status === 'mixed' ? '3 2' : undefined}
                 />
-                {active && <circle r="2.5" fill="#194f3b" />}
               </g>
             ) : (
               <g transform="rotate(-49)">
@@ -178,86 +193,270 @@ export function PlanDrawing({
                   fill={color.fill}
                   stroke={color.stroke}
                   strokeWidth="1.4"
+                  strokeDasharray={location.status === 'mixed' ? '3 2' : undefined}
                 />
                 <path d="M-4 4h8" stroke={color.stroke} strokeWidth="1.25" />
               </g>
             )}
-            {active && (
-              <circle
-                r="18"
-                fill="none"
-                stroke="#18583f"
-                strokeWidth="2"
-                strokeDasharray="3 2"
-              />
+            {numbers && (
+              <text
+                className="plan-number"
+                y={p.section === 'tables' ? 3.4 : 2.6}
+                textAnchor="middle"
+                fontSize={p.section === 'tables' ? 8.5 : 7}
+                fill={location.status === 'free' ? '#fff' : '#22352a'}
+                pointerEvents="none"
+                aria-hidden="true"
+              >
+                {Number(p.id.slice(1))}
+              </text>
             )}
           </g>
         )
       })}
       {selectedPlace && (
-        <g
-          transform={`translate(${Math.min(Math.max(px, 59), 731)} ${Math.max(28, py - 25)})`}
-          pointerEvents="none"
-        >
-          <rect x="-43" y="-20" width="86" height="23" rx="6" fill="#194533" />
-          <path d="m-4 2 4 5 4-5" fill="#194533" />
-          <text
-            textAnchor="middle"
-            y="-4"
-            fill="white"
-            fontSize="11"
-            fontWeight="700"
+        <g pointerEvents="none">
+          <circle
+            cx={px}
+            cy={py}
+            r={ring}
+            fill="#18583f14"
+            stroke="#18583f"
+            strokeWidth={clamp(2.5 / pxPerUnit, 2, 6)}
+          />
+          <g
+            transform={`translate(${clamp(px, 43 * tag + 6, 784 - 43 * tag)} ${Math.max(
+              24 * tag + 2,
+              py - ring - 4,
+            )}) scale(${tag})`}
           >
-            {label(selected)}
-          </text>
+            <rect x="-43" y="-21" width="86" height="23" rx="6" fill="#194533" />
+            <path d="m-4 2 4 5 4-5" fill="#194533" />
+            <text
+              textAnchor="middle"
+              y="-5"
+              fill="white"
+              fontSize="11.5"
+              fontWeight="700"
+            >
+              {label(selected)}
+            </text>
+          </g>
         </g>
       )}
     </svg>
   )
 }
-export default function FloorMap(props) {
+
+/*
+ * The interactive map. A tap picks the closest seat a fingertip can tell
+ * apart; a tap on a crowded area zooms in there first. Zoom keeps the spot
+ * you are looking at in place, and two fingers pinch to zoom.
+ */
+export default function FloorMap({ onSelect, focus, onPlaced, onShowList, ...props }) {
   const [zoom, setZoom] = useState(1),
-    viewport = useRef(null)
+    [ppu, setPpu] = useState(1),
+    [hint, setHint] = useState(''),
+    viewport = useRef(null),
+    svg = useRef(null),
+    anchor = useRef(null),
+    pointer = useRef('mouse'),
+    zoomRef = useRef(1)
+  zoomRef.current = zoom
+
+  function toUnits(clientX, clientY) {
+    const m = svg.current?.getScreenCTM()
+    if (!m) return null
+    const p = new DOMPoint(clientX, clientY).matrixTransform(m.inverse())
+    return [p.x, p.y]
+  }
+  function viewCenter() {
+    const r = viewport.current.getBoundingClientRect()
+    return [r.left + r.width / 2, r.top + r.height / 2]
+  }
+  // `center` keeps the point in the middle of the map, measured when the zoom
+  // is applied, so a page scroll in between cannot throw it off.
+  function zoomAt(next, clientX, clientY, target, center = false) {
+    const z = clamp(next, 1, MAX_ZOOM)
+    const at = target || toUnits(clientX, clientY)
+    if (at) anchor.current = { at, clientX, clientY, center, notify: center }
+    setZoom(z)
+    if (z === zoomRef.current) {
+      place()
+      if (center) onPlaced?.()
+    }
+  }
+  // Put the anchored plan point back under the finger or at the centre.
+  function place() {
+    const a = anchor.current,
+      m = svg.current?.getScreenCTM(),
+      v = viewport.current
+    if (!a || !m || !v) return
+    const [cx, cy] = a.center ? viewCenter() : [a.clientX, a.clientY]
+    const p = new DOMPoint(a.at[0], a.at[1]).matrixTransform(m)
+    v.scrollLeft += p.x - cx
+    v.scrollTop += p.y - cy
+    anchor.current = null
+  }
+  useLayoutEffect(() => {
+    const placing = !!anchor.current?.notify
+    place()
+    const m = svg.current?.getScreenCTM()
+    if (m) setPpu(m.a)
+    if (placing) onPlaced?.()
+  }, [zoom])
+  useEffect(() => {
+    const v = viewport.current
+    if (!v) return
+    const observer = new ResizeObserver(() => {
+      const m = svg.current?.getScreenCTM()
+      if (m) setPpu(m.a)
+    })
+    observer.observe(v)
+    return () => observer.disconnect()
+  }, [])
+  // Centre on a seat chosen elsewhere (Find me a seat, the list or a QR link).
+  useEffect(() => {
+    if (!focus || !props.selected) return
+    const at = mapPoints.get(props.selected)
+    if (!at) return
+    const target = Math.max(zoomRef.current, props.selected.startsWith('I') ? 3 : 1.8)
+    zoomAt(target, 0, 0, at, true)
+  }, [focus])
+  // Pinch with two fingers; one finger keeps scrolling natively.
+  useEffect(() => {
+    const v = viewport.current
+    if (!v) return
+    let start = null
+    const mid = (t) => [
+      (t[0].clientX + t[1].clientX) / 2,
+      (t[0].clientY + t[1].clientY) / 2,
+    ]
+    const dist = (t) =>
+      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+    function down(e) {
+      if (e.touches.length !== 2) return
+      const [cx, cy] = mid(e.touches)
+      start = { d: dist(e.touches), z: zoomRef.current, at: toUnits(cx, cy) }
+    }
+    function move(e) {
+      if (!start || e.touches.length !== 2) return
+      e.preventDefault()
+      const [cx, cy] = mid(e.touches)
+      zoomAt((start.z * dist(e.touches)) / start.d, cx, cy, start.at)
+    }
+    function up(e) {
+      if (e.touches.length < 2) start = null
+    }
+    function wheel(e) {
+      if (!e.ctrlKey) return
+      e.preventDefault()
+      zoomAt(zoomRef.current * Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY)
+    }
+    v.addEventListener('touchstart', down, { passive: true })
+    v.addEventListener('touchmove', move, { passive: false })
+    v.addEventListener('touchend', up)
+    v.addEventListener('touchcancel', up)
+    v.addEventListener('wheel', wheel, { passive: false })
+    return () => {
+      v.removeEventListener('touchstart', down)
+      v.removeEventListener('touchmove', move)
+      v.removeEventListener('touchend', up)
+      v.removeEventListener('touchcancel', up)
+      v.removeEventListener('wheel', wheel)
+    }
+  }, [])
+  useEffect(() => {
+    if (!hint) return
+    const t = setTimeout(() => setHint(''), 2600)
+    return () => clearTimeout(t)
+  }, [hint])
+
+  function onTap(e) {
+    // Keyboard and screen-reader activation has no position: use the marker itself.
+    if (e.detail === 0) {
+      const id = e.target.closest?.('[data-id]')?.getAttribute('data-id')
+      if (id) onSelect(id)
+      return
+    }
+    const at = toUnits(e.clientX, e.clientY),
+      m = svg.current?.getScreenCTM()
+    if (!at || !m) return
+    const result = resolveTap({
+      at,
+      pxPerUnit: m.a,
+      zoom,
+      touch: pointer.current !== 'mouse',
+      dim: (id) =>
+        isDim(props.model.locations.get(id), props.section, props.filter),
+    })
+    if (result.action === 'zoom') {
+      zoomAt(result.zoom, e.clientX, e.clientY)
+      setHint('Zoomed in. Tap the seat you want.')
+    } else if (result.action === 'select') {
+      setHint('')
+      onSelect(result.id)
+    }
+  }
+  const step = (dir) => {
+    const [cx, cy] = viewCenter()
+    zoomAt(zoom * (dir > 0 ? 1.5 : 1 / 1.5), cx, cy)
+  }
   return (
     <div className="map-canvas">
-      <div className="map-overlay floor-stamp">
-        <MapPin size={13} /> Floor 8
-      </div>
-      <div className="plan-viewport" ref={viewport}>
+      {onShowList && (
+        <button className="sr-only skip-map" onClick={onShowList}>
+          Browse seats as a list instead of the map
+        </button>
+      )}
+      <div
+        className={'plan-viewport' + (zoom > 1 ? ' zoomed' : '')}
+        ref={viewport}
+        tabIndex={zoom > 1 ? 0 : undefined}
+        role={zoom > 1 ? 'region' : undefined}
+        aria-label={zoom > 1 ? 'Zoomed floor map. Use the arrow keys to move around.' : undefined}
+        onPointerDown={(e) => {
+          pointer.current = e.pointerType || 'mouse'
+        }}
+      >
         <div
           className="plan-inner"
           style={{ width: zoom * 100 + '%', height: zoom * 100 + '%' }}
         >
-          <PlanDrawing {...props} scale={zoom} />
+          <PlanDrawing {...props} pxPerUnit={ppu} onTap={onTap} svgRef={svg} />
         </div>
       </div>
-      <div className="map-controls" aria-label="Map zoom">
+      <div className="map-hint-region" role="status" aria-live="polite">
+        {hint && <div className="map-hint">{hint}</div>}
+      </div>
+      <div className="map-controls" role="group" aria-label="Map zoom">
         <button
           title="Zoom out"
           aria-label="Zoom out"
           disabled={zoom <= 1}
-          onClick={() => setZoom((z) => Math.max(1, z - 0.35))}
+          onClick={() => step(-1)}
         >
-          <Minus size={16} />
+          <Minus size={18} />
         </button>
-        <span>{Math.round(zoom * 100)}%</span>
         <button
           title="Zoom in"
           aria-label="Zoom in"
-          disabled={zoom >= 2.4}
-          onClick={() => setZoom((z) => Math.min(2.4, z + 0.35))}
+          disabled={zoom >= MAX_ZOOM}
+          onClick={() => step(1)}
         >
-          <Plus size={16} />
+          <Plus size={18} />
         </button>
         <button
-          title="Fit map"
-          aria-label="Fit map"
+          className="fit"
+          title="Show the whole floor"
+          aria-label="Show the whole floor"
+          disabled={zoom <= 1}
           onClick={() => {
             setZoom(1)
             viewport.current?.scrollTo(0, 0)
           }}
         >
-          <Maximize2 size={14} />
+          Fit
         </button>
       </div>
     </div>
