@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
-import { byId, chairs, label } from './floor.js'
+import { byId, chairs, individuals, label, rooms, seats, tables } from './floor.js'
 import {
   age,
   derive,
@@ -386,10 +386,10 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
               <Stat
                 name="Available seats"
                 value={n.free}
-                detail={'of 250 open-access seats'}
+                detail={`of ${seats.length} open-access seats`}
                 icon={Armchair}
                 tone="green"
-                percent={n.free / 2.5}
+                percent={(n.free * 100) / seats.length}
               />
               <Stat
                 name="Occupied seats"
@@ -397,7 +397,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                 detail="Current seat observations"
                 icon={UsersRound}
                 tone="orange"
-                percent={n.occupied / 2.5}
+                percent={(n.occupied * 100) / seats.length}
               />
               <Stat
                 name="Unconfirmed seats"
@@ -409,7 +409,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                 }
                 icon={Clock3}
                 tone="stone"
-                percent={(n.unknown + n.mixed) / 2.5}
+                percent={((n.unknown + n.mixed) * 100) / seats.length}
               />
               <Stat
                 name="Nearby devices"
@@ -433,7 +433,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                     <p>
                       {page === 'finder'
                         ? 'Select a location to see its chairs and evidence.'
-                        : '40 round tables · 90 individual seats'}
+                        : `${tables.length} round tables · ${individuals.length} individual seats`}
                     </p>
                   </div>
                   {page !== 'finder' && (
@@ -597,7 +597,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
             <span>
               <MapPin size={13} /> SLC Floor 8
             </span>
-            <span>250 open-access seats · 20 bookable rooms excluded</span>
+            <span>{seats.length} open-access seats · {rooms.length} bookable rooms excluded</span>
             {demo && (
               <button onClick={() => onRoom(false, true)}>Restart demo</button>
             )}

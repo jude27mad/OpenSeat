@@ -33,7 +33,10 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
       .slice(0, 3)
       .map(Number)
       .reduce((a, b) => a + b, 0),
-  ).toBe(250)
+  ).toBe(252)
+  await expect(page.getByText('40 round tables · 92 individual seats')).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Seat 91,/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Seat 92,/ })).toBeVisible()
   await page.getByRole('button', { name: 'Find a seat' }).click()
   await expect(page.locator('.list-location').first()).toContainText(
     /available/i,
@@ -45,6 +48,7 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   await page.getByRole('button', { name: 'Show table QR code' }).click()
   const img = page.getByRole('img', { name: 'QR code for Table 17' })
   await expect(img).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('table-qr.png'), animations: 'disabled' })
   const png = PNG.sync.read(
     Buffer.from((await img.getAttribute('src')).split(',')[1], 'base64'),
   )
@@ -128,6 +132,15 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
     path: testInfo.outputPath('dashboard.png'),
     fullPage: true,
   })
+  await page.getByRole('button', { name: /^Seat 92,/ }).click()
+  await page.getByRole('button', { name: 'Free', exact: true }).click()
+  await expect(page.getByRole('status')).toHaveText('Report saved for Seat 92.')
+  await page.goto(roomUrl + '&spot=I091&checkin=1')
+  await expect(page.getByRole('heading', { name: 'Seat 91' })).toBeVisible()
+  await page.getByRole('button', { name: 'Check in', exact: true }).click()
+  await expect(page.getByRole('status')).toHaveText('Checked in at Seat 91.')
+  await page.getByRole('button', { name: 'Check out', exact: true }).click()
+  await expect(page.getByRole('status')).toHaveText('Checked out of Seat 91.')
   await mobile.close()
   await mobileBrowser.close()
 })

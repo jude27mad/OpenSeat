@@ -1,4 +1,4 @@
-import { places, chairs, seats, byId } from './floor.js'
+import { places, chairs, seats, byId, tables } from './floor.js'
 export const sources = {
   report: 'Self-report',
   qr: 'QR check-in',
@@ -63,7 +63,7 @@ export function seedDemo(anchor) {
     const source = n % 3 === 0 ? 'qr' : 'report'
     put(source, seat, n < 34 ? 'free' : 'occupied', 1 + (i % 10))
   })
-  for (const [i, p] of places.slice(0, 40).entries())
+  for (const [i, p] of tables.entries())
     if (i % 4 === 0) put('sensor', p.id, 'occupied', 1)
   put('ble', 'tables', 18, 0.5)
   put('ble', 'individuals', 9, 1)

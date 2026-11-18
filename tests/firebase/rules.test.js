@@ -58,8 +58,17 @@ test('a legacy ticket can release its imported check-in and an expired chair can
 })
 
 test('source, seat, scope, timestamps and read-only public data are enforced', async () => {
+  for (const target of ['I091', 'I092']) {
+    assert.equal((await record(b, report(target, 'free'))).value, 'free')
+    const checkIn = { source: 'qr', target, value: 'occupied' }
+    assert.equal((await record(a, checkIn)).value, 'occupied')
+    const checkOut = { ...checkIn, value: 'free' }
+    await assert.rejects(record(b, checkOut))
+    assert.equal((await record(a, checkOut)).value, 'free')
+    assert.equal((await record(a, { source: 'sensor', target, value: 'free', simulated: true })).value, 'free')
+  }
   const invalid = [
-    report('T41-A', 'free'), report('T00-B', 'occupied'), report('I091', 'free'),
+    report('T41-A', 'free'), report('T00-B', 'occupied'), report('I093', 'free'),
     report('T01', 'free'), report('I001', 'other'),
     { source: 'sensor', target: 'T17-B', value: 'occupied', simulated: true },
     { source: 'ble', target: 'I001', value: 1, simulated: true },
