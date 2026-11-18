@@ -27,24 +27,46 @@ jobs:
           name: prototype-browser-evidence
           path: test-results/
           retention-days: 14
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
         with:
+          name: production-site
           path: dist
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     permissions:
+      contents: write
       pages: write
-      id-token: write
     concurrency:
       group: github-pages
       cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.publish.outputs.page_url }}
     steps:
-      - name: Publish dashboard
-        id: publish
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: site
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-site
+          path: build
+      - name: Publish the tested files to the Pages source branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd site
+          main_head=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$main_head" != "$GITHUB_SHA" ]; then
+            echo 'A newer main commit owns the next release.'
+            exit 0
+          fi
+          rsync -a --delete --exclude='/.git/' --exclude='/.github/' --exclude='/CNAME' ../build/ ./
+          touch .nojekyll
+          git add --all
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "Publish OpenSeat $GITHUB_SHA"
+            git push origin HEAD:gh-pages
+          fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent
