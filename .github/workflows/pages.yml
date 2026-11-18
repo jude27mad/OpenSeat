@@ -108,17 +108,21 @@ jobs:
         with:
           name: production-site
           path: build
-      - name: Wait for this build to reach the public map
+      - name: Wait for this build to reach the map and evidence page
         run: |
           set -euo pipefail
-          entry=$(grep -oE 'src="\./assets/[^"]+\.js"' build/index.html | head -n 1)
+          site="${OPENSEAT_TEST_URL%/}"
           for attempt in {1..36}; do
-            if curl -fsSL --max-time 10 "${OPENSEAT_TEST_URL}?release=${GITHUB_SHA}&attempt=${attempt}" -o "$RUNNER_TEMP/openseat.html" && grep -Fq "$entry" "$RUNNER_TEMP/openseat.html"; then
+            query="release=${GITHUB_SHA}&attempt=${attempt}"
+            if curl -fsSL --max-time 10 "$site/?$query" -o "$RUNNER_TEMP/openseat.html" &&
+              cmp -s build/index.html "$RUNNER_TEMP/openseat.html" &&
+              curl -fsSL --max-time 10 "$site/evidence/?$query" -o "$RUNNER_TEMP/evidence.html" &&
+              cmp -s build/evidence/index.html "$RUNNER_TEMP/evidence.html"; then
               exit 0
             fi
             sleep 5
           done
-          echo 'GitHub Pages has not served this build yet.' >&2
+          echo 'GitHub Pages has not served both updated pages yet.' >&2
           exit 1
       - name: Verify the published map, QR sharing and evidence
         run: npm run test:ui
