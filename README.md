@@ -2,7 +2,7 @@
 
 A live seat map for Floor 8 of Toronto Metropolitan University’s Student Learning Centre. The map covers 40 four-chair tables and 90 individual seats. The 20 bookable rooms appear as landmarks and are excluded from the 250-seat total.
 
-[Open the prototype](https://jude27mad.github.io/OpenSeat/) · [Open the live floor](https://jude27mad.github.io/OpenSeat/#floor=8) · [CEN100 build and test evidence](docs/prototype-evidence.md)
+[Open the prototype](https://jude27mad.github.io/OpenSeat/) · [Open the live floor](https://jude27mad.github.io/OpenSeat/#floor=8) · [CEN100 build and test evidence](https://jude27mad.github.io/OpenSeat/evidence/)
 
 ## Try it on your phone and iPad
 

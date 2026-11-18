@@ -28,6 +28,7 @@
     "@tailwindcss/vite": "^4.3.5",
     "@vitejs/plugin-react": "^5.2.0",
     "jsqr": "^1.4.0",
+    "marked": "15.0.12",
     "pngjs": "^7.0.0",
     "tailwindcss": "^4.3.5",
     "vite": "^7.3.8"
