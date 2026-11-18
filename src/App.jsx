@@ -315,7 +315,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
           </span>
           <div>
             <b>OpenSeat</b>
-            <small>CEN100 prototype</small>
+            <small><a href="./evidence/">Prototype evidence</a></small>
           </div>
         </div>
       </aside>
