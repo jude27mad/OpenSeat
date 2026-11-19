@@ -8,15 +8,15 @@ Find a free study seat before walking over. One map, four inputs: student report
 
 ## Build plan and materials
 
-| Step | What | Evidence |
+| Step | Goal and materials | Date and evidence |
 | --- | --- | --- |
-| 1. Scope | Trace Floor 8: 40 tables, 92 seats, 20 bookable rooms | Nov 17 · Stage 1 |
-| 2. Bluetooth rule | Count devices at −75 dBm or stronger | Nov 17 · Calibration |
-| 3. Map | Seat IDs, search, timestamps, expiry | Nov 17 · Stage 2 |
-| 4. Inputs | QR check-in, reports, sensor receiver, Bluetooth counts | Nov 17 · Stage 3 |
-| 5. Testing | Automated tests of the app, data and QR codes | Nov 17 · Verification |
+| 1. Establish scope | Trace the supplied floor drawing with 40 four-chair tables, 92 individual seats and 20 separate bookable rooms. | Nov 17 · traced layout below |
+| 2. Establish Bluetooth rule | Use the existing BLE2MQTT calibration readings to set an inclusive −75 dBm cutoff for counting devices. | Nov 17 · recorded calibration below |
+| 3. Build the map | Trace furniture positions, assign prototype IDs, add searchable seats, then attach observation scope, timestamps, conflict rules and expiry. | Nov 17 · dashboard image below |
+| 4. Wire the four inputs | Connect shared storage, explicit QR check-in/out, one-tap free/occupied reports, a sensor receiver and local BLE scan reduction. | Nov 17 · table QR screen below |
+| 5. Verify the student journey | Exercise the UI, shared service, QR code and state rules. Keep measured results separate from human or physical trials. | Nov 17 · verification table below |
 
-Extra hardware cost: $0. Sensors were simulated. Hosted on GitHub Pages and Firebase.
+The planned phone, iPad, floor drawing and BLE2MQTT scans were already available. The estimated and actual additional hardware cost was $0. A simulated input replaced physical table hardware for this build. GitHub Pages serves the dashboard and a managed database service shares observations across browsers.
 
 ## Process evidence
 
