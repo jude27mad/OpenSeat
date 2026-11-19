@@ -314,12 +314,6 @@ export default function PhoneView(p) {
                 </Button>
               )}
             </section>
-            <SourcesPanel
-              model={model}
-              now={now}
-              onScanner={() => setModal('scanner')}
-              onMore={() => nav('sources')}
-            />
             <div className="phone-controls">
               <div className="segmented" role="group" aria-label="View">
                 <button aria-pressed={view === 'map'} onClick={() => setView('map')}>
@@ -398,6 +392,12 @@ export default function PhoneView(p) {
                 />
               </div>
             )}
+            <SourcesPanel
+              model={model}
+              now={now}
+              onScanner={() => setModal('scanner')}
+              onMore={() => nav('sources')}
+            />
           </>
         )}
         <footer className="phone-foot">
