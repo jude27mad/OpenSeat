@@ -637,14 +637,6 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
               />
             </div>
           )}
-          {page === 'overview' && (
-            <SourcesPanel
-              model={model}
-              now={now}
-              onScanner={() => setModal('scanner')}
-              onMore={() => nav('sources')}
-            />
-          )}
           {page !== 'sources' && (
             <div className="plan-grid">
               <Card className="panel floor-panel">
@@ -728,6 +720,14 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                   />
                 )}
                 <Legend />
+                {page === 'overview' && (
+                  <SourcesPanel
+                    model={model}
+                    now={now}
+                    onScanner={() => setModal('scanner')}
+                    onMore={() => nav('sources')}
+                  />
+                )}
               </Card>
               <div ref={detail} className="inspector-wrap">
                 <SeatDetails
