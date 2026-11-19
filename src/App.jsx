@@ -349,12 +349,13 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
           onClose={() => setModal(null)}
         />
       )}
-      {(modal === 'ble' || modal === 'sensor') && (
+      {(modal === 'scanner' || modal === 'ble' || modal === 'sensor') && (
         <FeedControls
           demo={demo}
           place={place || model.locations.get('T01')}
           record={record}
-          started={modal}
+          started={modal === 'scanner' ? 'ble' : modal}
+          connectScanner={modal === 'scanner'}
           onClose={() => setModal(null)}
           onBridge={onBridge}
           bridge={bridge}
@@ -636,6 +637,14 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
               />
             </div>
           )}
+          {page === 'overview' && (
+            <SourcesPanel
+              model={model}
+              now={now}
+              onScanner={() => setModal('scanner')}
+              onMore={() => nav('sources')}
+            />
+          )}
           {page !== 'sources' && (
             <div className="plan-grid">
               <Card className="panel floor-panel">
@@ -734,14 +743,6 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                 />
               </div>
             </div>
-          )}
-          {page === 'overview' && (
-            <SourcesPanel
-              model={model}
-              now={now}
-              onScanner={() => setModal('ble')}
-              onMore={() => nav('sources')}
-            />
           )}
           {page === 'sources' && (
             <section className="sources-section">

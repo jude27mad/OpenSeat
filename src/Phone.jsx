@@ -295,6 +295,12 @@ export default function PhoneView(p) {
                 </Button>
               )}
             </section>
+            <SourcesPanel
+              model={model}
+              now={now}
+              onScanner={() => setModal('scanner')}
+              onMore={() => nav('sources')}
+            />
             <div className="phone-controls">
               <div className="segmented" role="group" aria-label="View">
                 <button aria-pressed={view === 'map'} onClick={() => setView('map')}>
@@ -372,14 +378,6 @@ export default function PhoneView(p) {
               </div>
             )}
           </>
-        )}
-        {page !== 'sources' && (
-          <SourcesPanel
-            model={model}
-            now={now}
-            onScanner={() => setModal('ble')}
-            onMore={() => nav('sources')}
-          />
         )}
         <footer className="phone-foot">
           SLC Floor 8 · {seats.length} open seats · {plural(20, 'bookable room')} not counted

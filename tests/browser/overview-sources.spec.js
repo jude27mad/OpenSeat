@@ -1,0 +1,20 @@
+import { test, expect } from '@playwright/test'
+
+for (const width of [390, 1280]) {
+  test('overview shows all four sources and opens the scanner directly at width ' + width, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 })
+    await page.goto('./#floor=8')
+    const panel = page.getByRole('region', { name: 'Floor data sources' })
+    for (const name of ['QR check-in', 'Student reports', 'Bluetooth', 'Table sensors']) {
+      await expect(panel.getByText(name, { exact: true })).toBeInViewport()
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await panel.getByRole('button', { name: 'Connect scanner' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Device inputs' })
+    await expect(dialog.getByLabel('flespi read token')).toBeVisible()
+    await expect(dialog.getByLabel('Scanner MQTT topic')).toBeVisible()
+    await expect(dialog.getByLabel('OpenSeat operator key')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(dialog).toBeHidden()
+  })
+}
