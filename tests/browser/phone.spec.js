@@ -97,7 +97,7 @@ test('reporting a seat or a whole table takes one tap from the sheet', async ({ 
   await page.locator('.list-location').tap()
   await expect(sheet(page).getByRole('heading', { level: 2 })).toHaveText('Seat 07')
   await sheet(page).getByRole('button', { name: "It's taken" }).tap()
-  await expect(toast(page)).toHaveText('Thanks! Seat 07 marked taken. Reports last 15 minutes.')
+  await expect(toast(page)).toHaveText('Thanks! Seat 07 marked taken.')
   await expect(toast(page)).toBeInViewport()
   await sheet(page).getByRole('button', { name: 'Close' }).tap()
   await page.getByLabel('Search seats').fill('table 6')
@@ -163,7 +163,7 @@ test('a table QR opens straight to check-in, says how long it lasts, and checks 
   await page.goto(room + '&spot=T17&checkin=1')
   const checkIn = page.getByRole('button', { name: /^Check in to Chair [A-D]$/ })
   await expect(checkIn).toBeInViewport()
-  await expect(sheet(page)).toContainText('hold it for 60 minutes')
+  await expect(sheet(page)).toContainText('hold it until you check out')
   await page.screenshot({ path: testInfo.outputPath('phone-qr.png') })
   await checkIn.tap()
   await expect(toast(page)).toContainText('Held until')
@@ -173,7 +173,7 @@ test('a table QR opens straight to check-in, says how long it lasts, and checks 
   await expect(sheet(page).getByRole('button', { name: 'Check out' })).toBeVisible()
   await expect(sheet(page).getByRole('button', { name: "It's free" })).toHaveCount(0)
   await page.goto(room)
-  await expect(page.locator('.mine-banner')).toContainText('min left')
+  await expect(page.locator('.mine-banner')).toContainText('Held until you check out')
   await page.locator('.mine-banner').getByRole('button', { name: /^Check out/ }).tap()
   await expect(page.locator('.mine-banner')).toHaveCount(0)
   await expect(page.locator('.floating-note')).toContainText('Checked out of Table 17')
@@ -211,7 +211,9 @@ test('the phone menu reaches the data page, and Back returns to the map', async 
   await page.getByRole('button', { name: 'Menu' }).tap()
   await page.getByRole('button', { name: 'Live floor' }).tap()
   await expect(page.getByRole('note')).toHaveCount(0)
-  await expect(page.locator('.hero h1')).toHaveText(/No seat updates yet|seats? free/)
+  await expect(page.locator('.hero h1')).toHaveText(
+    /No seat updates yet|No free seats reported|Every seat is taken|seats? free/,
+  )
   // Coming back to the demo returns to the same session, by menu or by Back.
   await page.getByRole('button', { name: 'Menu' }).tap()
   await page.getByRole('button', { name: 'Demo', exact: true }).tap()

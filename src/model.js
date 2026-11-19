@@ -12,7 +12,10 @@ export const ttl = {
   sensor: 5 * 60000,
   ble: 2 * 60000,
 }
+// In a demo room nothing expires: a `lasting` reading counts until someone
+// replaces it by reporting the seat, checking in or checking out.
 export function lifetime(event) {
+  if (event.lasting) return Infinity
   return event.source === 'qr' && event.value === 'free'
     ? 5 * 60000
     : ttl[event.source]
@@ -209,7 +212,7 @@ export function suggestions(locations, now, section = 'all') {
     )
 }
 // When the latest check-in on this seat stops holding it.
-export const holdsUntil = (event) => event.at + ttl.qr
+export const holdsUntil = (event) => (event.lasting ? Infinity : event.at + ttl.qr)
 // Matches what people type: "table 5", "T5", "seat 12", "12", "T17-B".
 export function matchesQuery(p, query) {
   const q = query.toLowerCase().trim()

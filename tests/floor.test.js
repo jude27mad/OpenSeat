@@ -218,3 +218,26 @@ test('A tap between two round tables zooms in instead of guessing', async () => 
   // A tap on the table itself still opens it at once.
   assert.equal(resolveTap({ at: [ax + 2, ay], pxPerUnit: 0.48, zoom: 1, touch: true }).id, 'T13')
 })
+test('Demo readings never expire: only a new report or check-in changes a seat', async () => {
+  const { holdsUntil } = await import('../src/model.js')
+  const { endingSoon, holdText } = await import('../src/checkin.js')
+  const lasting = (e) => ({ ...e, lasting: true })
+  const later = now + 10 * 3600000
+  const m = derive(
+    [
+      lasting(event('qr', 'I020', 'free', 5 * 60000)),
+      lasting(event('report', 'I021', 'occupied')),
+      lasting(event('sensor', 'T08', 'occupied')),
+    ],
+    later,
+  )
+  assert.equal(m.states.get('I020').status, 'free')
+  assert.equal(m.states.get('I021').status, 'occupied')
+  assert.equal(m.locations.get('T08').status, 'inuse')
+  const hold = lasting(event('qr', 'I022', 'occupied'))
+  assert.equal(holdsUntil(hold), Infinity)
+  assert.equal(endingSoon(hold, later), false)
+  assert.equal(holdText(hold, later), 'Held until you check out')
+  // Live readings still expire.
+  assert.equal(derive([event('report', 'I021', 'occupied')], later).states.get('I021').status, 'unknown')
+})

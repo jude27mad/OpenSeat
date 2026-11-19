@@ -235,6 +235,8 @@ export default function PhoneView(p) {
               Each seat shows the newest information from four sources, with how long ago it
               arrived. Old information stops counting, so a seat with nothing recent says “No
               recent info” rather than guessing.
+              {demo &&
+                ' In the demo nothing expires: seats change only when someone reports them, checks in or checks out.'}
             </p>
             <h2 className="sr-only">The four sources</h2>
             <SourceCards events={events} now={now} full onDevices={(s) => setModal(s)} />
@@ -255,6 +257,22 @@ export default function PhoneView(p) {
                     Be the first: tap a seat on the map and say whether it's free.
                   </p>
                 </>
+              ) : n.free === 0 ? (
+                // Nobody has reported a free seat. That is not the same as a full floor.
+                <>
+                  <h1 id="hero-title">{n.unknown ? 'No free seats reported' : 'Every seat is taken'}</h1>
+                  <p className="hero-sub">
+                    {n.occupied} taken · {n.unknown} no recent info
+                    {n.mixed ? ' · ' + n.mixed + ' mixed' : ''}
+                    {latest ? ' · updated ' + age(latest.at, now).toLowerCase() : ''}
+                  </p>
+                  {n.unknown > 0 && !choices && (
+                    <p className="hero-hint">
+                      Seats with no recent info may still be free. Seen one? Tap it on the map and
+                      choose “It's free”.
+                    </p>
+                  )}
+                </>
               ) : (
                 <>
                   <h1 id="hero-title">
@@ -267,12 +285,10 @@ export default function PhoneView(p) {
                   </p>
                 </>
               )}
-              {!empty && (
-                <Button className="wide big find" disabled={!choices} onClick={onFind}>
+              {!empty && choices > 0 && (
+                <Button className="wide big find" onClick={onFind}>
                   <Sparkles />
-                  {!choices
-                    ? 'No free seats reported'
-                    : findCount.at
+                  {findCount.at
                       ? 'Show another free spot (' + findCount.at + ' of ' + choices + ')'
                       : 'Find me a free seat'}
                 </Button>

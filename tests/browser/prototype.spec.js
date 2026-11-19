@@ -148,7 +148,7 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   await page.getByRole('button', { name: "It's free", exact: true }).click()
   const panelStatus = page.locator('.inspector').getByRole('status')
   await expect(panelStatus).toHaveText(
-    'Thanks! Seat 92 marked free. Reports last 15 minutes.',
+    'Thanks! Seat 92 marked free.',
   )
   await page.goto(roomUrl + '&spot=I091&checkin=1')
   await expect(page.getByRole('heading', { name: 'Seat 91' })).toBeVisible()
