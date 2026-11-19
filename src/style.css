@@ -661,6 +661,11 @@ h3 {
 .mixed i {
   background: #7d58a3;
 }
+.legend .dotted {
+  border-radius: 2px;
+  border: 1.5px dashed #8fa3b8;
+  background: #eef1f6;
+}
 .legend .booked {
   border-radius: 2px;
   border: 1px solid #adb9aa;

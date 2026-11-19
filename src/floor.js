@@ -90,11 +90,14 @@ const floor8Seats = positions.map(([x, y], i) => ({
   section: 'individuals',
 }))
 const seatsOf = (plan) =>
-  plan.seats.map(([x, y, angle], i) => ({
+  // Each seat is the white box on the floor's map: centre, turn, width, height.
+  plan.seats.map(([x, y, angle, w, h], i) => ({
     id: 'I' + String(i + 1).padStart(3, '0'),
     x,
     y,
     angle,
+    w,
+    h,
     section: 'individuals',
   }))
 const floor5Seats = seatsOf(floor5)
@@ -143,8 +146,8 @@ export const FLOORS = {
     individuals: seatsOf(floor7),
     rooms: [],
     plan: floor7,
-    seatSize: 16,
     chairTurn: 0,
+    tableScale: 1.4,
     notCounted: floor7.bookable.length + ' bookable rooms',
   },
 }

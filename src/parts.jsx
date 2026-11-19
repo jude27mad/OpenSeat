@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
-import { label, tables } from './floor.js'
+import { floor, label, tables } from './floor.js'
 import { age, fresh, matchesQuery, looksFree, placeDescription, sources } from './model.js'
 import { endingSoon, holdText, remaining } from './checkin.js'
 import { DemoTag, Origin } from './SeatDetails.jsx'
@@ -163,10 +163,17 @@ export function Legend() {
           Table sensor reading
         </span>
       )}
-      <span>
-        <i className="booked" />
-        {tables.length ? 'Bookable room (not counted)' : 'Room (not counted)'}
-      </span>
+      {floor.plan?.image ? (
+        <span>
+          <i className="dotted" />
+          Inside dotted lines: room (not counted)
+        </span>
+      ) : (
+        <span>
+          <i className="booked" />
+          Bookable room (not counted)
+        </span>
+      )}
     </div>
   )
 }
