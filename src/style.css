@@ -1625,6 +1625,13 @@ footer button {
   border-radius: 16px;
   padding: 16px;
 }
+.hero .floor-switch {
+  margin: -4px -4px 12px;
+}
+.hero .floor-switch button {
+  min-height: 40px;
+  font-size: 15px;
+}
 .hero-kicker {
   font-size: 13px;
   font-weight: 650;

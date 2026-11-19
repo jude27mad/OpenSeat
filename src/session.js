@@ -19,35 +19,41 @@ function set(key, value) {
     /* Storage can be unavailable in private mode. */
   }
 }
-export function chosenRoom(live = false, forceNew = false) {
-  if (live) return { id: 'floor8', anchor: 0 }
+// The live floors are rooms named after them; a demo is a random room id.
+export const isLive = (room) => room.id.startsWith('floor')
+const sessionKey = (number) => (number === 8 ? SESSION : SESSION + '.f' + number)
+export function chosenRoom(live = false, forceNew = false, number = 8) {
+  if (live) return { id: 'floor' + number, anchor: 0, floor: number }
   const params = new URLSearchParams(location.hash.slice(1)),
     id = params.get('demo'),
-    anchor = Number(params.get('start'))
+    anchor = Number(params.get('start')),
+    level = Number(params.get('level')) || 8
   if (
     !forceNew &&
+    level === number &&
     uuid.test(id || '') &&
     anchor > 0 &&
     anchor <= Date.now() + 60000
   ) {
     // Remember a demo opened from a link, so Live floor and back returns to it.
-    if (Date.now() - anchor < 6 * 3600000) set(SESSION, { id, anchor })
-    return { id, anchor }
+    if (Date.now() - anchor < 6 * 3600000) set(sessionKey(number), { id, anchor })
+    return { id, anchor, floor: number }
   }
-  const existing = get(SESSION)
+  const existing = get(sessionKey(number))
   if (!forceNew && existing && Date.now() - existing.anchor < 6 * 3600000)
-    return existing
+    return { ...existing, floor: number }
   const room = { id: crypto.randomUUID(), anchor: Date.now() }
-  set(SESSION, room)
-  return room
+  set(sessionKey(number), room)
+  return { ...room, floor: number }
 }
 export function roomUrl(room, spot, checkin = false) {
   const target = new URL(location.pathname, location.origin),
     params = new URLSearchParams()
-  if (room.id === 'floor8') params.set('floor', '8')
+  if (isLive(room)) params.set('floor', String(room.floor))
   else {
     params.set('demo', room.id)
     params.set('start', String(room.anchor))
+    if (room.floor !== 8) params.set('level', String(room.floor))
   }
   if (spot) params.set('spot', spot)
   if (spot && checkin) params.set('checkin', '1')
@@ -56,7 +62,7 @@ export function roomUrl(room, spot, checkin = false) {
 }
 const recent = (rows) => rows.filter((row) => Date.now() - row.at < 86400000)
 export function useFloor(room) {
-  const demo = room.id !== 'floor8'
+  const demo = !isLive(room)
   const cache = 'openseat.cache.' + room.id
   const [updates, setUpdates] = useState(() => recent(get(cache) || []))
   const [online, setOnline] = useState('connecting')

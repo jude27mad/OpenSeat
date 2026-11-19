@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
-import { label } from './floor.js'
+import { label, tables } from './floor.js'
 import { age, fresh, matchesQuery, looksFree, placeDescription, sources } from './model.js'
 import { endingSoon, holdText, remaining } from './checkin.js'
 import { DemoTag, Origin } from './SeatDetails.jsx'
@@ -82,8 +82,8 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
             <p className="live-name">
               QR check-in {demo.qr && <DemoTag />}
             </p>
-            <p className="live-value">{plural(checkIns, 'chair')} checked in{lastCheckIn > 0 && ' · ' + ago(lastCheckIn)}</p>
-            <small>Select a table for its QR code.</small>
+            <p className="live-value">{plural(checkIns, tables.length ? 'chair' : 'seat')} checked in{lastCheckIn > 0 && ' · ' + ago(lastCheckIn)}</p>
+            <small>Select a {tables.length ? 'table' : 'seat'} for its QR code.</small>
           </div>
         </li>
         <li>
@@ -135,7 +135,7 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
                 ? label(newestSensor.target) + ' · ' + (newestSensor.value === 'free' ? 'Free' : 'In use') + ' · ' + ago(newestSensor.at)
                 : 'No recent readings'}
             </p>
-            <small>Sensor dots mark tables on the map.</small>
+            <small>{tables.length ? 'Sensor dots mark tables on the map.' : 'A seat sensor sets that seat’s status.'}</small>
           </div>
         </li>
       </ul>
@@ -157,13 +157,15 @@ export function Legend() {
           {text}
         </span>
       ))}
-      <span>
-        <i className="sensor-dot" />
-        Table sensor reading
-      </span>
+      {tables.length > 0 && (
+        <span>
+          <i className="sensor-dot" />
+          Table sensor reading
+        </span>
+      )}
       <span>
         <i className="booked" />
-        Bookable room (not counted)
+        {tables.length ? 'Bookable room (not counted)' : 'Room (not counted)'}
       </span>
     </div>
   )

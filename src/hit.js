@@ -1,22 +1,7 @@
-import { places } from './floor.js'
+import { places, mapPoints, spacing } from './floor.js'
 
-// The plan is drawn rotated a quarter turn. Distances are unchanged.
-export const point = (x, y) => [y, 662 - x]
-export const mapPoints = new Map(places.map((p) => [p.id, point(p.x, p.y)]))
-
-// Distance from each place to its closest neighbour, in plan units.
-export const spacing = new Map(
-  places.map((p) => {
-    const [x, y] = mapPoints.get(p.id)
-    let best = Infinity
-    for (const q of places) {
-      if (q === p) continue
-      const [qx, qy] = mapPoints.get(q.id)
-      best = Math.min(best, Math.hypot(qx - x, qy - y))
-    }
-    return [p.id, best]
-  }),
-)
+// Plan positions and neighbour spacing come from the floor on screen.
+export { mapPoints, spacing }
 
 export const MAX_ZOOM = 4
 // A fingertip covers roughly 20 px, so neighbours closer than this are a guess.

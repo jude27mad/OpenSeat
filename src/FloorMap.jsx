@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Minus, Plus } from 'lucide-react'
-import { places, rooms, label } from './floor.js'
+import { FLOORS, floor, places, label } from './floor.js'
 import { age, fresh, sources, placeDescription, looksFree } from './model.js'
 import { MAX_ZOOM, mapPoints, resolveTap } from './hit.js'
 
@@ -21,6 +21,149 @@ export function isDim(location, section, filter) {
     (section !== 'all' && location.section !== section) ||
     (filter === 'free' && !looksFree(location))
   )
+}
+
+// Floor 8 was traced in its own frame and is drawn a quarter turn round.
+function Floor8Plan({ hatch }) {
+  return (
+        <g transform="translate(0 662) rotate(-90)" pointerEvents="none">
+          <path
+            d="M232 23H620V754H130L57 639 14 88H232Z"
+            fill="#fafcf7"
+            stroke="#798d7e"
+            strokeWidth="4.5"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M238 27H615M617 33V748M135 749H608M20 93l42 540"
+            fill="none"
+            stroke="#c4d1c0"
+            strokeWidth="2"
+          />
+          <g stroke="#9cae9e" fill="#f1f4ed" strokeWidth="1.5">
+            <path
+              d="M233 88v91h360M293 177v-72h259v72M237 68h120m138 0h122M465 597h151"
+              fill="none"
+              strokeDasharray="5 3"
+            />
+            {[309, 374, 438, 501].map((x) => (
+              <g key={x}>
+                <rect x={x} y="116" width="33" height="46" rx="6" />
+                <path
+                  d={`M${x + 11} 147v-14l-4 4m4-4 4 4m8-5v14l-4-4m4 4 4-4`}
+                  fill="none"
+                  strokeWidth="2"
+                />
+              </g>
+            ))}
+            {FLOORS[8].rooms.map(([x, y], i) => (
+              <g key={i} {...roomShape(x, y)}>
+                <rect
+                  x={i === 10 || i === 19 ? -30 : -21}
+                  y="-22"
+                  width={i === 10 || i === 19 ? 60 : 42}
+                  height="44"
+                  rx="1"
+                  fill={`url(#${hatch})`}
+                />
+                <rect x="-10" y="-7" width="20" height="14" rx="4" />
+              </g>
+            ))}
+          </g>
+        </g>
+  )
+}
+
+const pts = (shape) => shape.map((q) => q.join(',')).join(' ')
+// Floor 5, from the library's room-booking map, turned the same way as Floor 8.
+// Bookable rooms, the seminar room and the media rooms are hatched: not counted.
+function Floor5Plan({ plan, hatch }) {
+  const box = (shape) => {
+    const xs = shape.map((q) => q[0]),
+      ys = shape.map((q) => q[1])
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
+  }
+  return (
+    <g pointerEvents="none">
+      <polygon
+        points={pts(plan.outline)}
+        fill="#fafcf7"
+        stroke="#798d7e"
+        strokeWidth="4.5"
+        strokeLinejoin="round"
+      />
+      {plan.stairs.map((shape, i) => (
+        <polygon key={i} points={pts(shape)} fill="#e9eee6" />
+      ))}
+      <g stroke="#9cae9e" fill="#f1f4ed" strokeWidth="1.5">
+        {plan.lifts.map((shape, i) => {
+          const [x0, y0, x1, y1] = box(shape),
+            cx = (x0 + x1) / 2,
+            cy = (y0 + y1) / 2
+          return (
+            <g key={i}>
+              <rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} rx="6" />
+              <path
+                d={`M${cx - 6} ${cy + 7}v-14l-4 4m4-4 4 4m8-4v14l-4-4m4 4 4-4`}
+                fill="none"
+                strokeWidth="2"
+              />
+            </g>
+          )
+        })}
+        {[...plan.media, plan.seminar.shape].map((shape, i) => (
+          <polygon key={'r' + i} points={pts(shape)} fill={`url(#${hatch})`} />
+        ))}
+        {plan.seminar.desks.map(([a, b], i) => (
+          <line
+            key={'d' + i}
+            x1={a[0]}
+            y1={a[1]}
+            x2={b[0]}
+            y2={b[1]}
+            stroke="#dfe6dc"
+            strokeWidth="6"
+            strokeLinecap="round"
+          />
+        ))}
+        {plan.bookable.map((room, i) => (
+          <g key={'b' + i}>
+            <polygon points={pts(room.shape)} fill={`url(#${hatch})`} />
+            {room.kind === 'round' ? (
+              <circle cx={room.table[0]} cy={room.table[1]} r="7" />
+            ) : (
+              <rect
+                x={room.table[0] - 4}
+                y={room.table[1] - 12}
+                width="8"
+                height="24"
+                rx="3"
+                transform={`rotate(-38 ${room.table[0]} ${room.table[1]})`}
+              />
+            )}
+          </g>
+        ))}
+      </g>
+    </g>
+  )
+}
+
+// Area names. Diagonal ones lie along the furniture they name.
+const LABELS = {
+  8: (size) => [
+    [141, 103, 0, 'LIFTS', size, 'middle'],
+    [745, 198, 0, 'ROUND TABLES', size, 'end'],
+    [270, 257, 40, 'INDIVIDUAL SEATS', Math.min(size, 22)],
+    [242, 471, -48, 'BOOKABLE ROOMS', Math.min(size, 22)],
+    [468, 216, -49, 'BOOKABLE ROOMS', Math.min(size, 22)],
+  ],
+  5: (size) => [
+    [112, 86, 0, 'LIFTS', size, 'middle'],
+    [245, 428, 0, 'INDIVIDUAL SEATS', Math.min(size, 22), 'middle'],
+    [409, 374, -40, 'BOOKABLE ROOMS', Math.min(size, 20)],
+    [305, 309, -42, 'SEMINAR ROOM', Math.min(size, 18)],
+    [525, 462, 0, 'MEDIA ROOMS', Math.min(size, 20), 'middle'],
+  ],
 }
 
 export function PlanDrawing({
@@ -47,8 +190,8 @@ export function PlanDrawing({
     <svg
       ref={svgRef}
       className="plan-svg"
-      viewBox="0 0 790 680"
-      aria-label="Floor plan of the Student Learning Centre, Floor 8"
+      viewBox={'0 0 ' + floor.viewBox.join(' ')}
+      aria-label={'Floor plan of the Student Learning Centre, ' + floor.name}
       onClick={onTap}
     >
       <defs>
@@ -62,74 +205,18 @@ export function PlanDrawing({
           <path d="M0 0V6" stroke="#cdd7cd" strokeWidth="1.2" />
         </pattern>
       </defs>
-      <g transform="translate(0 662) rotate(-90)" pointerEvents="none">
-        <path
-          d="M232 23H620V754H130L57 639 14 88H232Z"
-          fill="#fafcf7"
-          stroke="#798d7e"
-          strokeWidth="4.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M238 27H615M617 33V748M135 749H608M20 93l42 540"
-          fill="none"
-          stroke="#c4d1c0"
-          strokeWidth="2"
-        />
-        <g stroke="#9cae9e" fill="#f1f4ed" strokeWidth="1.5">
-          <path
-            d="M233 88v91h360M293 177v-72h259v72M237 68h120m138 0h122M465 597h151"
-            fill="none"
-            strokeDasharray="5 3"
-          />
-          {[309, 374, 438, 501].map((x) => (
-            <g key={x}>
-              <rect x={x} y="116" width="33" height="46" rx="6" />
-              <path
-                d={`M${x + 11} 147v-14l-4 4m4-4 4 4m8-5v14l-4-4m4 4 4-4`}
-                fill="none"
-                strokeWidth="2"
-              />
-            </g>
-          ))}
-          {rooms.map(([x, y], i) => (
-            <g key={i} {...roomShape(x, y)}>
-              <rect
-                x={i === 10 || i === 19 ? -30 : -21}
-                y="-22"
-                width={i === 10 || i === 19 ? 60 : 42}
-                height="44"
-                rx="1"
-                fill={`url(#${hatch})`}
-              />
-              <rect x="-10" y="-7" width="20" height="14" rx="4" />
-            </g>
-          ))}
-        </g>
-      </g>
+      {floor.number === 8 ? <Floor8Plan hatch={hatch} /> : <Floor5Plan plan={floor.plan} hatch={hatch} />}
       {labels && (
         <g pointerEvents="none">
-          <text x="141" y="103" textAnchor="middle" className="plan-label" fontSize={textSize}>
-            LIFTS
-          </text>
-          <text x="745" y="198" textAnchor="end" className="plan-label" fontSize={textSize}>
-            ROUND TABLES
-          </text>
-          {/* Area names laid along the furniture: in the gap between seats 1–54
-              and the 14–36 lane, and on top of each strip of bookable rooms. */}
-          {[
-            [270, 257, 40, 'INDIVIDUAL SEATS', Math.min(textSize, 22)],
-            [242, 471, -48, 'BOOKABLE ROOMS', Math.min(textSize, 22)],
-            [468, 216, -49, 'BOOKABLE ROOMS', Math.min(textSize, 22)],
-          ].map(([x, y, angle, text, size]) => (
+          {LABELS[floor.number](textSize).map(([x, y, angle, text, size, anchor]) => (
             <text
-              key={x}
+              key={text + x}
               x={x}
               y={y}
-              dy="0.35em"
-              textAnchor="middle"
-              transform={`rotate(${angle} ${x} ${y})`}
-              className="plan-label along"
+              dy={angle ? '0.35em' : undefined}
+              textAnchor={anchor || 'middle'}
+              transform={angle ? `rotate(${angle} ${x} ${y})` : undefined}
+              className={'plan-label' + (angle || anchor === 'middle' && size < textSize ? ' along' : '')}
               fontSize={size}
             >
               {text}
@@ -195,12 +282,11 @@ export function PlanDrawing({
                 )}
               </g>
             ) : (
-              <g transform="rotate(-49)">
+              <g transform={`rotate(${p.angle ?? -49})`}>
                 <rect
-                  x="-8"
-                  y="-7"
-                  width="16"
-                  height="14"
+                  {...(p.angle === undefined
+                    ? { x: -8, y: -7, width: 16, height: 14 }
+                    : { x: -8.5, y: -8.5, width: 17, height: 17 })}
                   rx="2"
                   fill={color.fill}
                   stroke={color.stroke}
@@ -237,7 +323,7 @@ export function PlanDrawing({
             strokeWidth={clamp(2.5 / pxPerUnit, 2, 6)}
           />
           <g
-            transform={`translate(${clamp(px, 43 * tag + 6, 784 - 43 * tag)} ${Math.max(
+            transform={`translate(${clamp(px, 43 * tag + 6, floor.viewBox[0] - 6 - 43 * tag)} ${Math.max(
               24 * tag + 2,
               py - ring - 4,
             )}) scale(${tag})`}

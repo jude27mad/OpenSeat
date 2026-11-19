@@ -1,4 +1,4 @@
-// Deletes demo rooms nobody has used for a while. The live floor is never touched.
+// Deletes demo rooms nobody has used for a while. The live floors are never touched.
 // Runs from GitHub Actions on a schedule, since the free Firebase plan has no server code.
 //
 //   node backend/firebase/cleanup.mjs              delete demo rooms idle for over 24 hours
@@ -14,7 +14,7 @@ import { pathToFileURL } from 'node:url'
 import { readSettings } from './settings.js'
 
 export const HOUR = 3600000
-const LIVE = 'floor8'
+const LIVE = ['floor8', 'floor5']
 const demoRoom = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 // A small client for the database's REST interface.
@@ -52,7 +52,7 @@ export function lastActivity(events) {
 
 export async function cleanup({ request, now = Date.now(), maxAge = 24 * HOUR, dryRun = false, log = console.log }) {
   const listing = (await request('/rooms', { query: { shallow: 'true' } })) || {}
-  const ids = Object.keys(listing).filter((id) => id !== LIVE)
+  const ids = Object.keys(listing).filter((id) => !LIVE.includes(id))
   const skipped = ids.filter((id) => !demoRoom.test(id))
   const rooms = ids.filter((id) => demoRoom.test(id))
   const idle = []
