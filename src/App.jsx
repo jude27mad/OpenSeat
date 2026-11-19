@@ -593,7 +593,11 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
               <Stat
                 name="Free seats"
                 value={n.free}
-                detail={`of ${seats.length} open seats`}
+                detail={
+                  n.free === 0 && n.unknown
+                    ? `None reported yet · ${n.unknown} with no recent info`
+                    : `of ${seats.length} open seats`
+                }
                 icon={Armchair}
                 tone="green"
                 percent={(n.free * 100) / seats.length}

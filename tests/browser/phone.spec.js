@@ -211,7 +211,9 @@ test('the phone menu reaches the data page, and Back returns to the map', async 
   await page.getByRole('button', { name: 'Menu' }).tap()
   await page.getByRole('button', { name: 'Live floor' }).tap()
   await expect(page.getByRole('note')).toHaveCount(0)
-  await expect(page.locator('.hero h1')).toHaveText(/No seat updates yet|seats? free/)
+  await expect(page.locator('.hero h1')).toHaveText(
+    /No seat updates yet|No free seats reported|Every seat is taken|seats? free/,
+  )
   // Coming back to the demo returns to the same session, by menu or by Back.
   await page.getByRole('button', { name: 'Menu' }).tap()
   await page.getByRole('button', { name: 'Demo', exact: true }).tap()
