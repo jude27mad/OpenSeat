@@ -301,13 +301,17 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
     pick(next, null, { focus: true, heading: true, fromFind: true })
   }
   const findCount = { at: seen.length, of: choices.length }
-  async function checkInAgain(target) {
+  async function checkInAgain(target, undo = false) {
     const id = crypto.randomUUID()
     remember(room, target, id)
     setBusyMine(true)
     try {
       await record({ source: 'qr', target, value: 'occupied', id })
-      setMineNote({ text: 'You have ' + label(target) + ' for another 60 minutes.' })
+      setMineNote({
+        text: undo
+          ? "You're checked in at " + label(target) + ' again.'
+          : 'You have ' + label(target) + ' for another 60 minutes.',
+      })
     } catch (e) {
       if (!uncertain(e)) remember(room, target, null)
       setMineNote({ text: friendly(e) })
@@ -365,7 +369,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                 onClick={() => {
                   const target = mineNote.undo
                   setMineNote(null)
-                  checkInAgain(target)
+                  checkInAgain(target, true)
                 }}
               >
                 Undo

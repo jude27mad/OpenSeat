@@ -64,7 +64,12 @@ export function remaining(event, now) {
   return minutes + ' min left'
 }
 // Under ten minutes left: worth offering to keep the seat.
-export const endingSoon = (event, now) => holdsUntil(event) - now < 10 * 60000
+export const endingSoon = (event, now) => !event.lasting && holdsUntil(event) - now < 10 * 60000
+// How long a check-in holds the seat, in words.
+export const holdText = (event, now) =>
+  event.lasting
+    ? 'Held until you check out'
+    : 'Held until ' + clock(holdsUntil(event)) + ' · ' + remaining(event, now)
 
 // Errors where the request never got a definite answer.
 export const uncertain = (error) =>

@@ -78,5 +78,7 @@ export function useFloor(room) {
     if (current.current) setUpdates((prior) => merge(prior, [event]))
     return event
   }
-  return { events: merge(demo ? seedDemo(room.anchor) : [], updates), online, record, updates }
+  const events = merge(demo ? seedDemo(room.anchor) : [], updates)
+  // The demo never changes on its own, only when someone reports, checks in or checks out.
+  return { events: demo ? events.map((e) => ({ ...e, lasting: true })) : events, online, record, updates }
 }

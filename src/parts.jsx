@@ -15,8 +15,7 @@ import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
 import { label } from './floor.js'
 import { age, fresh, matchesQuery, looksFree, placeDescription, sources } from './model.js'
-import { clock, endingSoon, remaining } from './checkin.js'
-import { holdsUntil } from './model.js'
+import { endingSoon, holdText, remaining } from './checkin.js'
 import { Origin } from './SeatDetails.jsx'
 
 export const plural = (count, noun) => count + ' ' + noun + (count === 1 ? '' : 's')
@@ -80,8 +79,7 @@ export function CheckInBanner({ checkIns, now, onShow, onCheckOut, onKeep, busy 
       <p>
         <b>You're checked in at {label(seat)}</b>
         <small>
-          {soon ? 'Ending soon: ' : 'Held until '}
-          {soon ? remaining(event, now) : clock(holdsUntil(event)) + ' · ' + remaining(event, now)}
+          {soon ? 'Ending soon: ' + remaining(event, now) : holdText(event, now)}
           {checkIns.length > 1 ? ' · and ' + plural(checkIns.length - 1, 'other seat') : ''}
         </small>
       </p>

@@ -97,7 +97,9 @@ export default function SeatDetails({
     other = held && !mine,
     peek = mode === 'peek',
     phone = mode !== 'panel',
-    noun = isTable ? 'chair' : 'seat'
+    noun = isTable ? 'chair' : 'seat',
+    // In the demo nothing expires, so holds and reports last until someone changes them.
+    demo = room.id !== 'floor8'
   const holds = myCheckIns(room, model, now).filter((c) => c.seat !== seat)
   useEffect(() => {
     if (!toast) return
@@ -159,9 +161,7 @@ export default function SeatDetails({
         const extra = renew ? '' : await releaseOthers()
         return (
           (renew ? 'Your seat is held' : 'Checked in at ' + label(target) + '. Held') +
-          ' until ' +
-          clock(holdsUntil(event)) +
-          '.' +
+          (demo ? ' until you check out.' : ' until ' + clock(holdsUntil(event)) + '.') +
           extra
         )
       } catch (e) {
@@ -204,7 +204,7 @@ export default function SeatDetails({
         label(seat) +
         ' marked ' +
         (value === 'free' ? 'free' : 'taken') +
-        '. Reports last 15 minutes.' +
+        (demo ? '.' : '. Reports last 15 minutes.') +
         (force ? ' Anyone sitting there can now check in.' : '') +
         sensorNote(value === 'free' && isTable && place.tally.free + 1 >= place.ids.length)
       )
@@ -416,8 +416,10 @@ export default function SeatDetails({
             ) : (
               <>
                 <b>You're checked in at {label(seat)}.</b> Your {noun} is held until{' '}
-                {clock(holdsUntil(mine))} ({remaining(mine, now)}). Check out when you leave
-                so someone else can sit.
+                {demo
+                  ? 'you check out'
+                  : clock(holdsUntil(mine)) + ' (' + remaining(mine, now) + ')'}
+                . Check out when you leave so someone else can sit.
               </>
             )}
           </p>
@@ -445,7 +447,9 @@ export default function SeatDetails({
             </b>{' '}
             {isTable
               ? 'Pick a free chair above.'
-              : 'It stays held until ' + clock(holdsUntil(held)) + '.'}{' '}
+              : 'It stays held until ' +
+                (demo ? 'they check out' : clock(holdsUntil(held))) +
+                '.'}{' '}
             If nobody is there, tap “It's free” below and you can check in.
           </p>
           <Button className="wide big" disabled>
@@ -456,8 +460,10 @@ export default function SeatDetails({
       ) : (
         <>
           <p className="checkin-note">
-            Sitting {isTable ? 'in ' + chairName(seat) : 'here'}? Check in to hold it for 60
-            minutes. You can check out any time.
+            Sitting {isTable ? 'in ' + chairName(seat) : 'here'}?{' '}
+            {demo
+              ? 'Check in to hold it until you check out.'
+              : 'Check in to hold it for 60 minutes. You can check out any time.'}
             {holds.length > 0 && (
               <>
                 {' '}
@@ -609,9 +615,11 @@ export default function SeatDetails({
               <ChevronDown size={14} />
             </summary>
             <p>
-              Each source counts for a while: check-ins 60 minutes, student reports 15 minutes,
-              table sensors 5 minutes. For a seat, the newest report or check-in wins. When a
-              table sensor disagrees with the chairs, the table shows Mixed reports.
+              {demo
+                ? 'In the demo nothing expires: a seat changes only when someone reports it, checks in or checks out.'
+                : 'Each source counts for a while: check-ins 60 minutes, student reports 15 minutes, table sensors 5 minutes.'}{' '}
+              For a seat, the newest report or check-in wins. When a table sensor disagrees with
+              the chairs, the table shows Mixed reports.
             </p>
             {state.evidence.map((e) => (
               <div key={e.id}>

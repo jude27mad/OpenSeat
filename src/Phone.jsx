@@ -235,6 +235,8 @@ export default function PhoneView(p) {
               Each seat shows the newest information from four sources, with how long ago it
               arrived. Old information stops counting, so a seat with nothing recent says “No
               recent info” rather than guessing.
+              {demo &&
+                ' In the demo nothing expires: seats change only when someone reports them, checks in or checks out.'}
             </p>
             <h2 className="sr-only">The four sources</h2>
             <SourceCards events={events} now={now} full onDevices={(s) => setModal(s)} />
