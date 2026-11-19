@@ -2336,3 +2336,11 @@ html:has(.phone) .floating-note-region {
   line-height: 1.45;
   color: #33463a;
 }
+/* Diagonal area names sit on the plan itself, with a halo so they read over the hatching. */
+.plan-label.along {
+  letter-spacing: 0.06em;
+  paint-order: stroke;
+  stroke: #fafcf7;
+  stroke-width: 0.24em;
+  stroke-linejoin: round;
+}

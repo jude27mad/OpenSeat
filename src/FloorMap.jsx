@@ -107,25 +107,36 @@ export function PlanDrawing({
           ))}
         </g>
       </g>
-      {labels &&
-        [
-          [141, 103, 'LIFTS', 'middle'],
-          [745, 100, 'BOOKABLE ROOMS', 'end'],
-          [745, 198, 'ROUND TABLES', 'end'],
-          [283, 32, 'INDIVIDUAL SEATS', 'middle'],
-        ].map(([x, y, t, anchor]) => (
-          <text
-            key={t}
-            x={x}
-            y={y}
-            textAnchor={anchor}
-            className="plan-label"
-            fontSize={textSize}
-            pointerEvents="none"
-          >
-            {t}
+      {labels && (
+        <g pointerEvents="none">
+          <text x="141" y="103" textAnchor="middle" className="plan-label" fontSize={textSize}>
+            LIFTS
           </text>
-        ))}
+          <text x="745" y="198" textAnchor="end" className="plan-label" fontSize={textSize}>
+            ROUND TABLES
+          </text>
+          {/* Area names laid along the furniture: in the gap between seats 1–54
+              and the 14–36 lane, and on top of each strip of bookable rooms. */}
+          {[
+            [270, 257, 40, 'INDIVIDUAL SEATS', Math.min(textSize, 22)],
+            [242, 471, -48, 'BOOKABLE ROOMS', Math.min(textSize, 22)],
+            [468, 216, -49, 'BOOKABLE ROOMS', Math.min(textSize, 22)],
+          ].map(([x, y, angle, text, size]) => (
+            <text
+              key={x}
+              x={x}
+              y={y}
+              dy="0.35em"
+              textAnchor="middle"
+              transform={`rotate(${angle} ${x} ${y})`}
+              className="plan-label along"
+              fontSize={size}
+            >
+              {text}
+            </text>
+          ))}
+        </g>
+      )}
       {places.map((p) => {
         const location = model.locations.get(p.id),
           [x, y] = mapPoints.get(p.id)
