@@ -1,34 +1,34 @@
 # OpenSeat · CEN100 prototype record
 
-This record documents the CEN100 Milestone 5 prototype, the design decisions behind it and the tests performed during development.
+The CEN100 Milestone 5 prototype: what was built, how, and how it was tested.
 
 ## Concept and scope
 
-A student should be able to choose an available study seat before walking to it. The midterm decision matrix selected the self-reported map. The revised concept keeps that map and combines four concurrent inputs. QR check-ins allow a student to identify a specific chair. Bluetooth adds a section-level count, and table sensors add observations when students do not report. Source labels and elapsed time address stale information without sending recurring reminders. This prototype covers one mapped floor and supports a solo demonstration on an iPhone and iPad.
+A student should be able to find a free study seat before walking over. The midterm decision matrix chose a map that students update themselves. This version keeps that map and adds three more inputs: QR check-in for a specific chair, a Bluetooth device count for each area, and table sensors for when nobody reports. Every reading shows its source and age, so old information is easy to spot. The prototype covers one floor, and one person can demo it on an iPhone and an iPad.
 
 ## Build plan and materials
 
 | Step | Goal and materials | Date and evidence |
 | --- | --- | --- |
-| 1. Establish scope | Trace the supplied floor drawing with 40 four-chair tables, 92 individual seats and 20 separate bookable rooms. | Nov 17 · traced layout below |
-| 2. Establish Bluetooth rule | Use the existing BLE2MQTT calibration readings to set an inclusive −75 dBm cutoff for counting devices. | Nov 17 · recorded calibration below |
-| 3. Build the map | Trace furniture positions, assign prototype IDs, add searchable seats, then attach observation scope, timestamps, conflict rules and expiry. | Nov 17 · dashboard image below |
-| 4. Wire the four inputs | Connect shared storage, explicit QR check-in/out, one-tap free/occupied reports, a sensor receiver and local BLE scan reduction. | Nov 17 · table QR screen below |
-| 5. Verify the student journey | Exercise the UI, shared service, QR code and state rules. Keep measured results separate from human or physical trials. | Nov 17 · verification table below |
+| 1. Set the scope | Trace the floor drawing: 40 four-chair tables, 92 individual seats and 20 bookable rooms. | Nov 17 · traced layout below |
+| 2. Set the Bluetooth rule | Use the BLE2MQTT calibration readings to count devices at −75 dBm or stronger. | Nov 17 · calibration below |
+| 3. Build the map | Place the furniture, give each seat an ID, make seats searchable, and add timestamps, conflict rules and expiry. | Nov 17 · dashboard below |
+| 4. Connect the four inputs | Shared storage, QR check-in and check-out, one-tap free or taken reports, a sensor receiver and Bluetooth scan counting. | Nov 17 · table QR below |
+| 5. Test the student journey | Test the app, shared service, QR code and seat rules. Keep automated results separate from tests with people or hardware. | Nov 17 · results below |
 
-The planned phone, iPad, floor drawing and BLE2MQTT scans were already available. The estimated and actual additional hardware cost was $0. A simulated input replaced physical table hardware for this build. GitHub Pages serves the dashboard and a managed database service shares observations across browsers.
+The phone, iPad, floor drawing and Bluetooth scans were already on hand, so extra hardware cost $0. Simulated readings stood in for table hardware. GitHub Pages hosts the site, and a hosted database shares readings between browsers.
 
 ## Process evidence
 
-**Stage 1.** The floor-plan component is shown on its own with every chair marked Unknown. The 40 four-chair tables and 92 individual seats follow the supplied drawing, for 252 open-access seats. Seat and table IDs are prototype assignments.
+**Stage 1.** The floor plan on its own, with every chair marked Unknown. The 40 four-chair tables and 92 individual seats match the drawing, for 252 open seats. The seat and table IDs were made up for the prototype.
 
 ![Floor 8 plan with all chairs marked unknown](evidence/01-floor-trace.png)
 
-**Stage 2.** The integrated demo shows floor totals, area device count, selectable furniture, individual chairs, provenance and age. Live and demo sessions use different data. Each sample observation is explicitly labelled simulated.
+**Stage 2.** The full demo: floor totals, the area device count, selectable tables and chairs, and where and when each reading came from. The demo and the live floor keep separate data, and every example reading is marked simulated.
 
 ![Integrated Floor 8 dashboard with all four inputs](evidence/02-dashboard.jpg)
 
-**Stage 3.** A table QR carries the floor session and table. It opens an explicit check-in screen where one tester can choose a chair on a second device. The code and shared state were exercised with test sessions.
+**Stage 3.** Each table's QR code opens check-in for that table, so one tester can check in to a chair from a second device. The code and shared data were tried with test sessions.
 
 ![Public Table 17 QR code and shareable link](evidence/03-table-qr.jpg)
 
@@ -42,26 +42,26 @@ The planned phone, iPad, floor drawing and BLE2MQTT scans were already available
 | Fourth | −73 dBm | Yes |
 | Fifth | −72 dBm | Yes |
 
-These readings support a working threshold for the prototype. They were collected in the library and do not establish the number of people, exact seat positions or accuracy on SLC Floor 8. Several people can share a table, and one person can carry multiple devices.
+These readings are enough for a working threshold. They were taken in the library, so they say nothing about how many people are on SLC Floor 8, where they sit, or how accurate the count is there. Several people can share a table, and one person can carry several devices.
 
 ## Verification
 
-The current release uses Firebase Realtime Database on the Spark plan. The migration preserved all 38 observations and their timestamps across 10 demo sessions. The release check opens the published dashboard in desktop Chromium and mobile WebKit, follows a generated table QR code, verifies that both browsers see the same chair updates, and opens this evidence page. It uses a new demo session for each run. [View release checks and browser screenshots](https://github.com/jude27mad/OpenSeat/actions/workflows/pages.yml)
+The site now runs on Firebase Realtime Database (free Spark plan). The move kept all 38 readings and their times across 10 demo sessions. On every release, an automatic check opens the live site in desktop Chromium and mobile WebKit, follows a table QR code, checks that both browsers see the same chair updates, and opens this page, using a new demo session each time. [Release checks and browser screenshots](https://github.com/jude27mad/OpenSeat/actions/workflows/pages.yml)
 
 | Criterion | Result | Evidence |
 | --- | --- | --- |
-| All 252 open seats accounted for and 20 bookable rooms excluded | Pass | Automated inventory and total checks. An empty live data set produces 252 unknown seats. |
-| Inclusive −75 dBm threshold, within-scan deduplication and historical replay handling | Pass | Automated model tests covered −76, −75 and stronger readings, repeated identifiers and expired measurements. |
-| All four inputs persist in one session | Pass | The original Floot API returned QR, report, sensor and Bluetooth observations together. It rejected another browser’s checkout with HTTP 409 and accepted the original browser’s ticket. The Firebase rules tests also verify checkout ownership. |
-| A check-in appears on a second screen within 10 seconds | Pass | During the original Floot-backed demo on the published site, the second browser showed Occupied 1.38 seconds after check-in. A free report showed Conflicting. After the original browser checked out, the chair showed Available. The two browsers used independent storage. |
-| A phone-sized browser can use the generated table QR and read the map without horizontal scrolling | Pass | In the original Floot-backed build, GitHub Actions decoded the QR image, checked a chair in using mobile WebKit and saw it update in desktop Chromium in 1.46 seconds. It also verified that the mobile page fit its viewport. [Browser test run](https://github.com/jude27mad/OpenSeat/actions/runs/44208568779) |
-| Section and table signals do not create fake seat counts | Pass | A section count of 128 alongside an occupied table sensor left all 252 chairs unknown without chair-level reports. A separate free chair remained available at a table in use. |
-| Recent disagreement is visible and expired evidence gives unknown | Pass | Automated model tests checked both sources for a conflict and retained the stale report’s source and age. |
-| Solo student can choose a real open spot within 10 seconds before walking | Not measured | This requires a participant timing and an on-site observation of the chosen seat. |
-| Installed table hardware and campus-wide count accuracy | Not measured | The receiver was implemented and simulated events were exercised. No installed sensor or campus occupancy ground truth was available for this build. |
+| All 252 open seats counted and the 20 bookable rooms left out | Pass | Automated checks. With no data, all 252 seats show unknown. |
+| −75 dBm threshold, each device counted once per scan, old scans ignored | Pass | Automated tests with −76, −75 and stronger readings, repeated device IDs and expired scans. |
+| All four inputs saved in one session | Pass | The original Floot API returned QR, report, sensor and Bluetooth readings together. It refused another browser’s check-out (HTTP 409) and accepted the original browser’s. The Firebase rules tests also check who can check out. |
+| A check-in shows on a second screen within 10 seconds | Pass | On the original Floot version of the live site, the second browser showed Occupied 1.38 seconds after check-in. A free report showed Conflicting, and after check-out the chair showed Available. The two browsers had separate storage. |
+| A phone can use a table QR code and read the map without scrolling sideways | Pass | On the original Floot version, GitHub Actions read the QR image, checked in on mobile WebKit and saw the update in desktop Chromium 1.46 seconds later. The phone page fit the screen. [Browser test run](https://github.com/jude27mad/OpenSeat/actions/runs/44208568779) |
+| Area counts and table sensors don’t create fake seat counts | Pass | An area count of 128 and an occupied table sensor left all 252 chairs unknown without chair reports. A free chair stayed free at a table in use. |
+| A sensor that disagrees with the chairs shows Mixed reports, and old readings turn into unknown | Pass | Automated tests check the disagreement and that an old report keeps its source and age. |
+| A student can find a real open seat within 10 seconds before walking over | Not measured | Needs a timed test with a person and a check of the seat on site. |
+| Installed table hardware and count accuracy across campus | Not measured | The receiver was built and tried with simulated readings. There was no installed sensor or real occupancy count to compare against. |
 
 ## Attribution
 
-**Student design work** included the integration concept, the choice of Floor 8 and dashboard reference, the furniture inventory and map, and the Bluetooth calibration and cutoff.
+**Student design work:** combining the four inputs, choosing Floor 8 and the dashboard reference, the furniture inventory and map, and the Bluetooth calibration and cutoff.
 
-**AI-assisted development** implemented the React prototype, shared service, QR codes, simulator and tests from those design decisions, and produced this build record and screenshots.
+**AI-assisted development:** the React prototype, shared service, QR codes, simulator and tests, built from those decisions, plus this record and its screenshots.
