@@ -2367,7 +2367,7 @@ html:has(.phone) .floating-note-region {
   border: 2px solid #3b4e8c;
 }
 .sources-live {
-  margin: 0 0 18px;
+  container-type: inline-size;
   background: white;
   border: 1px solid #dce3d9;
   border-radius: 12px;
@@ -2445,10 +2445,15 @@ html:has(.phone) .floating-note-region {
   text-align: left;
 }
 .live-action:hover { text-decoration: underline; }
+.floor-panel > .sources-live {
+  border: 0;
+  border-top: 1px solid #dce3d9;
+  border-radius: 0;
+}
 .phone .sources-live { margin: 12px 0; }
 .phone .live-action,
 .phone .sources-live-head .text-btn { min-height: 44px; }
-@media (max-width: 950px) {
+@container (max-width: 650px) {
   .sources-live ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sources-live li:nth-child(odd) { border-left: 0; }
   .sources-live li:nth-child(n+3) { border-top: 1px solid #e3e9e2; }
