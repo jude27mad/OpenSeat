@@ -1611,7 +1611,8 @@ footer button {
   border-radius: 16px;
   padding: 16px;
 }
-.phone .floor-select {
+.phone .floor-select,
+.menu-sheet .floor-select {
   display: block;
   width: 100%;
   min-height: 48px;
