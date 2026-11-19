@@ -2344,3 +2344,165 @@ html:has(.phone) .floating-note-region {
   stroke-width: 0.24em;
   stroke-linejoin: round;
 }
+
+/* ---------- The four live sources ---------- */
+.demo-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #fff1d6;
+  color: #7a5310;
+  font-size: 0.8em;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+}
+.source-icon.ble {
+  background: #e8eef9;
+  color: #3b5f99;
+}
+.legend .sensor-dot {
+  background: #fff;
+  border: 2px solid #3b4e8c;
+}
+.sources-live {
+  margin-top: 16px;
+  background: #fff;
+  border: 1px solid #dce3d9;
+  border-radius: 14px;
+  padding: 14px 16px 6px;
+}
+.sources-live-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.sources-live h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.sources-live ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.sources-live li {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid #edf1eb;
+}
+.sources-live li:first-child {
+  border-top: 0;
+}
+.sources-live .source-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+.live-name {
+  font-weight: 650;
+  color: #1f3328;
+}
+.live-value {
+  color: #24382c;
+}
+.sources-live small {
+  display: block;
+  color: #5b6b60;
+  margin-top: 2px;
+}
+.live-action,
+.sources-live-head .text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #1e5c42;
+  font-weight: 650;
+}
+.live-action {
+  margin-top: 6px;
+  padding: 0 12px;
+  border: 1px solid #cfdccf;
+  border-radius: 10px;
+  min-height: 36px;
+}
+.phone .sources-live {
+  margin: 16px 0 0;
+  font-size: 15px;
+}
+.phone .live-action,
+.phone .sources-live-head .text-btn {
+  min-height: 44px;
+}
+.phone .sources-live small {
+  font-size: 14px;
+}
+/* The table sensor sits right under the chairs, with its age. */
+.sensor-line b {
+  font-weight: 650;
+  color: #2c3f33;
+}
+.sensor-line small {
+  display: inline;
+  margin-left: 6px;
+  color: #66746a;
+}
+.inspector-body > .sensor-line {
+  border-top: 0;
+  padding-top: 0;
+  margin: 0 0 12px;
+}
+.qr-block {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  align-items: start;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e8ece6;
+  color: #3f5146;
+  line-height: 1.45;
+}
+.qr-block b {
+  display: block;
+  color: #24382c;
+}
+.qr-block .qr-open {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+}
+.sheet .qr-block {
+  font-size: 15px;
+}
+.sheet .qr-block .qr-open {
+  min-height: 44px;
+  font-size: 15px;
+  border-radius: 10px;
+}
+/* With a seat open, the map tip would sit under the floating zoom buttons. */
+.phone.has-sheet .map-tip {
+  visibility: hidden;
+}
+/* On a wide screen the four sources sit side by side. */
+@media (min-width: 900px) {
+  .app-shell .sources-live ul {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .app-shell .sources-live li {
+    border-top: 0;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .app-shell .sources-live {
+    padding-bottom: 14px;
+  }
+}

@@ -16,7 +16,7 @@ import { Button } from './components/ui/button'
 import { label } from './floor.js'
 import { age, fresh, matchesQuery, looksFree, placeDescription, sources } from './model.js'
 import { endingSoon, holdText, remaining } from './checkin.js'
-import { Origin } from './SeatDetails.jsx'
+import { DemoTag, Origin } from './SeatDetails.jsx'
 
 export const plural = (count, noun) => count + ' ' + noun + (count === 1 ? '' : 's')
 export const sourceIcons = {
@@ -30,6 +30,116 @@ export const sourceText = {
   qr: 'Students check in by scanning the table code',
   report: 'Students tap “It’s free” or “It’s taken”',
   sensor: 'Detects whether a table is in use',
+}
+
+// What each of the four sources currently knows, right under the map.
+// These are readouts, not choices: the map already combines all four.
+export function SourcesPanel({ model, now, onScanner, onMore }) {
+  let checkIns = 0,
+    reports = 0
+  const demo = { qr: false, report: false, sensor: false, ble: false }
+  for (const state of model.states.values()) {
+    const qr = state.evidence.find((e) => e.source === 'qr'),
+      report = state.evidence.find((e) => e.source === 'report')
+    if (qr && qr.value === 'occupied' && fresh(qr, now)) {
+      checkIns++
+      demo.qr ||= !!qr.simulated
+    }
+    if (report && fresh(report, now)) {
+      reports++
+      demo.report ||= !!report.simulated
+    }
+  }
+  const sensors = [...model.locations.values()]
+    .map((l) => l.sensor)
+    .filter((e) => fresh(e, now))
+  const newestSensor = sensors.reduce((a, b) => (!a || b.at > a.at ? b : a), null)
+  demo.sensor = sensors.some((e) => e.simulated)
+  const areas = [
+    ['Round tables', model.ble.tables],
+    ['Individual seats', model.ble.individuals],
+  ].filter(([, e]) => fresh(e, now))
+  demo.ble = areas.some(([, e]) => e.simulated)
+  const ago = (at) => age(at, now).toLowerCase()
+  return (
+    <section className="sources-live" aria-labelledby="sources-live-title">
+      <div className="sources-live-head">
+        <h2 id="sources-live-title">Live sources</h2>
+        {onMore && (
+          <button className="text-btn" onClick={onMore}>
+            How it works <ArrowRight size={14} />
+          </button>
+        )}
+      </div>
+      <ul>
+        <li>
+          <span className="source-icon qr">
+            <QrCode size={17} />
+          </span>
+          <div>
+            <p className="live-name">
+              QR check-in {demo.qr && <DemoTag />}
+            </p>
+            <p className="live-value">{plural(checkIns, 'chair')} checked in</p>
+            <small>Select a table to show its QR code. Scanning it opens check-in.</small>
+          </div>
+        </li>
+        <li>
+          <span className="source-icon report">
+            <MessageSquare size={17} />
+          </span>
+          <div>
+            <p className="live-name">
+              Student reports {demo.report && <DemoTag />}
+            </p>
+            <p className="live-value">{plural(reports, 'seat')} reported recently</p>
+            <small>Tap a seat, then “It’s free” or “It’s taken”.</small>
+          </div>
+        </li>
+        <li>
+          <span className="source-icon ble">
+            <Bluetooth size={17} />
+          </span>
+          <div>
+            <p className="live-name">
+              Bluetooth {demo.ble && <DemoTag />}
+            </p>
+            {areas.length ? (
+              areas.map(([area, e]) => (
+                <p className="live-value" key={area}>
+                  {area}: {plural(e.value, 'device')} · {ago(e.at)}
+                </p>
+              ))
+            ) : (
+              <p className="live-value">No recent scan</p>
+            )}
+            <small>Counts phones near each area, not people at a seat.</small>
+            {onScanner && (
+              <button className="live-action" onClick={onScanner}>
+                Connect scanner <ArrowRight size={14} />
+              </button>
+            )}
+          </div>
+        </li>
+        <li>
+          <span className="source-icon sensor">
+            <Radio size={17} />
+          </span>
+          <div>
+            <p className="live-name">
+              Table sensors {demo.sensor && <DemoTag />}
+            </p>
+            <p className="live-value">
+              {sensors.length
+                ? plural(sensors.length, 'table') + ' reporting · newest ' + ago(newestSensor.at)
+                : 'No recent readings'}
+            </p>
+            <small>Shown as a small dot on each table.</small>
+          </div>
+        </li>
+      </ul>
+    </section>
+  )
 }
 
 export function Legend() {
@@ -46,6 +156,10 @@ export function Legend() {
           {text}
         </span>
       ))}
+      <span>
+        <i className="sensor-dot" />
+        Table sensor reading
+      </span>
       <span>
         <i className="booked" />
         Bookable room (not counted)
@@ -122,10 +236,9 @@ export function SourceCards({ events, now, onDevices, full }) {
               <div className="source-age">
                 <i className={fresh(latest, now) ? 'current' : ''} />
                 {latest
-                  ? (latest.simulated ? 'Simulated · ' : '') +
-                    age(latest.at, now) +
-                    (fresh(latest, now) ? '' : ' · Out of date')
+                  ? age(latest.at, now) + (fresh(latest, now) ? '' : ' · Out of date')
                   : 'No readings yet'}
+                {latest?.simulated && <DemoTag />}
               </div>
             </div>
             {full && onDevices && (s === 'ble' || s === 'sensor') && (
