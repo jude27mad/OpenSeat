@@ -359,7 +359,7 @@ export default function PhoneView(p) {
                   onPlaced={() => requestAnimationFrame(keepVisible)}
                   onShowList={() => setView('list')}
                 />
-                <p className="map-tip">Tap a seat to see it or report it. Pinch or use + to zoom.</p>
+                <p className="map-tip">Tap a seat to see it or report it. Pinch to zoom.</p>
                 <Legend />
               </div>
             ) : (

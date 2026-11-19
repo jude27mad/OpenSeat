@@ -1,5 +1,4 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { Minus, Plus } from 'lucide-react'
 import { FLOORS, floor, places, label } from './floor.js'
 import { age, fresh, sources, placeDescription, looksFree } from './model.js'
 import { MAX_ZOOM, mapPoints, resolveTap } from './hit.js'
@@ -496,10 +495,6 @@ export default function FloorMap({ onSelect, focus, onPlaced, onShowList, ...pro
       onSelect(result.id)
     }
   }
-  const step = (dir) => {
-    const [cx, cy] = viewCenter()
-    zoomAt(zoom * (dir > 0 ? 1.5 : 1 / 1.5), cx, cy)
-  }
   return (
     <div className="map-canvas">
       {onShowList && (
@@ -526,36 +521,6 @@ export default function FloorMap({ onSelect, focus, onPlaced, onShowList, ...pro
       </div>
       <div className="map-hint-region" role="status" aria-live="polite">
         {hint && <div className="map-hint">{hint}</div>}
-      </div>
-      <div className="map-controls" role="group" aria-label="Map zoom">
-        <button
-          title="Zoom out"
-          aria-label="Zoom out"
-          disabled={zoom <= 1}
-          onClick={() => step(-1)}
-        >
-          <Minus size={18} />
-        </button>
-        <button
-          title="Zoom in"
-          aria-label="Zoom in"
-          disabled={zoom >= MAX_ZOOM}
-          onClick={() => step(1)}
-        >
-          <Plus size={18} />
-        </button>
-        <button
-          className="fit"
-          title="Show the whole floor"
-          aria-label="Show the whole floor"
-          disabled={zoom <= 1}
-          onClick={() => {
-            setZoom(1)
-            viewport.current?.scrollTo(0, 0)
-          }}
-        >
-          Fit
-        </button>
       </div>
     </div>
   )
