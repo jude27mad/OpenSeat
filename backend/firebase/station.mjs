@@ -10,7 +10,7 @@ const settings = readSettings(process.env.OPENSEAT_FIREBASE_CONFIG ||
 const key = process.env.OPENSEAT_FEED_KEY
 if (!key) throw Error('Set OPENSEAT_FEED_KEY on this station.')
 const floor = process.env.OPENSEAT_FLOOR || '8'
-if (!['5', '8'].includes(floor)) throw Error('Set OPENSEAT_FLOOR to 5 or 8.')
+if (!['5', '7', '8'].includes(floor)) throw Error('Set OPENSEAT_FLOOR to 5, 7 or 8.')
 const { user } = await signInAnonymously(getAuth(initializeApp(settings)))
 const request = async (path, options) => databaseRequest(settings, false, path, await user.getIdToken(), options)
 await stationPairing()(request, user.uid, key)

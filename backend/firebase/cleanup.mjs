@@ -14,7 +14,7 @@ import { pathToFileURL } from 'node:url'
 import { readSettings } from './settings.js'
 
 export const HOUR = 3600000
-const LIVE = ['floor8', 'floor5']
+const LIVE = ['floor8', 'floor5', 'floor7']
 const demoRoom = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 // A small client for the database's REST interface.
