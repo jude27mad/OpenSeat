@@ -100,7 +100,7 @@ export default function SeatDetails({
     phone = mode !== 'panel',
     noun = isTable ? 'chair' : 'seat',
     // In the demo nothing expires, so holds and reports last until someone changes them.
-    demo = room.id !== 'floor8'
+    demo = !room.id.startsWith('floor')
   const holds = myCheckIns(room, model, now).filter((c) => c.seat !== seat)
   useEffect(() => {
     if (!toast) return

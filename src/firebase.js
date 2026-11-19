@@ -60,7 +60,7 @@ export async function sendObservation(room, input, previousTicket) {
   const user = await visitor()
   const token = await user.getIdToken()
   const request = (path, options) => databaseRequest(settings, emulator, path, token, options)
-  if (room === 'floor8' && ['ble', 'sensor'].includes(input.source)) {
+  if (room.startsWith('floor') && ['ble', 'sensor'].includes(input.source)) {
     await pairStation(request, user.uid, input.feedKey)
   }
   return postObservation({ request, room, uid: user.uid, input, previousTicket })

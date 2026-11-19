@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-react'
 import { Button } from './components/ui/button'
-import { label, seats } from './floor.js'
+import { FLOORS, floor, floorNumbers, label, seats, tables } from './floor.js'
 import { age, fresh } from './model.js'
 import FloorMap from './FloorMap.jsx'
 import SeatDetails from './SeatDetails.jsx'
@@ -30,7 +30,25 @@ import {
   plural,
 } from './parts.jsx'
 
-function PhoneMenu({ demo, onClose, onRoom, onShare, onSources }) {
+// The floor dropdown, on the main screen and in the menu.
+function FloorSelect({ onFloor }) {
+  return (
+    <select
+      className="floor-select"
+      aria-label="Floor"
+      value={floor.number}
+      onChange={(e) => onFloor(Number(e.target.value))}
+    >
+      {floorNumbers.map((n) => (
+        <option key={n} value={n}>
+          {FLOORS[n].title}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function PhoneMenu({ demo, onClose, onRoom, onFloor, onShare, onSources }) {
   // onClose(then) closes the menu first, then runs the chosen action.
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
@@ -52,8 +70,10 @@ function PhoneMenu({ demo, onClose, onRoom, onShare, onSources }) {
             </Dialog.Close>
           </div>
           <Dialog.Description className="sr-only">
-            Switch between the live floor and the demo, share the map or learn how it works.
+            Pick a floor, switch between the live floor and the demo, share the map or learn how it works.
           </Dialog.Description>
+          <div className="menu-label">Which floor?</div>
+          <FloorSelect onFloor={(n) => onClose(() => onFloor(n))} />
           <div className="menu-label">Which floor data?</div>
           <div className="segmented" role="group" aria-label="Floor data">
             <button aria-pressed={!demo} onClick={() => onClose(() => demo && onRoom(true))}>
@@ -98,6 +118,7 @@ export default function PhoneView(p) {
     now,
     online,
     onRoom,
+    onFloor,
     place,
     seat,
     setSeat,
@@ -198,7 +219,7 @@ export default function PhoneView(p) {
           <img src="./mark.svg" alt="" />
           <span>
             <b>OpenSeat</b>
-            <small>SLC Floor 8</small>
+            <small>SLC {floor.name}</small>
           </span>
         </button>
         <span className={'sync ' + online}>
@@ -250,7 +271,10 @@ export default function PhoneView(p) {
         ) : (
           <>
             <section className="hero" aria-labelledby="hero-title">
-              <p className="hero-kicker">{demo ? 'Example data · Floor 8' : 'Right now on Floor 8'}</p>
+              <FloorSelect onFloor={onFloor} />
+              <p className="hero-kicker">
+                {demo ? 'Example data · ' + floor.name : 'Right now on ' + floor.name}
+              </p>
               {empty ? (
                 <>
                   <h1 id="hero-title">No seat updates yet</h1>
@@ -318,7 +342,9 @@ export default function PhoneView(p) {
                 ['all', 'Everywhere'],
                 ['tables', 'Round tables'],
                 ['individuals', 'Solo seats'],
-              ].map(([key, text]) => (
+              ]
+                .filter(([key]) => key !== 'tables' || tables.length)
+                .map(([key, text]) => (
                 <button key={key} aria-pressed={section === key} onClick={() => setSection(key)}>
                   {text}
                 </button>
@@ -380,7 +406,7 @@ export default function PhoneView(p) {
           </>
         )}
         <footer className="phone-foot">
-          SLC Floor 8 · {seats.length} open seats · {plural(20, 'bookable room')} not counted
+          SLC {floor.name} · {seats.length} open seats · {floor.notCounted} not counted
         </footer>
       </main>
       {open && (
@@ -424,6 +450,7 @@ export default function PhoneView(p) {
           demo={demo}
           onClose={closeMenu}
           onRoom={onRoom}
+          onFloor={onFloor}
           onShare={() => setModal('share')}
           onSources={() => nav('sources')}
         />

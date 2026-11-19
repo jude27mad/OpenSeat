@@ -241,3 +241,45 @@ test('Demo readings never expire: only a new report or check-in changes a seat',
   // Live readings still expire.
   assert.equal(derive([event('report', 'I021', 'occupied')], later).states.get('I021').status, 'unknown')
 })
+test('Floor 5 counts its 166 individual seats and leaves the rooms out', async () => {
+  const f = await import('../src/floor.js')
+  const hit = await import('../src/hit.js')
+  f.setFloor(5)
+  try {
+    const plan = f.FLOORS[5].plan
+    assert.equal(f.tables.length, 0)
+    assert.equal(f.individuals.length, 166)
+    assert.equal(new Set(f.seats).size, 166)
+    assert.equal(plan.bookable.length, 11)
+    assert.equal(plan.media.length, 3)
+    assert.deepEqual(derive([], now).counts, { unknown: 166, free: 0, occupied: 0, mixed: 0 })
+    assert.deepEqual(parseSpot('I166'), { id: 'I166', seat: 'I166' })
+    assert.equal(parseSpot('I167'), null)
+    assert.equal(parseSpot('T01-A'), null)
+    const fixture = seedDemo(now)
+    assert.ok(fixture.every((e) => /^I\d{3}$/.test(e.target) || e.target === 'individuals'))
+    assert.equal(Object.values(derive(fixture, now).counts).reduce((s, n) => s + n, 0), 166)
+    // Every seat is on the floor, outside the rooms that are not counted.
+    const inside = ([x, y], shape) => {
+      let hit = false
+      for (let i = 0, j = shape.length - 1; i < shape.length; j = i++) {
+        const [xi, yi] = shape[i],
+          [xj, yj] = shape[j]
+        if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit
+      }
+      return hit
+    }
+    const rooms = [...plan.bookable.map((r) => r.shape), plan.seminar.shape, ...plan.media]
+    for (const p of f.individuals) {
+      assert.ok(inside([p.x, p.y], plan.outline), p.id + ' is on the floor')
+      assert.ok(!rooms.some((r) => inside([p.x, p.y], r)), p.id + ' is not in a room')
+    }
+    // Taps use this floor's seats.
+    assert.equal(hit.mapPoints.size, 166)
+    const at = hit.mapPoints.get('I120')
+    assert.deepEqual(hit.resolveTap({ at, pxPerUnit: 2, zoom: 4, touch: true }), { action: 'select', id: 'I120' })
+  } finally {
+    f.setFloor(8)
+  }
+  assert.equal(seats.length, 252)
+})

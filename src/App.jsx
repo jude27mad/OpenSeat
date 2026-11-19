@@ -20,9 +20,9 @@ import {
 } from 'lucide-react'
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
-import { individuals, label, rooms, seats, tables } from './floor.js'
+import { FLOORS, floor, floorNumbers, individuals, label, places, seats, setFloor, tables } from './floor.js'
 import { age, derive, fresh, parseSpot, placeDescription, suggestions } from './model.js'
-import { chosenRoom, roomUrl, serverNow, useFloor } from './session.js'
+import { chosenRoom, isLive, roomUrl, serverNow, useFloor } from './session.js'
 import { startScanner } from './ble.js'
 import { activeCheckIn, friendly, myCheckIns, remember, uncertain } from './checkin.js'
 import FloorMap from './FloorMap.jsx'
@@ -48,8 +48,12 @@ const navigation = [
 const PHONE = '(max-width: 720px), (max-height: 520px) and (pointer: coarse)',
   DRAWER = '(max-width: 950px)'
 const hash = () => new URLSearchParams(location.hash.slice(1))
+// #floor=8 or #floor=5 opens a live floor; a demo link may name its floor with level=.
 function initial() {
-  return chosenRoom(hash().get('floor') === '8')
+  const live = Number(hash().get('floor'))
+  if (FLOORS[live]) return chosenRoom(true, false, live)
+  const level = Number(hash().get('level'))
+  return chosenRoom(false, false, FLOORS[level] ? level : 8)
 }
 // Closing a sheet or the menu steps back in history; the page should stay put.
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
@@ -102,8 +106,8 @@ function Stat({ name, value, detail, icon: Icon, tone, percent }) {
     </Card>
   )
 }
-function Dashboard({ room, onRoom, startSpot, qrPlace }) {
-  const demo = room.id !== 'floor8'
+function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
+  const demo = !isLive(room)
   const phone = useMedia(PHONE),
     drawerMode = useMedia(DRAWER)
   const [page, setPage] = useState(() => history.state?.openseatPage || 'overview'),
@@ -131,7 +135,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
     [busyMine, setBusyMine] = useState(false),
     [mineNote, setMineNote] = useState(null)
   // Desktop always shows a location in its side panel; the phone starts with none.
-  const shownId = selected || (phone ? null : 'T01'),
+  const shownId = selected || (phone ? null : places[0].id),
     place = shownId ? model.locations.get(shownId) : null,
     shownSeat = place && seat?.split('-')[0] === place.id ? seat : place && firstChair(place, model, now)
   const bridgeStop = useRef(null),
@@ -352,7 +356,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
       {(modal === 'scanner' || modal === 'ble' || modal === 'sensor') && (
         <FeedControls
           demo={demo}
-          place={place || model.locations.get('T01')}
+          place={place || model.locations.get(places[0].id)}
           record={record}
           started={modal === 'scanner' ? 'ble' : modal}
           connectScanner={modal === 'scanner'}
@@ -395,6 +399,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
             now,
             online,
             onRoom,
+            onFloor,
             place,
             seat: shownSeat,
             setSeat: (id) => {
@@ -438,7 +443,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
       </>
     )
 
-  const zone = section === 'individuals' ? 'individuals' : 'tables',
+  const zone = section === 'individuals' || !tables.length ? 'individuals' : 'tables',
     ble = model.ble[zone],
     n = model.counts
   return (
@@ -493,15 +498,18 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
           ))}
         </nav>
         <span className="nav-heading floor-heading">Floors</span>
-        <button
-          className="floor-link"
-          onClick={() => {
-            nav('overview')
-            setSection('all')
-          }}
+        <select
+          className="floor-select"
+          aria-label="Floor"
+          value={floor.number}
+          onChange={(e) => onFloor(Number(e.target.value))}
         >
-          <span>8</span>SLC Floor 8
-        </button>
+          {floorNumbers.map((number) => (
+            <option key={number} value={number}>
+              {FLOORS[number].title}
+            </option>
+          ))}
+        </select>
         <div className="brand-bottom">
           <span>
             <Armchair size={15} />
@@ -531,7 +539,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
           <ChevronRight className="crumb-sep" size={13} />
           <span className="crumb-building">Student Learning Centre</span>
           <ChevronRight size={13} />
-          <b>Floor 8</b>
+          <b>{floor.name}</b>
           <span className={'sync ' + online}>
             <i />
             {online === 'shared'
@@ -568,10 +576,10 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
               </h1>
               <p>
                 {page === 'overview'
-                  ? 'Floor 8 · The Sky'
+                  ? floor.title
                   : page === 'finder'
                     ? 'Places with a recent free report come first.'
-                    : 'The four inputs behind the Floor 8 map.'}
+                    : 'The four inputs behind the ' + floor.name + ' map.'}
               </p>
             </div>
             <div className="lead-actions">
@@ -646,7 +654,9 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                     <p>
                       {page === 'finder'
                         ? 'Select a place to see its chairs and report them.'
-                        : `${tables.length} round tables · ${individuals.length} individual seats`}
+                        : (tables.length ? tables.length + ' round tables · ' : '') +
+                          individuals.length +
+                          ' individual seats'}
                     </p>
                   </div>
                   {page !== 'finder' && (
@@ -677,7 +687,7 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
                     onChange={(e) => setSection(e.target.value)}
                   >
                     <option value="all">All areas</option>
-                    <option value="tables">Round tables</option>
+                    {tables.length > 0 && <option value="tables">Round tables</option>}
                     <option value="individuals">Individual seats</option>
                   </select>
                   <button
@@ -775,10 +785,10 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
           {page === 'sources' && <Activity events={events} now={now} />}
           <footer>
             <span>
-              <MapPin size={13} /> SLC Floor 8
+              <MapPin size={13} /> SLC {floor.name}
             </span>
             <span>
-              {seats.length} open seats · {rooms.length} bookable rooms not counted
+              {seats.length} open seats · {floor.notCounted} not counted
             </span>
             {demo && <button onClick={() => onRoom(false, true)}>Restart demo</button>}
           </footer>
@@ -789,9 +799,12 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
   )
 }
 function readEntry() {
+  const room = initial()
+  // The floor decides which seat names exist, so set it before reading the spot.
+  setFloor(room.floor)
   const spot = parseSpot(hash().get('spot'))
   return {
-    room: initial(),
+    room,
     spot,
     qrPlace: hash().get('checkin') === '1' ? spot?.id : null,
   }
@@ -815,18 +828,24 @@ export default function App() {
     }
   }, [])
   // Switching floors is a step of its own, so Back returns to the last floor.
-  function changeRoom(live, newSession = false) {
-    const next = chosenRoom(live, newSession)
+  function changeRoom(live, newSession = false, number = entry.room.floor) {
+    const next = chosenRoom(live, newSession, number)
+    setFloor(number)
     history.pushState({ openseat: true }, '', roomUrl(next))
     setEntry({ room: next, spot: null, qrPlace: null })
   }
+  // Another floor, keeping live or demo as it is.
+  const changeFloor = (number) =>
+    number !== entry.room.floor && changeRoom(isLive(entry.room), false, number)
+  setFloor(entry.room.floor)
   return (
     <Dashboard
-      key={[entry.room.id, entry.spot?.seat || entry.spot?.id, entry.qrPlace].join('/')}
+      key={[entry.room.id, entry.room.floor, entry.spot?.seat || entry.spot?.id, entry.qrPlace].join('/')}
       room={entry.room}
       startSpot={entry.spot}
       qrPlace={entry.qrPlace}
       onRoom={changeRoom}
+      onFloor={changeFloor}
     />
   )
 }

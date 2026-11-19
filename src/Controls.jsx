@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import QRCode from 'qrcode'
 import { Button } from './components/ui/button'
-import { label } from './floor.js'
+import { floor, label, tables } from './floor.js'
 import { scanCount } from './model.js'
 import { roomUrl } from './session.js'
 export function Modal({ title, description, onClose, children }) {
@@ -83,7 +83,7 @@ export function QRDialog({ room, place, onClose }) {
       title={place ? label(place.id) + ' QR code' : 'Share this map'}
       description={
         place
-          ? room.id === 'floor8'
+          ? room.id.startsWith('floor')
             ? 'This is the code for the ' +
               (place.section === 'tables' ? 'table' : 'seat') +
               '. Scanning it opens check-in for this spot.'
@@ -112,7 +112,7 @@ export function QRDialog({ room, place, onClose }) {
         {!place && typeof navigator !== 'undefined' && navigator.share && (
           <Button
             onClick={() =>
-              navigator.share({ title: 'OpenSeat · SLC Floor 8', url }).catch(() => {})
+              navigator.share({ title: 'OpenSeat · SLC ' + floor.name, url }).catch(() => {})
             }
           >
             <Share2 />
@@ -137,7 +137,7 @@ export function QRDialog({ room, place, onClose }) {
           <Button variant="outline" asChild>
             <a
               href={image}
-              download={'OpenSeat-' + (place?.id || 'floor8') + '-QR.png'}
+              download={'OpenSeat-' + (place ? floor.name.replace(' ', '') + '-' + place.id : room.id) + '-QR.png'}
             >
               <Download />
               Save QR
@@ -145,7 +145,7 @@ export function QRDialog({ room, place, onClose }) {
           </Button>
         )}
       </div>
-      {place && room.id !== 'floor8' && (
+      {place && !room.id.startsWith('floor') && (
         <a className="text-btn open-checkin" href={url} onClick={onClose}>
           Open check-in on this device
         </a>
@@ -165,7 +165,7 @@ export function FeedControls({
   bridge,
 }) {
   const [kind, setKind] = useState(started || 'sensor'),
-    [section, setSection] = useState('tables'),
+    [section, setSection] = useState(tables.length ? 'tables' : 'individuals'),
     [raw, setRaw] = useState(''),
     [count, setCount] = useState(12),
     [message, setMessage] = useState(''),
@@ -220,8 +220,9 @@ export function FeedControls({
         <>
           <h3>{label(place.id)}</h3>
           <p>
-            A round-table sensor reports whether the table is in use. Each chair
-            keeps its own status.
+            {place.section === 'tables'
+              ? 'A round-table sensor reports whether the table is in use. Each chair keeps its own status.'
+              : 'A seat sensor reports whether this seat is in use.'}
           </p>
           {demo ? (
             <div className="btn-row">
@@ -262,7 +263,7 @@ export function FeedControls({
               value={section}
               onChange={(e) => setSection(e.target.value)}
             >
-              <option value="tables">Round-table area</option>
+              {tables.length > 0 && <option value="tables">Round-table area</option>}
               <option value="individuals">Individual-seat area</option>
             </select>
           </label>

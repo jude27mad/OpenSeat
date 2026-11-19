@@ -20,6 +20,7 @@ test('demo rooms idle for over a day are deleted; recent rooms and the live floo
     },
   })
   await request('/rooms/floor8/events/report/I004', { method: 'PUT', body: event(now - 30 * HOUR) })
+  await request('/rooms/floor5/events/report/I120', { method: 'PUT', body: event(now - 30 * HOUR) })
   const exists = async (id) => (await request('/rooms/' + id, { query: { shallow: 'true' } })) !== null
 
   const preview = await cleanup({ request, now, dryRun: true, log: () => {} })
@@ -31,8 +32,10 @@ test('demo rooms idle for over a day are deleted; recent rooms and the live floo
   assert.ok(result.deleted.includes(empty))
   assert.ok(!result.deleted.includes(recent))
   assert.ok(!result.deleted.includes('floor8'))
+  assert.ok(!result.deleted.includes('floor5'))
   assert.equal(await exists(idle), false)
   assert.equal(await exists(empty), false)
   assert.equal(await exists(recent), true)
   assert.equal(await exists('floor8'), true)
+  assert.equal(await exists('floor5'), true)
 })
