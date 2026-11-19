@@ -558,8 +558,7 @@ h3 {
 .map-marker:hover {
   filter: drop-shadow(0 0 3px #386047);
 }
-.map-overlay,
-.map-controls {
+.map-overlay {
   position: absolute;
   z-index: 1;
   background: #fffffff4;
@@ -578,12 +577,6 @@ h3 {
   font-weight: 620;
   font-size: 10px;
 }
-.map-controls {
-  bottom: 11px;
-  right: 12px;
-  padding: 2px;
-}
-.map-controls button,
 .icon-btn {
   display: grid;
   place-items: center;
@@ -591,20 +584,8 @@ h3 {
   height: 27px;
   border-radius: 4px;
 }
-.map-controls button:last-child {
-  border-left: 1px solid #e1e6df;
-  border-radius: 0;
-}
-.map-controls button:hover,
 .icon-btn:hover {
   background: #edf3e9;
-}
-.map-controls button:disabled {
-  color: #a7b0a6;
-}
-.map-controls span {
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
 }
 .legend {
   padding: 12px 16px;
@@ -1525,12 +1506,6 @@ footer button {
   white-space: nowrap;
   pointer-events: none;
 }
-.map-controls .fit {
-  width: auto;
-  padding: 0 9px;
-  font-size: 12px;
-  font-weight: 650;
-}
 .floating-note {
   position: fixed;
   z-index: 20;
@@ -1766,29 +1741,6 @@ footer button {
 }
 .phone .plan-svg {
   padding: 4px;
-}
-.phone .map-controls {
-  bottom: 8px;
-  left: 6px;
-  right: auto;
-  flex-direction: column;
-  border-radius: 12px;
-  padding: 3px;
-  gap: 2px;
-}
-.phone .map-controls button {
-  width: 44px;
-  height: 44px;
-  border-radius: 9px;
-}
-.phone .map-controls button:last-child {
-  border-left: 0;
-  border-radius: 9px;
-}
-.phone .map-controls .fit {
-  width: 44px;
-  padding: 0;
-  font-size: 14px;
 }
 .phone .map-hint {
   font-size: 14px;
@@ -2265,18 +2217,6 @@ html:has(.phone) .floating-note-region {
 .sheet-peek {
   overscroll-behavior: auto;
 }
-/* With a sheet open, the zoom buttons sit just above it. */
-.phone.has-sheet .map-controls {
-  position: fixed;
-  z-index: 7;
-  left: auto;
-  right: 10px;
-  bottom: calc(var(--sheet-h) + 10px);
-  flex-direction: row;
-}
-.phone.has-sheet .map-controls button:last-child {
-  border-left: 0;
-}
 .phone .big,
 .sheet .report-row .report,
 .sheet .confirm button,
@@ -2336,14 +2276,6 @@ html:has(.phone) .floating-note-region {
   .area-chips button {
     padding: 0 12px;
   }
-}
-.phone.has-sheet .map-controls {
-  background: #fff;
-  box-shadow: 0 4px 14px #10221829;
-}
-/* A full sheet covers the map, so its zoom buttons step aside. */
-.phone:has(.sheet-full) .map-controls {
-  display: none;
 }
 /* Focus moved here by the app, not by Tab, needs no ring. */
 .inspector h2[tabindex='-1']:focus,
@@ -2525,7 +2457,6 @@ html:has(.phone) .floating-note-region {
   font-size: 15px;
   border-radius: 10px;
 }
-/* With a seat open, the map tip would sit under the floating zoom buttons. */
 .phone.has-sheet .map-tip {
   visibility: hidden;
 }
