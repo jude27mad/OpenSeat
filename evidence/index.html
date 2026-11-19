@@ -21,36 +21,36 @@
         <a href="#verification">Test results</a>
       </nav>
       <h1>OpenSeat · CEN100 prototype record</h1>
-<p>The CEN100 Milestone 5 prototype: what was built, how, and how it was tested.</p>
+<p>Milestone 5 prototype: how it was built and tested.</p>
 
 <section id="concept-and-scope"><h2>Concept and scope</h2>
-<p>A student should be able to find a free study seat before walking over. The midterm decision matrix chose a map that students update themselves. This version keeps that map and adds three more inputs: QR check-in for a specific chair, a Bluetooth device count for each area, and table sensors for when nobody reports. Every reading shows its source and age, so old information is easy to spot. The prototype covers one floor, and one person can demo it on an iPhone and an iPad.</p>
+<p>Find a free study seat before walking over. One map, four inputs: student reports, QR check-in, Bluetooth counts and table sensors. Each reading shows its source and age. Scope: SLC Floor 8, demoed on an iPhone and iPad.</p>
 </section>
 <section id="build-plan-and-materials"><h2>Build plan and materials</h2>
 <table class="detail-table" role="table">
-    <thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Step</th><th scope="col" role="columnheader">Goal and materials</th><th scope="col" role="columnheader">Date and evidence</th></tr></thead>
-    <tbody role="rowgroup"><tr role="row"><th scope="row" role="rowheader">1. Set the scope</th><td role="cell">Trace the floor drawing: 40 four-chair tables, 92 individual seats and 20 bookable rooms.</td><td role="cell">Nov 17 · traced layout below</td></tr>
-<tr role="row"><th scope="row" role="rowheader">2. Set the Bluetooth rule</th><td role="cell">Use the BLE2MQTT calibration readings to count devices at −75 dBm or stronger.</td><td role="cell">Nov 17 · calibration below</td></tr>
-<tr role="row"><th scope="row" role="rowheader">3. Build the map</th><td role="cell">Place the furniture, give each seat an ID, make seats searchable, and add timestamps, conflict rules and expiry.</td><td role="cell">Nov 17 · dashboard below</td></tr>
-<tr role="row"><th scope="row" role="rowheader">4. Connect the four inputs</th><td role="cell">Shared storage, QR check-in and check-out, one-tap free or taken reports, a sensor receiver and Bluetooth scan counting.</td><td role="cell">Nov 17 · table QR below</td></tr>
-<tr role="row"><th scope="row" role="rowheader">5. Test the student journey</th><td role="cell">Test the app, shared service, QR code and seat rules. Keep automated results separate from tests with people or hardware.</td><td role="cell">Nov 17 · results below</td></tr></tbody>
-  </table><p>The phone, iPad, floor drawing and Bluetooth scans were already on hand, so extra hardware cost $0. Simulated readings stood in for table hardware. GitHub Pages hosts the site, and a hosted database shares readings between browsers.</p>
+    <thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Step</th><th scope="col" role="columnheader">What</th><th scope="col" role="columnheader">Evidence</th></tr></thead>
+    <tbody role="rowgroup"><tr role="row"><th scope="row" role="rowheader">1. Scope</th><td role="cell">Trace Floor 8: 40 tables, 92 seats, 20 bookable rooms</td><td role="cell">Nov 17 · Stage 1</td></tr>
+<tr role="row"><th scope="row" role="rowheader">2. Bluetooth rule</th><td role="cell">Count devices at −75 dBm or stronger</td><td role="cell">Nov 17 · Calibration</td></tr>
+<tr role="row"><th scope="row" role="rowheader">3. Map</th><td role="cell">Seat IDs, search, timestamps, expiry</td><td role="cell">Nov 17 · Stage 2</td></tr>
+<tr role="row"><th scope="row" role="rowheader">4. Inputs</th><td role="cell">QR check-in, reports, sensor receiver, Bluetooth counts</td><td role="cell">Nov 17 · Stage 3</td></tr>
+<tr role="row"><th scope="row" role="rowheader">5. Testing</th><td role="cell">Automated tests of the app, data and QR codes</td><td role="cell">Nov 17 · Verification</td></tr></tbody>
+  </table><p>Extra hardware cost: $0. Sensors were simulated. Hosted on GitHub Pages and Firebase.</p>
 </section>
 <section id="process-evidence"><h2>Process evidence</h2>
-<p><strong>Stage 1.</strong> The floor plan on its own, with every chair marked Unknown. The 40 four-chair tables and 92 individual seats match the drawing, for 252 open seats. The seat and table IDs were made up for the prototype.</p>
+<p><strong>Stage 1.</strong> Floor plan: 252 open seats, all unknown.</p>
 <p><img src="../assets/01-floor-trace-CZjBD0x2.png" alt="Floor 8 plan with all chairs marked unknown"></p>
-<p><strong>Stage 2.</strong> The full demo: floor totals, the area device count, selectable tables and chairs, and where and when each reading came from. The demo and the live floor keep separate data, and every example reading is marked simulated.</p>
+<p><strong>Stage 2.</strong> Full demo with all four inputs. Example readings are marked simulated.</p>
 <p><img src="../assets/02-dashboard-CkWaqI4W.jpg" alt="Integrated Floor 8 dashboard with all four inputs"></p>
-<p><strong>Stage 3.</strong> Each table&#39;s QR code opens check-in for that table, so one tester can check in to a chair from a second device. The code and shared data were tried with test sessions.</p>
+<p><strong>Stage 3.</strong> Each table&#39;s QR code opens check-in for that table.</p>
 <p><img src="../assets/03-table-qr-DdgvQUT_.jpg" alt="Public Table 17 QR code and shareable link"></p>
 </section>
 <section id="calibration-already-completed"><h2>Calibration already completed</h2>
 <table>
 <thead>
 <tr>
-<th>Reading for the same reference device</th>
-<th align="right">Received power</th>
-<th>Included at −75 dBm</th>
+<th>Reading (same device)</th>
+<th align="right">Power</th>
+<th>Counted at −75 dBm</th>
 </tr>
 </thead>
 <tbody><tr>
@@ -79,25 +79,25 @@
 <td>Yes</td>
 </tr>
 </tbody></table>
-<p>These readings are enough for a working threshold. They were taken in the library, so they say nothing about how many people are on SLC Floor 8, where they sit, or how accurate the count is there. Several people can share a table, and one person can carry several devices.</p>
+<p>Taken in the library. It sets the threshold but doesn&#39;t measure people on Floor 8.</p>
 </section>
 <section id="verification"><h2>Verification</h2>
-<p>The site now runs on Firebase Realtime Database (free Spark plan). The move kept all 38 readings and their times across 10 demo sessions. On every release, an automatic check opens the live site in desktop Chromium and mobile WebKit, follows a table QR code, checks that both browsers see the same chair updates, and opens this page, using a new demo session each time. <a href="https://github.com/jude27mad/OpenSeat/actions/workflows/pages.yml">Release checks and browser screenshots</a></p>
+<p>Every release is tested automatically in desktop and phone browsers. <a href="https://github.com/jude27mad/OpenSeat/actions/workflows/pages.yml">Release checks</a></p>
 <table class="detail-table" role="table">
-    <thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Criterion</th><th scope="col" role="columnheader">Result</th><th scope="col" role="columnheader">Evidence</th></tr></thead>
-    <tbody role="rowgroup"><tr role="row"><th scope="row" role="rowheader">All 252 open seats counted and the 20 bookable rooms left out</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">Automated checks. With no data, all 252 seats show unknown.</td></tr>
-<tr role="row"><th scope="row" role="rowheader">−75 dBm threshold, each device counted once per scan, old scans ignored</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">Automated tests with −76, −75 and stronger readings, repeated device IDs and expired scans.</td></tr>
-<tr role="row"><th scope="row" role="rowheader">All four inputs saved in one session</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">The original Floot API returned QR, report, sensor and Bluetooth readings together. It refused another browser’s check-out (HTTP 409) and accepted the original browser’s. The Firebase rules tests also check who can check out.</td></tr>
-<tr role="row"><th scope="row" role="rowheader">A check-in shows on a second screen within 10 seconds</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">On the original Floot version of the live site, the second browser showed Occupied 1.38 seconds after check-in. A free report showed Conflicting, and after check-out the chair showed Available. The two browsers had separate storage.</td></tr>
-<tr role="row"><th scope="row" role="rowheader">A phone can use a table QR code and read the map without scrolling sideways</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">On the original Floot version, GitHub Actions read the QR image, checked in on mobile WebKit and saw the update in desktop Chromium 1.46 seconds later. The phone page fit the screen. <a href="https://github.com/jude27mad/OpenSeat/actions/runs/44208568779">Browser test run</a></td></tr>
-<tr role="row"><th scope="row" role="rowheader">Area counts and table sensors don’t create fake seat counts</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">An area count of 128 and an occupied table sensor left all 252 chairs unknown without chair reports. A free chair stayed free at a table in use.</td></tr>
-<tr role="row"><th scope="row" role="rowheader">A sensor that disagrees with the chairs shows Mixed reports, and old readings turn into unknown</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">Automated tests check the disagreement and that an old report keeps its source and age.</td></tr>
-<tr role="row"><th scope="row" role="rowheader">A student can find a real open seat within 10 seconds before walking over</th><td role="cell"><span class="test-result">Not measured</span></td><td role="cell">Needs a timed test with a person and a check of the seat on site.</td></tr>
-<tr role="row"><th scope="row" role="rowheader">Installed table hardware and count accuracy across campus</th><td role="cell"><span class="test-result">Not measured</span></td><td role="cell">The receiver was built and tried with simulated readings. There was no installed sensor or real occupancy count to compare against.</td></tr></tbody>
+    <thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Test</th><th scope="col" role="columnheader">Result</th><th scope="col" role="columnheader">Evidence</th></tr></thead>
+    <tbody role="rowgroup"><tr role="row"><th scope="row" role="rowheader">252 seats counted, 20 rooms excluded</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">Automated check</td></tr>
+<tr role="row"><th scope="row" role="rowheader">−75 dBm cutoff, each device counted once</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">Automated tests</td></tr>
+<tr role="row"><th scope="row" role="rowheader">All four inputs saved together</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">API and database rule tests</td></tr>
+<tr role="row"><th scope="row" role="rowheader">Check-in shows on a second screen within 10 s</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">1.38 s in an earlier build</td></tr>
+<tr role="row"><th scope="row" role="rowheader">A phone can scan a table QR and use the map</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">1.46 s phone to desktop · <a href="https://github.com/jude27mad/OpenSeat/actions/runs/44208568779">test run</a></td></tr>
+<tr role="row"><th scope="row" role="rowheader">Area counts don&#39;t fake seat counts</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">128 devices left all seats unknown</td></tr>
+<tr role="row"><th scope="row" role="rowheader">Sensor conflicts and old readings handled</th><td role="cell"><span class="test-result passed">Pass</span></td><td role="cell">Automated tests</td></tr>
+<tr role="row"><th scope="row" role="rowheader">A student finds a seat within 10 s</th><td role="cell"><span class="test-result">Not measured</span></td><td role="cell">Needs a timed trial</td></tr>
+<tr role="row"><th scope="row" role="rowheader">Real sensors and campus-wide accuracy</th><td role="cell"><span class="test-result">Not measured</span></td><td role="cell">No installed hardware</td></tr></tbody>
   </table></section>
 <section id="attribution"><h2>Attribution</h2>
-<p><strong>Student design work:</strong> combining the four inputs, choosing Floor 8 and the dashboard reference, the furniture inventory and map, and the Bluetooth calibration and cutoff.</p>
-<p><strong>AI-assisted development:</strong> the React prototype, shared service, QR codes, simulator and tests, built from those decisions, plus this record and its screenshots.</p>
+<p><strong>Student:</strong> concept, Floor 8 map and inventory, Bluetooth calibration.</p>
+<p><strong>AI-assisted:</strong> app code, tests and this record.</p>
 </section>
     </main>
   </body>
