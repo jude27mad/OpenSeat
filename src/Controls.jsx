@@ -160,6 +160,7 @@ export function FeedControls({
   record,
   onClose,
   started,
+  connectScanner = false,
   onBridge,
   bridge,
 }) {
@@ -169,7 +170,7 @@ export function FeedControls({
     [count, setCount] = useState(12),
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false),
-    [showConnection, setShowConnection] = useState(false),
+    [showConnection, setShowConnection] = useState(connectScanner),
     [token, setToken] = useState(''),
     [topic, setTopic] = useState(''),
     [key, setKey] = useState('')

@@ -2367,56 +2367,68 @@ html:has(.phone) .floating-note-region {
   border: 2px solid #3b4e8c;
 }
 .sources-live {
-  margin-top: 16px;
-  background: #fff;
+  margin: 0 0 18px;
+  background: white;
   border: 1px solid #dce3d9;
-  border-radius: 14px;
-  padding: 14px 16px 6px;
+  border-radius: 12px;
 }
 .sources-live-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid #e3e9e2;
 }
 .sources-live h2 {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 650;
   margin: 0;
 }
 .sources-live ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   list-style: none;
-  margin: 8px 0 0;
   padding: 0;
+  margin: 0;
 }
 .sources-live li {
-  display: flex;
-  gap: 12px;
-  padding: 12px 0;
-  border-top: 1px solid #edf1eb;
+  min-width: 0;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: start;
+  align-items: center;
+  gap: 6px;
 }
-.sources-live li:first-child {
-  border-top: 0;
+.sources-live li + li {
+  border-left: 1px solid #e3e9e2;
 }
 .sources-live .source-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 25px;
+  height: 25px;
+  border-radius: 7px;
 }
-.live-name {
+.sources-live li > div { display: contents; }
+.sources-live .live-name {
+  font-size: 14px;
+  line-height: 1.3;
   font-weight: 650;
   color: #1f3328;
 }
+.live-value,
+.sources-live small,
+.sources-live .live-action {
+  grid-column: 1 / -1;
+}
 .live-value {
-  color: #24382c;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #314639;
 }
 .sources-live small {
-  display: block;
-  color: #5b6b60;
-  margin-top: 2px;
+  color: #526259;
+  font-size: 12px;
+  line-height: 1.4;
 }
 .live-action,
 .sources-live-head .text-btn {
@@ -2424,25 +2436,23 @@ html:has(.phone) .floating-note-region {
   align-items: center;
   gap: 5px;
   color: #1e5c42;
+  font-size: 13px;
   font-weight: 650;
-}
-.live-action {
-  margin-top: 6px;
-  padding: 0 12px;
-  border: 1px solid #cfdccf;
-  border-radius: 10px;
   min-height: 36px;
 }
-.phone .sources-live {
-  margin: 16px 0 0;
-  font-size: 15px;
+.live-action {
+  justify-self: start;
+  text-align: left;
 }
+.live-action:hover { text-decoration: underline; }
+.phone .sources-live { margin: 12px 0; }
 .phone .live-action,
-.phone .sources-live-head .text-btn {
-  min-height: 44px;
-}
-.phone .sources-live small {
-  font-size: 14px;
+.phone .sources-live-head .text-btn { min-height: 44px; }
+@media (max-width: 950px) {
+  .sources-live ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sources-live li:nth-child(odd) { border-left: 0; }
+  .sources-live li:nth-child(n+3) { border-top: 1px solid #e3e9e2; }
+  .sources-live li { padding: 8px 10px; gap: 3px 6px; }
 }
 /* The table sensor sits right under the chairs, with its age. */
 .sensor-line b {
@@ -2489,20 +2499,4 @@ html:has(.phone) .floating-note-region {
 /* With a seat open, the map tip would sit under the floating zoom buttons. */
 .phone.has-sheet .map-tip {
   visibility: hidden;
-}
-/* On a wide screen the four sources sit side by side. */
-@media (min-width: 900px) {
-  .app-shell .sources-live ul {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 20px;
-  }
-  .app-shell .sources-live li {
-    border-top: 0;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .app-shell .sources-live {
-    padding-bottom: 14px;
-  }
 }

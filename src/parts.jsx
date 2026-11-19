@@ -32,21 +32,25 @@ export const sourceText = {
   sensor: 'Detects whether a table is in use',
 }
 
-// What each of the four sources currently knows, right under the map.
+// What each of the four sources currently knows, alongside the floor overview.
 // These are readouts, not choices: the map already combines all four.
 export function SourcesPanel({ model, now, onScanner, onMore }) {
   let checkIns = 0,
-    reports = 0
-  const demo = { qr: false, report: false, sensor: false, ble: false }
+    reports = 0,
+    lastReport = 0,
+    lastCheckIn = 0
+  const demo = { qr: false, report: false }
   for (const state of model.states.values()) {
     const qr = state.evidence.find((e) => e.source === 'qr'),
       report = state.evidence.find((e) => e.source === 'report')
     if (qr && qr.value === 'occupied' && fresh(qr, now)) {
       checkIns++
+      lastCheckIn = Math.max(lastCheckIn, qr.at)
       demo.qr ||= !!qr.simulated
     }
     if (report && fresh(report, now)) {
       reports++
+      lastReport = Math.max(lastReport, report.at)
       demo.report ||= !!report.simulated
     }
   }
@@ -54,17 +58,15 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
     .map((l) => l.sensor)
     .filter((e) => fresh(e, now))
   const newestSensor = sensors.reduce((a, b) => (!a || b.at > a.at ? b : a), null)
-  demo.sensor = sensors.some((e) => e.simulated)
   const areas = [
     ['Round tables', model.ble.tables],
     ['Individual seats', model.ble.individuals],
   ].filter(([, e]) => fresh(e, now))
-  demo.ble = areas.some(([, e]) => e.simulated)
   const ago = (at) => age(at, now).toLowerCase()
   return (
     <section className="sources-live" aria-labelledby="sources-live-title">
       <div className="sources-live-head">
-        <h2 id="sources-live-title">Live sources</h2>
+        <h2 id="sources-live-title">Floor data sources</h2>
         {onMore && (
           <button className="text-btn" onClick={onMore}>
             How it works <ArrowRight size={14} />
@@ -80,8 +82,8 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
             <p className="live-name">
               QR check-in {demo.qr && <DemoTag />}
             </p>
-            <p className="live-value">{plural(checkIns, 'chair')} checked in</p>
-            <small>Select a table to show its QR code. Scanning it opens check-in.</small>
+            <p className="live-value">{plural(checkIns, 'chair')} checked in{lastCheckIn > 0 && ' · ' + ago(lastCheckIn)}</p>
+            <small>Select a table for its QR code.</small>
           </div>
         </li>
         <li>
@@ -92,8 +94,8 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
             <p className="live-name">
               Student reports {demo.report && <DemoTag />}
             </p>
-            <p className="live-value">{plural(reports, 'seat')} reported recently</p>
-            <small>Tap a seat, then “It’s free” or “It’s taken”.</small>
+            <p className="live-value">{plural(reports, 'seat')} reported{lastReport > 0 && ' · ' + ago(lastReport)}</p>
+            <small>Tap a seat to report it.</small>
           </div>
         </li>
         <li>
@@ -102,18 +104,17 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
           </span>
           <div>
             <p className="live-name">
-              Bluetooth {demo.ble && <DemoTag />}
+              Bluetooth
             </p>
             {areas.length ? (
               areas.map(([area, e]) => (
                 <p className="live-value" key={area}>
-                  {area}: {plural(e.value, 'device')} · {ago(e.at)}
+                  {area}: {plural(e.value, 'device')} · {ago(e.at)} {e.simulated && <DemoTag />}
                 </p>
               ))
             ) : (
               <p className="live-value">No recent scan</p>
             )}
-            <small>Counts phones near each area, not people at a seat.</small>
             {onScanner && (
               <button className="live-action" onClick={onScanner}>
                 Connect scanner <ArrowRight size={14} />
@@ -127,14 +128,14 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
           </span>
           <div>
             <p className="live-name">
-              Table sensors {demo.sensor && <DemoTag />}
+              Table sensors {newestSensor?.simulated && <DemoTag />}
             </p>
             <p className="live-value">
-              {sensors.length
-                ? plural(sensors.length, 'table') + ' reporting · newest ' + ago(newestSensor.at)
+              {newestSensor
+                ? label(newestSensor.target) + ' · ' + (newestSensor.value === 'free' ? 'Free' : 'In use') + ' · ' + ago(newestSensor.at)
                 : 'No recent readings'}
             </p>
-            <small>Shown as a small dot on each table.</small>
+            <small>Sensor dots mark tables on the map.</small>
           </div>
         </li>
       </ul>
