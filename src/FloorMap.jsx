@@ -75,9 +75,9 @@ function Floor8Plan({ hatch }) {
 }
 
 const pts = (shape) => shape.map((q) => q.join(',')).join(' ')
-// Floor 5, from the library's room-booking map, turned the same way as Floor 8.
-// Bookable rooms, the seminar room and the media rooms are hatched: not counted.
-function Floor5Plan({ plan, hatch }) {
+// Floors 5 and 7, from the library's room-booking maps, turned the same way as
+// Floor 8. Bookable rooms, the seminar room and the media rooms are hatched: not counted.
+function TracedPlan({ plan, hatch }) {
   const box = (shape) => {
     const xs = shape.map((q) => q[0]),
       ys = shape.map((q) => q[1])
@@ -111,10 +111,10 @@ function Floor5Plan({ plan, hatch }) {
             </g>
           )
         })}
-        {[...plan.media, plan.seminar.shape].map((shape, i) => (
+        {[...(plan.media || []), ...(plan.seminar ? [plan.seminar.shape] : [])].map((shape, i) => (
           <polygon key={'r' + i} points={pts(shape)} fill={`url(#${hatch})`} />
         ))}
-        {plan.seminar.desks.map(([a, b], i) => (
+        {plan.seminar?.desks.map(([a, b], i) => (
           <line
             key={'d' + i}
             x1={a[0]}
@@ -138,7 +138,7 @@ function Floor5Plan({ plan, hatch }) {
                 width="8"
                 height="24"
                 rx="3"
-                transform={`rotate(-38 ${room.table[0]} ${room.table[1]})`}
+                transform={`rotate(${room.turn ?? -38} ${room.table[0]} ${room.table[1]})`}
               />
             )}
           </g>
@@ -163,6 +163,12 @@ const LABELS = {
     [409, 374, -40, 'BOOKABLE ROOMS', Math.min(size, 20)],
     [305, 309, -42, 'SEMINAR ROOM', Math.min(size, 18)],
     [525, 462, 0, 'MEDIA ROOMS', Math.min(size, 20), 'middle'],
+  ],
+  7: (size) => [
+    [143, 64, 0, 'LIFTS', size, 'middle'],
+    [104, 581, -90, 'GRAD SPACE', Math.min(size, 15)],
+    [239, 236, -90, 'QUIET FLOOR', Math.min(size, 15)],
+    [760, 321, -90, 'SILENT SPACE', Math.min(size, 15)],
   ],
 }
 
@@ -205,7 +211,7 @@ export function PlanDrawing({
           <path d="M0 0V6" stroke="#cdd7cd" strokeWidth="1.2" />
         </pattern>
       </defs>
-      {floor.number === 8 ? <Floor8Plan hatch={hatch} /> : <Floor5Plan plan={floor.plan} hatch={hatch} />}
+      {floor.number === 8 ? <Floor8Plan hatch={hatch} /> : <TracedPlan plan={floor.plan} hatch={hatch} />}
       {labels && (
         <g pointerEvents="none">
           {LABELS[floor.number](textSize).map(([x, y, angle, text, size, anchor]) => (
@@ -257,7 +263,7 @@ export function PlanDrawing({
                   return (
                     <rect
                       key={angle}
-                      transform={`rotate(${angle + 42})`}
+                      transform={`rotate(${angle + (floor.chairTurn ?? 42)})`}
                       x="-4.6"
                       y="-13"
                       width="9.2"
@@ -286,7 +292,7 @@ export function PlanDrawing({
                 <rect
                   {...(p.angle === undefined
                     ? { x: -8, y: -7, width: 16, height: 14 }
-                    : { x: -8.5, y: -8.5, width: 17, height: 17 })}
+                    : (({ seatSize: s = 17 }) => ({ x: -s / 2, y: -s / 2, width: s, height: s }))(floor))}
                   rx="2"
                   fill={color.fill}
                   stroke={color.stroke}

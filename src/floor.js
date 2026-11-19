@@ -1,5 +1,6 @@
 import positions from './individual-layout.json' with { type: 'json' }
 import floor5 from './floor5-layout.json' with { type: 'json' }
+import floor7 from './floor7-layout.json' with { type: 'json' }
 export const TABLE_ROWS = [
   [
     [67, 276],
@@ -75,7 +76,7 @@ export const rooms = [
   [540, 521],
 ]
 // Every floor shares the same shape of data. Floor 8 was traced in its own
-// frame and is turned a quarter turn to draw; Floor 5 is stored as drawn.
+// frame and is turned a quarter turn to draw; Floors 5 and 7 are stored as drawn.
 const floor8Tables = TABLE_ROWS.flat().map(([x, y], i) => ({
   id: 'T' + String(i + 1).padStart(2, '0'),
   x,
@@ -88,12 +89,21 @@ const floor8Seats = positions.map(([x, y], i) => ({
   y,
   section: 'individuals',
 }))
-const floor5Seats = floor5.seats.map(([x, y, angle], i) => ({
-  id: 'I' + String(i + 1).padStart(3, '0'),
+const seatsOf = (plan) =>
+  plan.seats.map(([x, y, angle], i) => ({
+    id: 'I' + String(i + 1).padStart(3, '0'),
+    x,
+    y,
+    angle,
+    section: 'individuals',
+  }))
+const floor5Seats = seatsOf(floor5)
+// Floor 7's three round tables in the grad space are counted like Floor 8's.
+const floor7Tables = floor7.tables.map(([x, y], i) => ({
+  id: 'T' + String(i + 1).padStart(2, '0'),
   x,
   y,
-  angle,
-  section: 'individuals',
+  section: 'tables',
 }))
 export const FLOORS = {
   8: {
@@ -123,8 +133,22 @@ export const FLOORS = {
       floor5.media.length +
       ' media rooms',
   },
+  7: {
+    number: 7,
+    name: 'Floor 7',
+    title: 'Floor 7 · The Forest',
+    viewBox: floor7.viewBox,
+    point: (x, y) => [x, y],
+    tables: floor7Tables,
+    individuals: seatsOf(floor7),
+    rooms: [],
+    plan: floor7,
+    seatSize: 16,
+    chairTurn: 0,
+    notCounted: floor7.bookable.length + ' bookable rooms',
+  },
 }
-export const floorNumbers = [5, 8]
+export const floorNumbers = [5, 7, 8]
 
 export function chairs(place) {
   return place.section === 'tables'

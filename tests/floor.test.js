@@ -283,3 +283,46 @@ test('Floor 5 counts its 166 individual seats and leaves the rooms out', async (
   }
   assert.equal(seats.length, 252)
 })
+test('Floor 7 counts 196 individual seats and the three grad-space tables, not the rooms', async () => {
+  const f = await import('../src/floor.js')
+  const hit = await import('../src/hit.js')
+  f.setFloor(7)
+  try {
+    const plan = f.FLOORS[7].plan
+    assert.equal(f.tables.length, 3)
+    assert.equal(f.individuals.length, 196)
+    assert.equal(new Set(f.seats).size, 208)
+    assert.equal(plan.bookable.length, 30)
+    assert.deepEqual(derive([], now).counts, { unknown: 208, free: 0, occupied: 0, mixed: 0 })
+    assert.deepEqual(parseSpot('T03-D'), { id: 'T03', seat: 'T03-D' })
+    assert.equal(parseSpot('T04-A'), null)
+    assert.deepEqual(parseSpot('I196'), { id: 'I196', seat: 'I196' })
+    assert.equal(parseSpot('I197'), null)
+    const fixture = seedDemo(now)
+    assert.equal(Object.values(derive(fixture, now).counts).reduce((s, n) => s + n, 0), 208)
+    const inside = ([x, y], shape) => {
+      let hit = false
+      for (let i = 0, j = shape.length - 1; i < shape.length; j = i++) {
+        const [xi, yi] = shape[i],
+          [xj, yj] = shape[j]
+        if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit
+      }
+      return hit
+    }
+    for (const p of f.places) {
+      assert.ok(inside([p.x, p.y], plan.outline), p.id + ' is on the floor')
+      assert.ok(!plan.bookable.some((r) => inside([p.x, p.y], r.shape)), p.id + ' is not in a room')
+    }
+    assert.equal(hit.mapPoints.size, 199)
+    assert.deepEqual(hit.resolveTap({ at: hit.mapPoints.get('I150'), pxPerUnit: 2, zoom: 4, touch: true }), {
+      action: 'select',
+      id: 'I150',
+    })
+    assert.deepEqual(hit.resolveTap({ at: hit.mapPoints.get('T02'), pxPerUnit: 1.5, zoom: 3, touch: true }), {
+      action: 'select',
+      id: 'T02',
+    })
+  } finally {
+    f.setFloor(8)
+  }
+})
