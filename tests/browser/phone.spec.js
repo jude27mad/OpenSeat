@@ -67,13 +67,11 @@ test('the first phone screen answers “where can I sit?” and finds a free sea
 test('a tap on crowded seats zooms in first, then picks exactly the seat tapped', async ({
   page,
 }) => {
-  await page.goto(demo())
-  await page.locator('.plan-viewport').scrollIntoViewIfNeeded()
   for (const n of [1, 5, 12, 20, 33, 47, 58, 66, 80, 92]) {
+    await page.goto(demo())
+    await page.locator('.plan-viewport').scrollIntoViewIfNeeded()
     const id = 'I' + String(n).padStart(3, '0')
     const name = 'Seat ' + String(n).padStart(2, '0')
-    const fit = page.getByRole('button', { name: 'Show the whole floor' })
-    if (await fit.isEnabled()) await fit.tap()
     const marker = page.locator(`[data-id="${id}"]`)
     await marker.scrollIntoViewIfNeeded()
     const box = await marker.boundingBox(),
