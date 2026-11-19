@@ -78,8 +78,9 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   })
   const t = Date.now()
   await phone.getByRole('button', { name: 'Check in to Chair B', exact: true }).click()
-  await expect(page.locator('.inspector .origin').first()).toContainText(
-    /^QR check-in ·/,
+  // The live check-in, not the demo's example reading for the same chair.
+  await expect(page.locator('.inspector .origin').first()).toHaveText(
+    /^QR check-in · (Just now|\d+s ago)$/,
     { timeout: 10000 },
   )
   await expect(page.locator('.seat-reading .status')).toHaveText('Taken')

@@ -144,10 +144,7 @@ export function PlanDrawing({
           active = p.id === selected
         const e = location.latest,
           provenance = e
-            ? (e.simulated ? 'Simulated · ' : '') +
-              sources[e.source] +
-              ' · ' +
-              age(e.at, now)
+            ? sources[e.source] + ' · ' + age(e.at, now) + (e.simulated ? ' · Demo' : '')
             : 'No updates yet'
         return (
           <g
