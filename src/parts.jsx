@@ -163,17 +163,10 @@ export function Legend() {
           Table sensor reading
         </span>
       )}
-      {floor.plan?.image ? (
-        <span>
-          <i className="dotted" />
-          Inside dotted lines: room (not counted)
-        </span>
-      ) : (
-        <span>
-          <i className="booked" />
-          Bookable room (not counted)
-        </span>
-      )}
+      <span>
+        <i className="booked" />
+        {floor.number === 5 ? 'Room (not counted)' : 'Bookable room (not counted)'}
+      </span>
     </div>
   )
 }

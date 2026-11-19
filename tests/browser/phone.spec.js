@@ -64,6 +64,20 @@ test('the first phone screen answers “where can I sit?” and finds a free sea
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
+test('Floors 5 and 7 draw the traced rooms and selectable furniture in the shared map style', async ({ page }) => {
+  await page.goto(demo())
+  for (const [number, seats, tables] of [[5, 166, 0], [7, 196, 3]]) {
+    await page.getByRole('combobox', { name: 'Floor', exact: true }).selectOption(String(number))
+    const map = page.locator('.phone-map .plan-svg')
+    await expect(map).toHaveAttribute('aria-label', new RegExp('Floor ' + number + '$'))
+    await expect(map.locator('image')).toHaveCount(0)
+    await expect(map.getByText('LIFTS', { exact: true })).toBeVisible()
+    await expect(map.getByText('BOOKABLE ROOMS', { exact: true })).toBeVisible()
+    await expect(map.locator('[data-id^="I"]')).toHaveCount(seats)
+    await expect(map.locator('[data-id^="T"]')).toHaveCount(tables)
+  }
+})
+
 test('a tap on crowded seats zooms in first, then picks exactly the seat tapped', async ({
   page,
 }) => {

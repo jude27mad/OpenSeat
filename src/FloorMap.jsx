@@ -73,19 +73,77 @@ function Floor8Plan({ hatch }) {
   )
 }
 
-// Floors 5 and 7 are the library's own booking maps, turned the same way as
-// Floor 8. Seats are coloured in place over the white boxes.
-function PicturePlan({ image }) {
+const pts = (shape) => shape.map((q) => q.join(',')).join(' ')
+// Floors 5 and 7, from the library's room-booking maps, turned the same way as
+// Floor 8. Bookable rooms, the seminar room and the media rooms are hatched: not counted.
+function TracedPlan({ plan, hatch }) {
+  const box = (shape) => {
+    const xs = shape.map((q) => q[0]),
+      ys = shape.map((q) => q[1])
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
+  }
   return (
-    <image
-      href={import.meta.env.BASE_URL + image.src}
-      x={image.x}
-      y={image.y}
-      width={image.width}
-      height={image.height}
-      preserveAspectRatio="none"
-      pointerEvents="none"
-    />
+    <g pointerEvents="none">
+      <polygon
+        points={pts(plan.outline)}
+        fill="#fafcf7"
+        stroke="#798d7e"
+        strokeWidth="4.5"
+        strokeLinejoin="round"
+      />
+      {plan.stairs.map((shape, i) => (
+        <polygon key={i} points={pts(shape)} fill="#e9eee6" />
+      ))}
+      <g stroke="#9cae9e" fill="#f1f4ed" strokeWidth="1.5">
+        {plan.lifts.map((shape, i) => {
+          const [x0, y0, x1, y1] = box(shape),
+            cx = (x0 + x1) / 2,
+            cy = (y0 + y1) / 2
+          return (
+            <g key={i}>
+              <rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} rx="6" />
+              <path
+                d={`M${cx - 6} ${cy + 7}v-14l-4 4m4-4 4 4m8-4v14l-4-4m4 4 4-4`}
+                fill="none"
+                strokeWidth="2"
+              />
+            </g>
+          )
+        })}
+        {[...(plan.media || []), ...(plan.seminar ? [plan.seminar.shape] : [])].map((shape, i) => (
+          <polygon key={'r' + i} points={pts(shape)} fill={`url(#${hatch})`} />
+        ))}
+        {plan.seminar?.desks.map(([a, b], i) => (
+          <line
+            key={'d' + i}
+            x1={a[0]}
+            y1={a[1]}
+            x2={b[0]}
+            y2={b[1]}
+            stroke="#dfe6dc"
+            strokeWidth="6"
+            strokeLinecap="round"
+          />
+        ))}
+        {plan.bookable.map((room, i) => (
+          <g key={'b' + i}>
+            <polygon points={pts(room.shape)} fill={`url(#${hatch})`} />
+            {room.kind === 'round' ? (
+              <circle cx={room.table[0]} cy={room.table[1]} r="7" />
+            ) : (
+              <rect
+                x={room.table[0] - 4}
+                y={room.table[1] - 12}
+                width="8"
+                height="24"
+                rx="3"
+                transform={`rotate(${room.turn ?? -38} ${room.table[0]} ${room.table[1]})`}
+              />
+            )}
+          </g>
+        ))}
+      </g>
+    </g>
   )
 }
 
@@ -97,6 +155,21 @@ const LABELS = {
     [270, 257, 40, 'INDIVIDUAL SEATS', Math.min(size, 22)],
     [242, 471, -48, 'BOOKABLE ROOMS', Math.min(size, 22)],
     [468, 216, -49, 'BOOKABLE ROOMS', Math.min(size, 22)],
+  ],
+  5: (size) => [
+    [112, 86, 0, 'LIFTS', size, 'middle'],
+    [152, 421, 0, 'INDIVIDUAL SEATS', Math.min(size, 18), 'middle'],
+    [409, 374, -40, 'BOOKABLE ROOMS', Math.min(size, 20)],
+    [305, 309, -42, 'SEMINAR ROOM', Math.min(size, 18)],
+    [525, 462, 0, 'MEDIA ROOMS', Math.min(size, 20), 'middle'],
+  ],
+  7: (size) => [
+    [143, 64, 0, 'LIFTS', size, 'middle'],
+    [104, 581, -90, 'GRAD SPACE', Math.min(size, 15)],
+    [239, 236, -90, 'QUIET FLOOR', Math.min(size, 15)],
+    [638, 318, -23, 'INDIVIDUAL SEATS', Math.min(size, 15)],
+    [354, 263, 12, 'BOOKABLE ROOMS', Math.min(size, 15)],
+    [760, 321, -90, 'SILENT SPACE', Math.min(size, 15)],
   ],
 }
 
@@ -114,6 +187,9 @@ export function PlanDrawing({
   const hatch = useId().replace(/:/g, '')
   const selectedPlace = selected && model.locations.get(selected)
   const [px, py] = selectedPlace ? mapPoints.get(selected) : [0, 0]
+  // Leave space outside the traced perimeter so its stroke stays visible.
+  const [width, height] = floor.viewBox
+  const inset = floor.plan ? 8 : 0
   // Keep labels, the selection ring and its name tag readable at any size.
   const textSize = clamp(11.5 / pxPerUnit, 8, 24)
   const tag = clamp(1.15 / pxPerUnit, 1, 2.6)
@@ -124,7 +200,7 @@ export function PlanDrawing({
     <svg
       ref={svgRef}
       className="plan-svg"
-      viewBox={'0 0 ' + floor.viewBox.join(' ')}
+      viewBox={[-inset, -inset, width + 2 * inset, height + 2 * inset].join(' ')}
       aria-label={'Floor plan of the Student Learning Centre, ' + floor.name}
       onClick={onTap}
     >
@@ -139,7 +215,7 @@ export function PlanDrawing({
           <path d="M0 0V6" stroke="#cdd7cd" strokeWidth="1.2" />
         </pattern>
       </defs>
-      {floor.plan?.image ? <PicturePlan image={floor.plan.image} /> : <Floor8Plan hatch={hatch} />}
+      {floor.plan ? <TracedPlan plan={floor.plan} hatch={hatch} /> : <Floor8Plan hatch={hatch} />}
       {labels && (
         <g pointerEvents="none">
           {(LABELS[floor.number]?.(textSize) || []).map(([x, y, angle, text, size, anchor]) => (
@@ -217,35 +293,18 @@ export function PlanDrawing({
               </g>
             ) : (
               <g transform={`rotate(${p.angle ?? -49})`}>
-                {p.w ? (
-                  // The white box on the floor's own map, coloured by its status.
-                  <rect
-                    x={-p.w / 2}
-                    y={-p.h / 2}
-                    width={p.w}
-                    height={p.h}
-                    rx="1.5"
-                    fill={color.fill}
-                    stroke={color.stroke}
-                    strokeWidth="1.2"
-                    strokeDasharray={location.status === 'mixed' ? '3 2' : undefined}
-                  />
-                ) : (
-                  <>
-                    <rect
-                      x="-8"
-                      y="-7"
-                      width="16"
-                      height="14"
-                      rx="2"
-                      fill={color.fill}
-                      stroke={color.stroke}
-                      strokeWidth="1.4"
-                      strokeDasharray={location.status === 'mixed' ? '3 2' : undefined}
-                    />
-                    <path d="M-4 4h8" stroke={color.stroke} strokeWidth="1.25" />
-                  </>
-                )}
+                <rect
+                  x="-8"
+                  y="-7"
+                  width="16"
+                  height="14"
+                  rx="2"
+                  fill={color.fill}
+                  stroke={color.stroke}
+                  strokeWidth="1.4"
+                  strokeDasharray={location.status === 'mixed' ? '3 2' : undefined}
+                />
+                <path d="M-4 4h8" stroke={color.stroke} strokeWidth="1.25" />
               </g>
             )}
             {numbers && (
