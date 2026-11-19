@@ -498,20 +498,18 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
           ))}
         </nav>
         <span className="nav-heading floor-heading">Floors</span>
-        {floorNumbers.map((number) => (
-          <button
-            key={number}
-            className="floor-link"
-            aria-current={floor.number === number ? 'page' : undefined}
-            onClick={() => {
-              if (floor.number !== number) return onFloor(number)
-              nav('overview')
-              setSection('all')
-            }}
-          >
-            <span>{number}</span>SLC {FLOORS[number].name}
-          </button>
-        ))}
+        <select
+          className="floor-select"
+          aria-label="Floor"
+          value={floor.number}
+          onChange={(e) => onFloor(Number(e.target.value))}
+        >
+          {floorNumbers.map((number) => (
+            <option key={number} value={number}>
+              {FLOORS[number].title}
+            </option>
+          ))}
+        </select>
         <div className="brand-bottom">
           <span>
             <Armchair size={15} />

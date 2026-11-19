@@ -154,8 +154,7 @@ button {
   display: grid;
   gap: 4px;
 }
-.sidebar nav button,
-.floor-link {
+.sidebar nav button {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -167,8 +166,7 @@ button {
   font-size: 13px;
   color: #46564a;
 }
-.sidebar nav button:hover,
-.floor-link:hover {
+.sidebar nav button:hover {
   background: #e6eee3;
 }
 .sidebar nav button[aria-current='page'] {
@@ -179,14 +177,22 @@ button {
 .floor-heading {
   margin-top: 33px;
 }
-.floor-link > span {
-  display: grid;
-  place-items: center;
-  width: 17px;
-  height: 18px;
-  border: 1px solid #b5c4b6;
-  border-radius: 4px;
-  font-size: 10px;
+.floor-select {
+  appearance: none;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23384f40' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 14px center;
+  color: #22352a;
+}
+.sidebar .floor-select {
+  width: 100%;
+  min-height: 39px;
+  padding: 0 32px 0 12px;
+  border: 1px solid #d5dfd4;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  background-position: right 12px center;
 }
 .brand-bottom {
   margin-top: auto;
@@ -1625,12 +1631,18 @@ footer button {
   border-radius: 16px;
   padding: 16px;
 }
-.hero .floor-switch {
-  margin: -4px -4px 12px;
+.phone .floor-select {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 40px 0 14px;
+  border: 1px solid #cfdccf;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 650;
 }
-.hero .floor-switch button {
-  min-height: 44px;
-  font-size: 15px;
+.hero .floor-select {
+  margin-bottom: 12px;
 }
 .hero-kicker {
   font-size: 13px;

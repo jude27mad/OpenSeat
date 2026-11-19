@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-react'
 import { Button } from './components/ui/button'
-import { floor, floorNumbers, label, seats, tables } from './floor.js'
+import { FLOORS, floor, floorNumbers, label, seats, tables } from './floor.js'
 import { age, fresh } from './model.js'
 import FloorMap from './FloorMap.jsx'
 import SeatDetails from './SeatDetails.jsx'
@@ -30,16 +30,21 @@ import {
   plural,
 } from './parts.jsx'
 
-// Floor 5 and Floor 8, side by side, for the main screen and the menu.
-function FloorSwitch({ onFloor, className = '' }) {
+// The floor dropdown, on the main screen and in the menu.
+function FloorSelect({ onFloor }) {
   return (
-    <div className={'segmented ' + className} role="group" aria-label="Floor">
+    <select
+      className="floor-select"
+      aria-label="Floor"
+      value={floor.number}
+      onChange={(e) => onFloor(Number(e.target.value))}
+    >
       {floorNumbers.map((n) => (
-        <button key={n} aria-pressed={n === floor.number} onClick={() => onFloor(n)}>
-          Floor {n}
-        </button>
+        <option key={n} value={n}>
+          {FLOORS[n].title}
+        </option>
       ))}
-    </div>
+    </select>
   )
 }
 
@@ -68,7 +73,7 @@ function PhoneMenu({ demo, onClose, onRoom, onFloor, onShare, onSources }) {
             Pick a floor, switch between the live floor and the demo, share the map or learn how it works.
           </Dialog.Description>
           <div className="menu-label">Which floor?</div>
-          <FloorSwitch onFloor={(n) => onClose(() => onFloor(n))} />
+          <FloorSelect onFloor={(n) => onClose(() => onFloor(n))} />
           <div className="menu-label">Which floor data?</div>
           <div className="segmented" role="group" aria-label="Floor data">
             <button aria-pressed={!demo} onClick={() => onClose(() => demo && onRoom(true))}>
@@ -266,7 +271,7 @@ export default function PhoneView(p) {
         ) : (
           <>
             <section className="hero" aria-labelledby="hero-title">
-              <FloorSwitch className="floor-switch" onFloor={onFloor} />
+              <FloorSelect onFloor={onFloor} />
               <p className="hero-kicker">
                 {demo ? 'Example data · ' + floor.name : 'Right now on ' + floor.name}
               </p>
