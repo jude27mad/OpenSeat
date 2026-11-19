@@ -62,6 +62,6 @@ Every release is tested automatically in desktop and phone browsers. [Release ch
 
 ## Attribution
 
-**Student:** concept, Floor 8 map and inventory, Bluetooth calibration.
+**Student design work** included the integration concept, the choice of Floor 8 and dashboard reference, the furniture inventory and map, and the Bluetooth calibration and cutoff.
 
-**AI-assisted:** app code, tests and this record.
+**AI-assisted development** implemented the React prototype, shared service, QR codes, simulator and tests from those design decisions, and produced this build record and screenshots.
