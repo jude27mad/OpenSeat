@@ -36,6 +36,7 @@ import {
   Legend,
   SeatList,
   SourceCards,
+  SourcesPanel,
 } from './parts.jsx'
 
 const navigation = [
@@ -734,7 +735,15 @@ function Dashboard({ room, onRoom, startSpot, qrPlace }) {
               </div>
             </div>
           )}
-          {page !== 'finder' && (
+          {page === 'overview' && (
+            <SourcesPanel
+              model={model}
+              now={now}
+              onScanner={() => setModal('ble')}
+              onMore={() => nav('sources')}
+            />
+          )}
+          {page === 'sources' && (
             <section className="sources-section">
               <div className="section-heading">
                 <div>

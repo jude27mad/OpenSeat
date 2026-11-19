@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { places, rooms, label } from './floor.js'
-import { age, sources, placeDescription, looksFree } from './model.js'
+import { age, fresh, sources, placeDescription, looksFree } from './model.js'
 import { MAX_ZOOM, mapPoints, resolveTap } from './hit.js'
 
 // Free is the strongest mark on the plan, so it stands out without colour vision.
@@ -192,6 +192,10 @@ export function PlanDrawing({
                   strokeWidth={active ? 2.5 : 1.5}
                   strokeDasharray={location.status === 'mixed' ? '3 2' : undefined}
                 />
+                {fresh(location.sensor, now) && (
+                  // A current table-sensor reading.
+                  <circle cx="6" cy="-6" r="3.1" fill="#fff" stroke="#3b4e8c" strokeWidth="1.4" />
+                )}
               </g>
             ) : (
               <g transform="rotate(-49)">

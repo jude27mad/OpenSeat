@@ -26,6 +26,7 @@ import {
   Legend,
   SeatList,
   SourceCards,
+  SourcesPanel,
   plural,
 } from './parts.jsx'
 
@@ -371,6 +372,14 @@ export default function PhoneView(p) {
               </div>
             )}
           </>
+        )}
+        {page !== 'sources' && (
+          <SourcesPanel
+            model={model}
+            now={now}
+            onScanner={() => setModal('ble')}
+            onMore={() => nav('sources')}
+          />
         )}
         <footer className="phone-foot">
           SLC Floor 8 · {seats.length} open seats · {plural(20, 'bookable room')} not counted

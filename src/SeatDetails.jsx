@@ -2,7 +2,6 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   ArrowRight,
-  ArrowUpRight,
   Check,
   ChevronDown,
   ChevronUp,
@@ -40,13 +39,15 @@ export function Status({ value, children }) {
     </span>
   )
 }
+// Readings that come from the demo's example data, not a real device or person.
+export const DemoTag = () => <span className="demo-tag">Demo</span>
 export function Origin({ event, now }) {
   if (!event) return <span className="origin">No updates yet</span>
   return (
     <span className="origin">
-      {event.simulated ? 'Simulated · ' : ''}
       {sources[event.source]} · {age(event.at, now)}
       {!fresh(event, now) ? ' · Out of date' : ''}
+      {event.simulated && <DemoTag />}
     </span>
   )
 }
@@ -540,6 +541,23 @@ export default function SeatDetails({
           </div>
         )}
         {chairTiles}
+        {isTable && place.sensor && (
+          <div className="sensor-line">
+            <Radio size={15} />
+            <span>
+              <b>Table sensor:</b>{' '}
+              {fresh(place.sensor, now)
+                ? place.sensor.value === 'free'
+                  ? 'nobody at this table'
+                  : "someone's at this table"
+                : 'no recent reading'}
+              <small>
+                {ago(place.sensor.at, now)}
+                {place.sensor.simulated && <DemoTag />}
+              </small>
+            </span>
+          </div>
+        )}
         {checkInBlock}
         {(!peek || !isTable) && !mine && (
           <section className="report-block" aria-label="Report">
@@ -571,21 +589,6 @@ export default function SeatDetails({
           </div>
         )}
         {(!peek || !isTable) && <Origin event={state.latest} now={now} />}
-        {!peek && isTable && place.sensor && (
-          <div className="sensor-line">
-            <Radio size={14} />
-            <span>
-              {fresh(place.sensor, now)
-                ? place.sensor.value === 'free'
-                  ? 'Table sensor: nobody at this table'
-                  : "Table sensor: someone's at this table"
-                : 'Table sensor: no recent reading'}
-              <small>
-                <Origin event={place.sensor} now={now} />
-              </small>
-            </span>
-          </div>
-        )}
         {phone ? createPortal(message, document.body) : message}
         {next && (
           <Button variant="outline" className="wide next-spot" onClick={next.onNext}>
@@ -599,14 +602,23 @@ export default function SeatDetails({
             <ChevronUp />
           </Button>
         )}
-        {!peek && !canCheckIn && !mine && (
-          <p className="qr-hint">
-            <QrCode size={16} />
-            <span>
-              Sitting here? Scan the QR code on the {isTable ? 'table' : 'seat'} to check in and
-              hold your {noun}.
-            </span>
-          </p>
+        {!peek && (
+          <section className="qr-block" aria-label="QR check-in">
+            <QrCode size={18} />
+            <p>
+              <b>QR check-in</b>
+              {canCheckIn || mine
+                ? 'Share this ' + (isTable ? 'table' : 'seat') + '’s code with others.'
+                : 'Sitting here? Scan the code on the ' +
+                  (isTable ? 'table' : 'seat') +
+                  ' to check in and hold your ' +
+                  noun +
+                  '.'}
+            </p>
+            <Button variant="outline" className="qr-open" onClick={openQR}>
+              Show {isTable ? 'table' : 'seat'} QR code
+            </Button>
+          </section>
         )}
         {!peek && state.evidence.length > 0 && (
           <details className="evidence-detail">
@@ -630,13 +642,6 @@ export default function SeatDetails({
           </details>
         )}
       </div>
-      {!peek && (
-        <button className="inspector-qr" onClick={openQR}>
-          <QrCode size={16} />
-          Show {isTable ? 'table' : 'seat'} QR code
-          <ArrowUpRight size={15} />
-        </button>
-      )}
     </Card>
   )
 }
