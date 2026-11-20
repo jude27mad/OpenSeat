@@ -164,7 +164,7 @@ export function Legend() {
         </span>
       )}
       <span>
-        <i className={floor.plan ? 'room-boundary' : 'booked'} />
+        <i className="booked" />
         {floor.number === 5 ? 'Room (not counted)' : 'Bookable room (not counted)'}
       </span>
     </div>
