@@ -116,30 +116,26 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
     path: testInfo.outputPath('phone.png'),
     fullPage: true,
   })
-  await page.getByRole('button', { name: 'Data sources', exact: true }).click()
-  await page.getByRole('button', { name: 'Device inputs' }).click()
-  await page.getByRole('button', { name: 'Simulate in use' }).click()
-  await expect(page.getByRole('dialog').getByRole('status')).toContainText(
-    'Simulated sensor reading saved.',
+  // In the demo, the sensor and Bluetooth inputs are tried right where they show.
+  const inspector = page.locator('.inspector')
+  await inspector.getByRole('button', { name: 'Sensor: in use', exact: true }).click()
+  await expect(inspector.getByRole('status')).toContainText(
+    'Demo sensor reading: Table 17 is in use.',
     { timeout: 17000 },
   )
-  await page.getByRole('button', { name: 'Bluetooth', exact: true }).click()
-  await page.getByText('Try a Bluetooth reading').click()
-  await page.getByLabel('Simulated nearby devices').fill('37')
-  await page.getByRole('button', { name: 'Apply demo count' }).click()
-  await expect(page.getByRole('dialog').getByRole('status')).toContainText(
-    'Simulated section count saved.',
-    { timeout: 17000 },
-  )
-  await page.getByRole('button', { name: 'Close', exact: true }).click()
-  await expect(page.locator('.activity')).toContainText('37 devices')
-  await page.getByRole('button', { name: 'Floor overview' }).click()
+  await expect(inspector).toContainText("Table sensor: someone's at this table")
+  await expect(page.locator('[data-id="T17"] .sensor-dot')).toHaveAttribute('fill', '#d0702f')
+  const sourcesPanel = page.getByRole('region', { name: 'Floor data sources' })
+  const tablesCount = sourcesPanel.locator('.ble-try').filter({ hasText: 'Round tables' })
+  await expect(tablesCount).toContainText('Round tables: 18 devices')
+  await sourcesPanel.getByRole('button', { name: 'More devices: Round tables' }).click()
+  await expect(tablesCount).toContainText('Round tables: 19 devices', { timeout: 17000 })
   await expect(
     page.locator('.metric').filter({ hasText: 'Nearby devices' }),
-  ).toContainText('37')
-  await expect(page.locator('.inspector')).toContainText(
-    "Table sensor: someone's at this table",
-  )
+  ).toContainText('19')
+  await page.getByRole('button', { name: 'Data sources', exact: true }).click()
+  await expect(page.locator('.activity')).toContainText('19 devices')
+  await page.getByRole('button', { name: 'Floor overview' }).click()
   await page.screenshot({
     path: testInfo.outputPath('dashboard.png'),
     fullPage: true,

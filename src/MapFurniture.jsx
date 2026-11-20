@@ -1,12 +1,31 @@
 import React from 'react'
 import { fresh } from './model.js'
 
+// A current sensor reading: a blue ring, filled green when it reads free and
+// orange when it reads in use.
+function SensorDot({ event, now }) {
+  if (!fresh(event, now)) return null
+  return (
+    <circle
+      className="sensor-dot"
+      cx="6"
+      cy="-6"
+      r="3.4"
+      fill={event.value === 'free' ? '#3a9d5d' : '#d0702f'}
+      stroke="#3b4e8c"
+      strokeWidth="1.4"
+    />
+  )
+}
+
 export function MapFurniture({ place, location, model, now, palette, active }) {
   const color = palette[location.status]
   const dash = location.status === 'mixed' ? '3 2' : undefined
 
   if (place.section === 'individuals') {
+    const sensor = model.states.get(place.id)?.evidence.find((e) => e.source === 'sensor')
     return (
+      <>
       <g className="seat-symbol" transform={`rotate(${place.angle ?? -49})`}>
         <rect
           x="-8"
@@ -21,6 +40,8 @@ export function MapFurniture({ place, location, model, now, palette, active }) {
         />
         <path d="M-4 4h8" stroke={color.stroke} strokeWidth="1.25" />
       </g>
+      <SensorDot event={sensor} now={now} />
+      </>
     )
   }
 
@@ -51,9 +72,7 @@ export function MapFurniture({ place, location, model, now, palette, active }) {
         strokeWidth={active ? 2.5 : 1.5}
         strokeDasharray={dash}
       />
-      {fresh(location.sensor, now) && (
-        <circle cx="6" cy="-6" r="3.1" fill="#fff" stroke="#3b4e8c" strokeWidth="1.4" />
-      )}
+      <SensorDot event={location.sensor} now={now} />
     </g>
   )
 }
