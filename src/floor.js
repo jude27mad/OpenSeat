@@ -106,6 +106,7 @@ const floor7Tables = floor7.tables.map(([x, y], i) => ({
   id: 'T' + String(i + 1).padStart(2, '0'),
   x,
   y,
+  angle: 0,
   section: 'tables',
 }))
 export const FLOORS = {
@@ -146,8 +147,6 @@ export const FLOORS = {
     individuals: seatsOf(floor7),
     rooms: [],
     plan: floor7,
-    chairTurn: 0,
-    tableScale: 1.4,
     notCounted: floor7.bookable.length + ' bookable rooms',
   },
 }
