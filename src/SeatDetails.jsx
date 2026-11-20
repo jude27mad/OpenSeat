@@ -211,6 +211,15 @@ export default function SeatDetails({
       )
     })
   }
+  // The sensor for this table or seat. In the demo, its buttons sit beside the
+  // reading, so the map and the reading change right where you pressed.
+  const sensorEvent = isTable ? place.sensor : state?.evidence.find((e) => e.source === 'sensor')
+  function simulateSensor(value) {
+    run(async () => {
+      await record({ source: 'sensor', target: place.id, value, simulated: true })
+      return 'Demo sensor reading: ' + label(place.id) + (value === 'free' ? ' is free.' : ' is in use.')
+    })
+  }
   function sensorNote(allFree) {
     return allFree && fresh(place.sensor, now) && place.sensor.value === 'occupied'
       ? ' The table sensor still sees someone, so the table shows Mixed reports until one of them updates.'
@@ -541,21 +550,39 @@ export default function SeatDetails({
           </div>
         )}
         {chairTiles}
-        {isTable && place.sensor && (
+        {(sensorEvent || demo) && (
           <div className="sensor-line">
             <Radio size={15} />
             <span>
-              <b>Table sensor:</b>{' '}
-              {fresh(place.sensor, now)
-                ? place.sensor.value === 'free'
-                  ? 'nobody at this table'
-                  : "someone's at this table"
-                : 'no recent reading'}
-              <small>
-                {ago(place.sensor.at, now)}
-                {place.sensor.simulated && <DemoTag />}
-              </small>
+              <b>{isTable ? 'Table sensor' : 'Seat sensor'}:</b>{' '}
+              {!sensorEvent
+                ? 'no reading yet'
+                : !fresh(sensorEvent, now)
+                  ? 'no recent reading'
+                  : sensorEvent.value === 'free'
+                    ? isTable
+                      ? 'nobody at this table'
+                      : 'nobody in this seat'
+                    : isTable
+                      ? "someone's at this table"
+                      : "someone's in this seat"}
+              {sensorEvent && (
+                <small>
+                  {ago(sensorEvent.at, now)}
+                  {sensorEvent.simulated && <DemoTag />}
+                </small>
+              )}
             </span>
+            {demo && (
+              <div className="sensor-try" role="group" aria-label="Try the sensor">
+                <button {...wait} onClick={() => simulateSensor('free')}>
+                  Sensor: free
+                </button>
+                <button {...wait} onClick={() => simulateSensor('occupied')}>
+                  Sensor: in use
+                </button>
+              </div>
+            )}
           </div>
         )}
         {checkInBlock}

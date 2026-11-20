@@ -8,7 +8,6 @@ import {
   QrCode,
   Download,
   Radio,
-  TestTube2,
   Bluetooth,
 } from 'lucide-react'
 import QRCode from 'qrcode'
@@ -167,7 +166,6 @@ export function FeedControls({
   const [kind, setKind] = useState(started || 'sensor'),
     [section, setSection] = useState(tables.length ? 'tables' : 'individuals'),
     [raw, setRaw] = useState(''),
-    [count, setCount] = useState(12),
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false),
     [showConnection, setShowConnection] = useState(connectScanner),
@@ -198,7 +196,7 @@ export function FeedControls({
       title="Device inputs"
       description={
         demo
-          ? 'Try the two automatic inputs in this shared demo. The map labels every simulated reading.'
+          ? 'Connect a real scanner or table station. In the demo you can also try both inputs on the main screen.'
           : 'Connect a station to its own section or table. Hardware observations carry their measurement time.'
       }
       onClose={onClose}
@@ -225,29 +223,10 @@ export function FeedControls({
               : 'A seat sensor reports whether this seat is in use.'}
           </p>
           {demo ? (
-            <div className="btn-row">
-              {['free', 'occupied'].map((v) => (
-                <Button
-                  key={v}
-                  disabled={busy}
-                  variant={v === 'free' ? 'default' : 'outline'}
-                  onClick={() =>
-                    run(async () => {
-                      await record({
-                        source: 'sensor',
-                        target: place.id,
-                        value: v,
-                        simulated: true,
-                      })
-                      return 'Simulated sensor reading saved.'
-                    })
-                  }
-                >
-                  <TestTube2 />
-                  {v === 'free' ? 'Simulate free' : 'Simulate in use'}
-                </Button>
-              ))}
-            </div>
+            <p>
+              To try it in the demo, close this, open any {tables.length ? 'table' : 'seat'} and press{' '}
+              <b>Sensor: free</b> or <b>Sensor: in use</b> beside its sensor reading.
+            </p>
           ) : (
             <p>
               The station sends observations using the hardware client in the
@@ -272,42 +251,9 @@ export function FeedControls({
             map receives the total for that section.
           </p>
           {demo && (
-            <details>
-              <summary>Try a Bluetooth reading</summary>
-              <label className="field-label">
-                Simulated nearby devices
-                <input
-                  type="number"
-                  value={count}
-                  min="0"
-                  max="10000"
-                  onChange={(e) => setCount(e.target.value)}
-                />
-              </label>
-              <Button
-                disabled={busy}
-                onClick={() =>
-                  run(async () => {
-                    if (
-                      count === '' ||
-                      !Number.isInteger(+count) ||
-                      count < 0 ||
-                      count > 10000
-                    )
-                      throw Error('Enter a whole number from 0 to 10,000.')
-                    await record({
-                      source: 'ble',
-                      target: section,
-                      value: +count,
-                      simulated: true,
-                    })
-                    return 'Simulated section count saved.'
-                  })
-                }
-              >
-                Apply demo count
-              </Button>
-            </details>
+            <p>
+              To try it in the demo, close this and press − or + beside the Bluetooth count under the map.
+            </p>
           )}
           <details>
             <summary>Check a saved BLE2MQTT scan</summary>
