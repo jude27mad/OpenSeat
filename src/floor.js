@@ -146,8 +146,6 @@ export const FLOORS = {
     individuals: seatsOf(floor7),
     rooms: [],
     plan: floor7,
-    chairTurn: 0,
-    tableScale: 1.4,
     notCounted: floor7.bookable.length + ' bookable rooms',
   },
 }
