@@ -64,28 +64,42 @@ test('the first phone screen answers “where can I sit?” and finds a free sea
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
-test('Floors 5 and 7 load their rotated reference drawings and select the desk under a tap', async ({ page }) => {
+test('all floors draw the same map symbols and keep seats at their rotated locations', async ({ page }, testInfo) => {
   await page.goto(demo())
-  for (const [number, seats, tables] of [[5, 166, 0], [7, 196, 3]]) {
+  const map = page.locator('.phone-map .plan-svg')
+  const baseline = {}
+  for (const [number, seats, tables] of [[8, 92, 40], [5, 166, 0], [7, 196, 3]]) {
     await page.getByRole('combobox', { name: 'Floor', exact: true }).selectOption(String(number))
-    const map = page.locator('.phone-map .plan-svg')
     await expect(map).toHaveAttribute('aria-label', new RegExp('Floor ' + number + '$'))
-    const drawing = map.locator('image.reference-plan')
-    await expect(drawing).toHaveAttribute('href', new RegExp('floor' + number + '-plan\\.svg$'))
-    const dimensions = await drawing.evaluate(async (element) => {
-      const asset = new Image()
-      asset.src = new URL(element.getAttribute('href'), document.baseURI).href
-      await asset.decode()
-      return [asset.naturalWidth, asset.naturalHeight]
-    })
-    expect(dimensions[0]).toBeGreaterThan(dimensions[1])
-    await expect(map.locator('[data-id^="I"]')).toHaveCount(seats)
-    await expect(map.locator('[data-id^="T"]')).toHaveCount(tables)
+    await expect(map.locator('image')).toHaveCount(0)
+    await expect(map.locator('.plan-label').filter({ hasText: /^LIFTS$/ })).toBeVisible()
+    await expect(map.locator('.room-shape[fill^="url(#"]')).not.toHaveCount(0)
+    await expect(map.locator('.map-marker[data-id^="I"] .seat-symbol')).toHaveCount(seats)
+    await expect(map.locator('.map-marker[data-id^="T"] .table-symbol')).toHaveCount(tables)
+    await expect(map.locator('.lift-symbol')).toHaveCount(4)
 
+    // Compare the drawn seat, table chairs and lift arrows independently of position,
+    // marker orientation, occupancy color and optional table sensor readings.
+    for (const symbol of tables ? ['seat', 'lift', 'table'] : ['seat', 'lift']) {
+      const glyph = map.locator('.' + symbol + '-symbol').first()
+      await expect(glyph).toBeVisible()
+      const shapes = await glyph.evaluate((group) =>
+        [...group.querySelectorAll('rect, path')].map((shape) => [
+          shape.tagName, shape.getAttribute('width'), shape.getAttribute('height'),
+          shape.getAttribute('rx'), shape.getAttribute('d'),
+        ]),
+      )
+      expect(shapes.length).toBeGreaterThan(0)
+      if (number === 8) baseline[symbol] = shapes
+      else expect(shapes).toEqual(baseline[symbol])
+    }
+
+    await map.screenshot({ path: testInfo.outputPath('phone-floor-' + number + '.png') })
+    if (number === 8) continue
     // On both quarter-turned plans the first desk is in the lower-left area.
     const desk = map.locator('[data-id="I001"]')
     await desk.scrollIntoViewIfNeeded()
-    const artwork = await drawing.boundingBox()
+    const artwork = await map.boundingBox()
     const cell = await desk.boundingBox()
     expect(cell.x + cell.width / 2).toBeLessThan(artwork.x + artwork.width / 2)
     expect(cell.y + cell.height / 2).toBeGreaterThan(artwork.y + artwork.height / 2)

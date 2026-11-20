@@ -642,11 +642,6 @@ h3 {
 .mixed i {
   background: #7d58a3;
 }
-.legend .room-boundary {
-  border: 1.5px dotted #798d7e;
-  border-radius: 2px;
-  background: #fafcf7;
-}
 .legend .booked {
   border-radius: 2px;
   border: 1px solid #adb9aa;
