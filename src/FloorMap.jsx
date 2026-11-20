@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { ReferenceDesk, ReferenceTable } from './ReferenceFurniture.jsx'
 import { FLOORS, floor, places, label } from './floor.js'
 import { age, fresh, sources, placeDescription, looksFree } from './model.js'
 import { MAX_ZOOM, mapPoints, resolveTap } from './hit.js'
@@ -73,77 +74,17 @@ function Floor8Plan({ hatch }) {
   )
 }
 
-const pts = (shape) => shape.map((q) => q.join(',')).join(' ')
-// Floors 5 and 7, from the library's room-booking maps, turned the same way as
-// Floor 8. Bookable rooms, the seminar room and the media rooms are hatched: not counted.
-function TracedPlan({ plan, hatch }) {
-  const box = (shape) => {
-    const xs = shape.map((q) => q[0]),
-      ys = shape.map((q) => q[1])
-    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
-  }
+// Both reference plans use the same landscape coordinate frame as the interactive seats.
+function ReferencePlan({ number, width, height }) {
   return (
-    <g pointerEvents="none">
-      <polygon
-        points={pts(plan.outline)}
-        fill="#fafcf7"
-        stroke="#798d7e"
-        strokeWidth="4.5"
-        strokeLinejoin="round"
-      />
-      {plan.stairs.map((shape, i) => (
-        <polygon key={i} points={pts(shape)} fill="#e9eee6" />
-      ))}
-      <g stroke="#9cae9e" fill="#f1f4ed" strokeWidth="1.5">
-        {plan.lifts.map((shape, i) => {
-          const [x0, y0, x1, y1] = box(shape),
-            cx = (x0 + x1) / 2,
-            cy = (y0 + y1) / 2
-          return (
-            <g key={i}>
-              <rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} rx="6" />
-              <path
-                d={`M${cx - 6} ${cy + 7}v-14l-4 4m4-4 4 4m8-4v14l-4-4m4 4 4-4`}
-                fill="none"
-                strokeWidth="2"
-              />
-            </g>
-          )
-        })}
-        {[...(plan.media || []), ...(plan.seminar ? [plan.seminar.shape] : [])].map((shape, i) => (
-          <polygon key={'r' + i} points={pts(shape)} fill={`url(#${hatch})`} />
-        ))}
-        {plan.seminar?.desks.map(([a, b], i) => (
-          <line
-            key={'d' + i}
-            x1={a[0]}
-            y1={a[1]}
-            x2={b[0]}
-            y2={b[1]}
-            stroke="#dfe6dc"
-            strokeWidth="6"
-            strokeLinecap="round"
-          />
-        ))}
-        {plan.bookable.map((room, i) => (
-          <g key={'b' + i}>
-            <polygon points={pts(room.shape)} fill={`url(#${hatch})`} />
-            {room.kind === 'round' ? (
-              <circle cx={room.table[0]} cy={room.table[1]} r="7" />
-            ) : (
-              <rect
-                x={room.table[0] - 4}
-                y={room.table[1] - 12}
-                width="8"
-                height="24"
-                rx="3"
-                transform={`rotate(${room.turn ?? -38} ${room.table[0]} ${room.table[1]})`}
-              />
-            )}
-          </g>
-        ))}
-      </g>
-    </g>
+    <image
+      className="reference-plan"
+      href={import.meta.env.BASE_URL + 'floors/floor' + number + '-plan.svg'}
+      width={width}
+      height={height}
+      pointerEvents="none"
+      aria-hidden="true"
+    />
   )
 }
 
@@ -156,20 +97,10 @@ const LABELS = {
     [242, 471, -48, 'BOOKABLE ROOMS', Math.min(size, 22)],
     [468, 216, -49, 'BOOKABLE ROOMS', Math.min(size, 22)],
   ],
-  5: (size) => [
-    [112, 86, 0, 'LIFTS', size, 'middle'],
-    [152, 421, 0, 'INDIVIDUAL SEATS', Math.min(size, 18), 'middle'],
-    [409, 374, -40, 'BOOKABLE ROOMS', Math.min(size, 20)],
-    [305, 309, -42, 'SEMINAR ROOM', Math.min(size, 18)],
-    [525, 462, 0, 'MEDIA ROOMS', Math.min(size, 20), 'middle'],
-  ],
   7: (size) => [
-    [143, 64, 0, 'LIFTS', size, 'middle'],
-    [104, 581, -90, 'GRAD SPACE', Math.min(size, 15)],
-    [239, 236, -90, 'QUIET FLOOR', Math.min(size, 15)],
-    [638, 318, -23, 'INDIVIDUAL SEATS', Math.min(size, 15)],
-    [354, 263, 12, 'BOOKABLE ROOMS', Math.min(size, 15)],
-    [760, 321, -90, 'SILENT SPACE', Math.min(size, 15)],
+    [102, 591, -90, 'GRAD SPACE', Math.min(size, 10)],
+    [240, 242, -90, 'QUIET FLOOR', Math.min(size, 10)],
+    [758, 321, -90, 'SILENT SPACE', Math.min(size, 10)],
   ],
 }
 
@@ -215,7 +146,11 @@ export function PlanDrawing({
           <path d="M0 0V6" stroke="#cdd7cd" strokeWidth="1.2" />
         </pattern>
       </defs>
-      {floor.plan ? <TracedPlan plan={floor.plan} hatch={hatch} /> : <Floor8Plan hatch={hatch} />}
+      {floor.plan ? (
+        <ReferencePlan number={floor.number} width={width} height={height} />
+      ) : (
+        <Floor8Plan hatch={hatch} />
+      )}
       {labels && (
         <g pointerEvents="none">
           {(LABELS[floor.number]?.(textSize) || []).map(([x, y, angle, text, size, anchor]) => (
@@ -259,15 +194,24 @@ export function PlanDrawing({
                 : undefined
             }
           >
-            {p.section === 'tables' ? (
-              <g transform={floor.tableScale ? `scale(${floor.tableScale})` : undefined}>
+            {floor.plan && p.section === 'individuals' ? (
+              <ReferenceDesk place={p} color={color} status={location.status} />
+            ) : floor.plan && p.section === 'tables' ? (
+              <ReferenceTable
+                color={color}
+                chairs={location.ids.map((id) => palette[model.states.get(id).status])}
+                mixed={location.status === 'mixed'}
+                hasSensor={fresh(location.sensor, now)}
+              />
+            ) : p.section === 'tables' ? (
+              <g>
                 <circle r="15" fill="transparent" />
                 {[0, 90, 180, 270].map((angle, i) => {
                   const chair = palette[model.states.get(location.ids[i]).status]
                   return (
                     <rect
                       key={angle}
-                      transform={`rotate(${angle + (floor.chairTurn ?? 42)})`}
+                      transform={`rotate(${angle + 42})`}
                       x="-4.6"
                       y="-13"
                       width="9.2"

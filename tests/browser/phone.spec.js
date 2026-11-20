@@ -64,17 +64,36 @@ test('the first phone screen answers “where can I sit?” and finds a free sea
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
-test('Floors 5 and 7 draw the traced rooms and selectable furniture in the shared map style', async ({ page }) => {
+test('Floors 5 and 7 load their rotated reference drawings and select the desk under a tap', async ({ page }) => {
   await page.goto(demo())
   for (const [number, seats, tables] of [[5, 166, 0], [7, 196, 3]]) {
     await page.getByRole('combobox', { name: 'Floor', exact: true }).selectOption(String(number))
     const map = page.locator('.phone-map .plan-svg')
     await expect(map).toHaveAttribute('aria-label', new RegExp('Floor ' + number + '$'))
-    await expect(map.locator('image')).toHaveCount(0)
-    await expect(map.getByText('LIFTS', { exact: true })).toBeVisible()
-    await expect(map.getByText('BOOKABLE ROOMS', { exact: true })).toBeVisible()
+    const drawing = map.locator('image.reference-plan')
+    await expect(drawing).toHaveAttribute('href', new RegExp('floor' + number + '-plan\\.svg$'))
+    const dimensions = await drawing.evaluate(async (element) => {
+      const asset = new Image()
+      asset.src = new URL(element.getAttribute('href'), document.baseURI).href
+      await asset.decode()
+      return [asset.naturalWidth, asset.naturalHeight]
+    })
+    expect(dimensions[0]).toBeGreaterThan(dimensions[1])
     await expect(map.locator('[data-id^="I"]')).toHaveCount(seats)
     await expect(map.locator('[data-id^="T"]')).toHaveCount(tables)
+
+    // On both quarter-turned plans the first desk is in the lower-left area.
+    const desk = map.locator('[data-id="I001"]')
+    await desk.scrollIntoViewIfNeeded()
+    const artwork = await drawing.boundingBox()
+    const cell = await desk.boundingBox()
+    expect(cell.x + cell.width / 2).toBeLessThan(artwork.x + artwork.width / 2)
+    expect(cell.y + cell.height / 2).toBeGreaterThan(artwork.y + artwork.height / 2)
+    await tapCentre(page, desk)
+    await expect(page.locator('.map-hint')).toContainText('Tap the seat you want')
+    await tapCentre(page, desk)
+    await expect(sheet(page).getByRole('heading', { level: 2 })).toHaveText('Seat 01')
+    await sheet(page).getByRole('button', { name: 'Close' }).tap()
   }
 })
 
