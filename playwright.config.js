@@ -7,6 +7,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.OPENSEAT_TEST_URL || 'http://127.0.0.1:4173',
     screenshot: 'only-on-failure',
+    // Animations are off in the tests, so measured positions are final.
+    reducedMotion: 'reduce',
   },
   webServer: process.env.OPENSEAT_TEST_URL
     ? undefined
