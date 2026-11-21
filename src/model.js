@@ -67,7 +67,7 @@ export function seedDemo(anchor) {
     put(source, seat, n < 34 ? 'free' : 'occupied', 1 + (i % 10))
   })
   for (const [i, p] of tables.entries())
-    if (i % 4 === 0) put('sensor', p.id, 'occupied', 1)
+    if (i % 4 === 0) put('sensor', p.id, 'occupied', 12)
   return rows
 }
 // A free confirmation expires as evidence of availability, but permanently
@@ -91,10 +91,11 @@ export function resolveSeat(events, now) {
       latest: ordered[0],
       stale: !!ordered.length,
     }
-  // A student's report and a check-in describe the same moment-to-moment fact,
-  // so the newer one wins: a confirmed "It's free" clears an abandoned check-in,
-  // and checking in after a free report shows the seat as taken.
-  const people = active.filter((e) => e.source === 'report' || e.source === 'qr')
+  // A student's report, a check-in and a seat's own sensor describe the same
+  // moment-to-moment fact, so the newest one wins: a confirmed "It's free" clears
+  // an abandoned check-in, checking in after a free report shows the seat as
+  // taken, and a newer seat-sensor reading sets the seat.
+  const people = active.filter((e) => e.source === 'report' || e.source === 'qr' || e.source === 'sensor')
   const kept = people.length ? [people[0], ...active.filter((e) => !people.includes(e))] : active
   return {
     status: new Set(kept.map((e) => e.value)).size > 1 ? 'mixed' : kept[0].value,
@@ -132,19 +133,37 @@ export function derive(events, now) {
         ? forTarget(p.id).find((e) => e.source === 'sensor')
         : null
     const sensorActive = fresh(sensor, now)
-    let status = 'unknown'
-    if (tally.free) status = 'free'
-    else if (tally.occupied === ids.length) status = 'occupied'
-    else if (tally.occupied || (sensorActive && sensor.value === 'occupied'))
-      status = 'inuse'
-    else if (sensorActive && sensor.value === 'free') status = 'sensorfree'
-    if (
-      tally.mixed ||
-      (sensorActive &&
-        ((sensor.value === 'free' && tally.occupied > 0) ||
-          (sensor.value === 'occupied' && tally.free === ids.length)))
+    // A table sensor reading newer than everything said about its chairs
+    // decides how the table looks; the chairs keep their own status.
+    const latestChair = Math.max(
+      -Infinity,
+      ...member.flatMap((s) => s.evidence.filter((e) => fresh(e, now)).map((e) => e.at)),
     )
-      status = 'mixed'
+    const sensorLeads = sensorActive && sensor.at > latestChair
+    let status = 'unknown'
+    if (sensorLeads)
+      status =
+        sensor.value === 'free'
+          ? tally.free
+            ? 'free'
+            : 'sensorfree'
+          : tally.occupied === ids.length
+            ? 'occupied'
+            : 'inuse'
+    else {
+      if (tally.free) status = 'free'
+      else if (tally.occupied === ids.length) status = 'occupied'
+      else if (tally.occupied || (sensorActive && sensor.value === 'occupied'))
+        status = 'inuse'
+      else if (sensorActive && sensor.value === 'free') status = 'sensorfree'
+      if (
+        tally.mixed ||
+        (sensorActive &&
+          ((sensor.value === 'free' && tally.occupied > 0) ||
+            (sensor.value === 'occupied' && tally.free === ids.length)))
+      )
+        status = 'mixed'
+    }
     const evidence = [
       ...member.flatMap((s) => s.evidence),
       ...(sensor ? [sensor] : []),
@@ -155,6 +174,7 @@ export function derive(events, now) {
       tally,
       status,
       sensor,
+      sensorLeads,
       latest: [
         ...member.filter((s) => !s.stale && s.latest).map((s) => s.latest),
         ...(sensorActive ? [sensor] : []),
@@ -199,6 +219,7 @@ export function placeDescription(p) {
   if (!p) return ''
   if (p.status === 'mixed') return 'Mixed reports'
   if (p.status === 'sensorfree') return 'Table sensor says free'
+  if (p.sensorLeads && p.status === 'inuse') return 'Table sensor says in use'
   if (p.status === 'unknown') return 'No recent info'
   if (p.ids.length === 1) return statuses[p.status]
   if (p.status === 'inuse')

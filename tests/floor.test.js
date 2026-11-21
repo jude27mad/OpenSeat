@@ -383,3 +383,18 @@ test('a renewal waiting for confirmation recognizes either owned check-in', () =
   assert.equal(ownCheckIn(room, 'S01', { evidence: [renewal] }, now), null)
   remember(room, 'S01', null)
 })
+test('A newer sensor reading changes the map: a seat takes its value, a table shows it', () => {
+  // A seat's own sensor is the newest word on that seat.
+  const seat = derive([event('report', 'I020', 'occupied', 60000), event('sensor', 'I020', 'free', 100)], now)
+  assert.equal(seat.states.get('I020').status, 'free')
+  assert.equal(seat.counts.free, 1)
+  // A table sensor newer than the chair reports decides how the table looks.
+  const busy = derive([event('report', 'T08-A', 'free', 60000), event('sensor', 'T08', 'occupied', 100)], now)
+  assert.equal(busy.locations.get('T08').status, 'inuse')
+  assert.equal(busy.states.get('T08-A').status, 'free')
+  const empty = derive([event('report', 'T08-A', 'occupied', 60000), event('sensor', 'T08', 'free', 100)], now)
+  assert.equal(empty.locations.get('T08').status, 'sensorfree')
+  // A newer chair report takes over again.
+  const later = derive([event('sensor', 'T08', 'occupied', 60000), event('report', 'T08-A', 'free', 100)], now)
+  assert.equal(later.locations.get('T08').status, 'free')
+})

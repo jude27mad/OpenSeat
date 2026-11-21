@@ -23,7 +23,8 @@ OpenSeat shows which study seats are free in TMU's Student Learning Centre (SLC)
 
 Simple rules:
 
-- For a seat, the newest report or check-in wins.
+- For a seat, the newest report, check-in or seat-sensor reading wins.
+- A table sensor reading newer than the chair reports sets how the table looks. The chairs keep their own status.
 - If a table's sensor says one thing and the reports for its chairs say another, the table turns purple and shows **Mixed reports**.
 - When nothing is recent, the seat says **No recent info** instead of guessing.
 - Bluetooth gives a count for an area, not for a single seat.
@@ -41,7 +42,7 @@ Simple rules:
 - The first visit opens a **demo** with example data and a banner at the top. To see the real map everyone shares, press **See live floor** in that banner.
 - In the demo, reports never time out. A seat only changes when someone reports it, checks in or checks out.
 - **Check-in:** select a table or seat, press **Show table QR code** (or **Show seat QR code**) and scan it with another phone.
-- **Sensors:** open any table or seat and press **Sensor: free** or **Sensor: in use**. You can also use the sensors card under the map. A dot appears on the map: green for free, orange for in use.
+- **Sensors:** open any table or seat and press **Sensor: free** or **Sensor: in use**. The seat or table changes colour on the map, with a sensor dot: green for free, orange for in use.
 - **Bluetooth** is never simulated. It only shows real readings from the scanner. Press **Connect scanner** to set it up.
 - **Share map** shows a QR code and a link. Open either on another device to join the same demo. A demo nobody uses for 24 hours is deleted, and its link then opens an empty demo.
 - **Restart demo** starts a fresh one.
