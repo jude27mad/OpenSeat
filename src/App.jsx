@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
   Armchair,
-  ArrowRight,
   Bluetooth,
   Building2,
   ChevronRight,
@@ -12,7 +11,6 @@ import {
   Map as MapIcon,
   MapPin,
   Menu,
-  PlugZap,
   Search,
   Share2,
   UsersRound,
@@ -20,14 +18,14 @@ import {
 } from 'lucide-react'
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
-import { FLOORS, floor, floorNumbers, individuals, label, places, seats, setFloor, tables } from './floor.js'
+import { FLOORS, floor, floorNumbers, individuals, label, seats, setFloor, tables } from './floor.js'
 import { age, derive, fresh, matchesQuery, parseSpot, placeDescription, suggestions } from './model.js'
 import { chosenRoom, isLive, roomUrl, serverNow, useFloor } from './session.js'
 import { startScanner } from './ble.js'
 import { activeCheckIn, friendly, myCheckIns, remember, uncertain } from './checkin.js'
 import { themeChoices, useTheme } from './theme.js'
 import FloorMap, { isDim } from './FloorMap.jsx'
-import { FeedControls, QRDialog } from './Controls.jsx'
+import { ScannerControls, QRDialog } from './Controls.jsx'
 import SeatDetails from './SeatDetails.jsx'
 import PhoneView from './Phone.jsx'
 import {
@@ -356,7 +354,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
   }
   async function onBridge(options) {
     bridgeStop.current?.()
-    bridgeStop.current = await startScanner(options, record, setBridge)
+    bridgeStop.current = await startScanner(options, record, (text) => setBridge(text))
     setBridge('Connecting to the scanner…')
   }
   const dialogs = (
@@ -368,13 +366,9 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
           onClose={() => setModal(null)}
         />
       )}
-      {(modal === 'scanner' || modal === 'ble' || modal === 'sensor') && (
-        <FeedControls
+      {modal === 'scanner' && (
+        <ScannerControls
           demo={demo}
-          place={place || model.locations.get(places[0].id)}
-          record={record}
-          started={modal === 'scanner' ? 'ble' : modal}
-          connectScanner={modal === 'scanner'}
           onClose={() => setModal(null)}
           onBridge={onBridge}
           bridge={bridge}
@@ -509,6 +503,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
               {text}
             </button>
           ))}
+          <a href="./classroom/"><Bluetooth size={17} /> Classroom demo</a>
         </nav>
         <span className="nav-heading floor-heading">Floors</span>
         <select
@@ -782,23 +777,8 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                     <p>Each reading carries its own place, source and time.</p>
                   )}
                 </div>
-                {page === 'overview' ? (
-                  <button className="text-btn" onClick={() => nav('sources')}>
-                    View sources <ArrowRight size={14} />
-                  </button>
-                ) : (
-                  <Button variant="outline" onClick={() => setModal('sensor')}>
-                    <PlugZap />
-                    Device inputs
-                  </Button>
-                )}
               </div>
-              <SourceCards
-                events={events}
-                now={now}
-                full={page === 'sources'}
-                onDevices={setModal}
-              />
+              <SourceCards events={events} now={now} full />
             </section>
           )}
           {page === 'sources' && <Activity events={events} now={now} />}

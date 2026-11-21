@@ -8,7 +8,6 @@ import {
   QrCode,
   Download,
   Radio,
-  Bluetooth,
 } from 'lucide-react'
 import QRCode from 'qrcode'
 import { Button } from './components/ui/button'
@@ -153,22 +152,17 @@ export function QRDialog({ room, place, onClose }) {
     </Modal>
   )
 }
-export function FeedControls({
+export function ScannerControls({
   demo,
-  place,
-  record,
   onClose,
-  started,
-  connectScanner = false,
   onBridge,
   bridge,
 }) {
-  const [kind, setKind] = useState(started || 'sensor'),
-    [section, setSection] = useState(tables.length ? 'tables' : 'individuals'),
+  const [section, setSection] = useState(tables.length ? 'tables' : 'individuals'),
     [raw, setRaw] = useState(''),
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false),
-    [showConnection, setShowConnection] = useState(connectScanner),
+    [showConnection, setShowConnection] = useState(true),
     [token, setToken] = useState(''),
     [topic, setTopic] = useState(''),
     [key, setKey] = useState('')
@@ -193,155 +187,116 @@ export function FeedControls({
   }
   return (
     <Modal
-      title="Device inputs"
-      description={
-        demo
-          ? 'Connect a real scanner or seat-sensor station. In the demo you can also try a seat sensor from any seat.'
-          : 'Connect a station to its own section or seats. Hardware observations carry their measurement time.'
-      }
+      title="Bluetooth scanner"
+      description="Connect your scanner to an area on this floor."
       onClose={onClose}
     >
-      <div className="switch-row">
-        <button
-          aria-pressed={kind === 'sensor'}
-          onClick={() => setKind('sensor')}
+      <label className="field-label">
+        Scanner section
+        <select
+          value={section}
+          onChange={(e) => setSection(e.target.value)}
         >
-          <Radio size={15} />
-          Seat sensor
-        </button>
-        <button aria-pressed={kind === 'ble'} onClick={() => setKind('ble')}>
-          <Bluetooth size={15} />
-          Bluetooth
-        </button>
-      </div>
-      {kind === 'sensor' ? (
-        <>
-          <p>
-            A seat sensor reports whether one seat or chair is in use. While its reading is
-            current, it decides that seat.
-          </p>
-          {demo ? (
-            <p>
-              To try it in the demo, close this, open any seat or table and press{' '}
-              <b>Sensor: free</b> or <b>Sensor: in use</b> beside its sensor reading.
-            </p>
-          ) : (
-            <p>
-              The station sends observations using the hardware client in the
-              repository. Its first reading activates this feed.
-            </p>
-          )}
-        </>
-      ) : (
-        <>
+          {tables.length > 0 && <option value="tables">Round-table area</option>}
+          <option value="individuals">Individual-seat area</option>
+        </select>
+      </label>
+      <p>
+        Only identifiers seen at −75 dBm or stronger count in a scan. The
+        map receives the total for that section.
+      </p>
+      <details>
+        <summary>Check a saved BLE2MQTT scan</summary>
+        <label className="field-label">
+          Scan JSON
+          <textarea
+            rows="3"
+            value={raw}
+            onChange={(e) => setRaw(e.target.value)}
+            placeholder="Paste one scan array"
+          />
+        </label>
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={() =>
+            run(async () => {
+              let rows
+              try {
+                rows = JSON.parse(raw)
+              } catch {
+                throw Error('Paste a valid JSON scan array.')
+              }
+              const n = scanCount(rows)
+              setRaw('')
+              return (
+                n +
+                ' unique devices at or above −75 dBm. Historical check only.'
+              )
+            })
+          }
+        >
+          Count locally
+        </Button>
+      </details>
+      <button
+        className="text-btn"
+        onClick={() => setShowConnection(!showConnection)}
+      >
+        <Radio size={14} />
+        {showConnection
+          ? 'Hide connection settings'
+          : 'Connect BLE2MQTT via flespi'}
+      </button>
+      {showConnection && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            run(async () => {
+              await onBridge({ token, topic, section, feedKey: key })
+              setToken('')
+              setKey('')
+              return 'Scanner subscription started.'
+            })
+          }}
+        >
           <label className="field-label">
-            Scanner section
-            <select
-              value={section}
-              onChange={(e) => setSection(e.target.value)}
-            >
-              {tables.length > 0 && <option value="tables">Round-table area</option>}
-              <option value="individuals">Individual-seat area</option>
-            </select>
+            flespi read token
+            <input
+              required
+              type="password"
+              autoComplete="off"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+            />
           </label>
-          <p>
-            Only identifiers seen at −75 dBm or stronger count in a scan. The
-            map receives the total for that section.
-          </p>
-          <details>
-            <summary>Check a saved BLE2MQTT scan</summary>
+          <label className="field-label">
+            Scanner MQTT topic
+            <input
+              required
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Exact topic configured in BLE2MQTT"
+            />
+          </label>
+          {!demo && (
             <label className="field-label">
-              Scan JSON
-              <textarea
-                rows="3"
-                value={raw}
-                onChange={(e) => setRaw(e.target.value)}
-                placeholder="Paste one scan array"
+              OpenSeat operator key
+              <input
+                required
+                type="password"
+                autoComplete="off"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
               />
             </label>
-            <Button
-              variant="outline"
-              disabled={busy}
-              onClick={() =>
-                run(async () => {
-                  let rows
-                  try {
-                    rows = JSON.parse(raw)
-                  } catch {
-                    throw Error('Paste a valid JSON scan array.')
-                  }
-                  const n = scanCount(rows)
-                  setRaw('')
-                  return (
-                    n +
-                    ' unique devices at or above −75 dBm. Historical check only.'
-                  )
-                })
-              }
-            >
-              Count locally
-            </Button>
-          </details>
-          <button
-            className="text-btn"
-            onClick={() => setShowConnection(!showConnection)}
-          >
-            <Radio size={14} />
-            {showConnection
-              ? 'Hide connection settings'
-              : 'Connect BLE2MQTT via flespi'}
-          </button>
-          {showConnection && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                run(async () => {
-                  await onBridge({ token, topic, section, feedKey: key })
-                  setToken('')
-                  setKey('')
-                  return 'Scanner subscription started.'
-                })
-              }}
-            >
-              <label className="field-label">
-                flespi read token
-                <input
-                  required
-                  type="password"
-                  autoComplete="off"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                />
-              </label>
-              <label className="field-label">
-                Scanner MQTT topic
-                <input
-                  required
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="Exact topic configured in BLE2MQTT"
-                />
-              </label>
-              {!demo && (
-                <label className="field-label">
-                  OpenSeat operator key
-                  <input
-                    required
-                    type="password"
-                    autoComplete="off"
-                    value={key}
-                    onChange={(e) => setKey(e.target.value)}
-                  />
-                </label>
-              )}
-              <Button disabled={busy} type="submit">
-                Connect scanner
-              </Button>
-            </form>
           )}
-          {bridge && <p role="status">{bridge}</p>}
-        </>
+          <Button disabled={busy} type="submit">
+            Connect scanner
+          </Button>
+        </form>
       )}
+      {bridge && <p role="status">{bridge}</p>}
       {message && (
         <p role="status" className="feedback">
           {message}

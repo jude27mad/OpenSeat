@@ -62,24 +62,25 @@ export async function startScanner(
 ) {
   if (!topic.trim() || /[+#\0]/.test(topic))
     throw Error('Use the exact topic configured on the iPhone.')
-  const { connect } = await import('mqtt')
-  const client = connect('wss://mqtt.flespi.io:443', {
+  const { default: mqtt } = await import('mqtt')
+  const client = mqtt.connect('wss://mqtt.flespi.io:443', {
     username: token.trim(),
     clean: true,
     reconnectPeriod: 4000,
     connectTimeout: 10000,
   })
-  client.on('connect', () =>
-    client.subscribe(topic.trim(), { qos: 0 }, (err) =>
-      status(
-        err
-          ? 'Could not subscribe to that topic.'
-          : 'Scanner connected. Waiting for a current scan.',
-      ),
-    ),
-  )
+  client.on('connect', () => {
+    client.subscribe(topic.trim(), { qos: 0 }, (err, granted) => {
+      if (err || !granted?.some((grant) => grant.topic === topic.trim() && grant.qos < 128)) {
+        status('Subscription refused. Check the read token and scanner topic.', 'error')
+        return
+      }
+      status('Scanner connected. Waiting for a current scan.', 'waiting')
+    })
+  })
+  client.on('offline', () => status('Connection lost. Reconnecting…', 'connecting'))
   client.on('error', () =>
-    status('Scanner connection failed. Check the token and topic.'),
+    status('Scanner connection failed. Check the token and topic.', 'error'),
   )
   client.on('message', async (_topic, payload, packet) => {
     if (packet.retain) return
