@@ -40,7 +40,7 @@ Simple rules:
 ## Try the demo
 
 - The first visit opens a **demo** with example data and a banner at the top. To see the real map everyone shares, press **See live floor** in that banner.
-- In the demo, reports never time out. A seat only changes when someone reports it, checks in or checks out.
+- In the demo, nothing times out. A seat only changes when someone reports it, checks in, checks out or makes a sensor reading.
 - **Check-in:** select a table or seat, press **Show table QR code** (or **Show seat QR code**) and scan it with another phone.
 - **Sensors:** open any seat or table, pick a chair, and press **Sensor: free** or **Sensor: in use**. That seat changes colour on the map. In the demo, a seat with a sensor reading keeps it until the next sensor reading.
 - **Bluetooth** is never simulated. It only shows real readings from the scanner. Press **Connect scanner** to set it up.

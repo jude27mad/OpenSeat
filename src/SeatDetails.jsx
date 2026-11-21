@@ -164,6 +164,7 @@ export default function SeatDetails({
         return (
           (renew ? 'Your seat is held' : 'Checked in at ' + label(target) + '. Held') +
           (demo ? ' until you check out.' : ' until ' + clock(holdsUntil(event)) + '.') +
+          sensorNote('occupied', [target]) +
           extra
         )
       } catch (e) {
@@ -221,11 +222,18 @@ export default function SeatDetails({
       return 'Demo sensor reading: ' + label(seat) + (value === 'free' ? ' is free.' : ' is in use.')
     })
   }
-  // A current seat-sensor reading decides the seat, so say when a report won't change it.
-  function sensorNote(value) {
-    return fresh(sensorEvent, now) && sensorEvent.value !== value
-      ? ' Its sensor still reads ' + (sensorEvent.value === 'free' ? 'free' : 'in use') + ', and the sensor decides.'
-      : ''
+  // A current seat-sensor reading decides the seat, so say when a report or
+  // check-in won't change it.
+  function sensorNote(value, ids = [seat]) {
+    const off = ids.filter((id) => {
+      const reading = model.states.get(id)?.sensor
+      return reading && reading.value !== value
+    })
+    if (!off.length) return ''
+    const reads = value === 'free' ? 'in use' : 'free'
+    return ids.length === 1
+      ? ' Its sensor still reads ' + reads + ', and the sensor decides.'
+      : ' The sensor on ' + off.map(chairName).join(', ') + ' still reads ' + reads + ', and the sensor decides.'
   }
   function reportTable(value) {
     run(async () => {
@@ -269,7 +277,7 @@ export default function SeatDetails({
             (skipped === 1 ? 'chair was' : 'chairs were') +
             ' left as is.'
           : '') +
-        sensorNote(value === 'free' && !skipped)
+        sensorNote(value, targets)
       )
     })
   }
@@ -552,7 +560,7 @@ export default function SeatDetails({
           </div>
         )}
         {chairTiles}
-        {(sensorEvent || demo) && (
+        {(sensorEvent || demo) && (!peek || !isTable) && (
           <div className="sensor-line">
             <Radio size={15} />
             <span>
@@ -653,7 +661,7 @@ export default function SeatDetails({
             </summary>
             <p>
               {demo
-                ? 'In the demo nothing expires: a seat changes only when someone reports it, checks in or checks out.'
+                ? 'In the demo nothing expires: a seat changes only when someone reports it, checks in, checks out or makes a sensor reading.'
                 : 'Each source counts for a while: check-ins 60 minutes, student reports 15 minutes, seat sensors 5 minutes.'}{' '}
               A current seat-sensor reading decides the seat. Otherwise the newest report or
               check-in wins.

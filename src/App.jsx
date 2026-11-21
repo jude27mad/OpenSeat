@@ -636,7 +636,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
               <Stat
                 name="Taken seats"
                 value={n.occupied}
-                detail="Checked in or reported taken"
+                detail="Checked in, reported or sensed taken"
                 icon={UsersRound}
                 tone="orange"
                 percent={(n.occupied * 100) / seats.length}

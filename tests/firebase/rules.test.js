@@ -59,6 +59,14 @@ test('a newer free report releases an abandoned check-in, and only a newer one',
   await assert.rejects(record(a, { ...chair, value: 'free' }, takeover), /belongs/)
 })
 
+test('a seat sensor that reads free lets someone else check in', async () => {
+  const id = randomUUID(), seat = { source: 'qr', target: 'I031', value: 'occupied' }
+  await record(a, seat, id)
+  await assert.rejects(record(b, seat, id), /belongs/)
+  await record(a, { source: 'sensor', target: 'I031', value: 'free', simulated: true }, id)
+  assert.equal((await record(b, seat, id)).value, 'occupied')
+})
+
 test('reports can still be saved on installations running older rules', async () => {
   const oldSchema = randomUUID()
   const request = (path, options) => {

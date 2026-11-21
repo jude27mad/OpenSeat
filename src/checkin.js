@@ -36,10 +36,11 @@ function liveCheckIn(state, now) {
 export function released(state, qr, now) {
   return !!state?.evidence.some((e) => clearsHold(e, qr, now))
 }
-// The check-in that is holding a seat for someone, if any.
+// The check-in that is holding a seat for someone, if any. A current seat
+// sensor that reads free overrides it, like everything else.
 export function activeCheckIn(state, now) {
   const qr = liveCheckIn(state, now)
-  return qr && !released(state, qr, now) ? qr : null
+  return qr && !released(state, qr, now) && state.sensor?.value !== 'free' ? qr : null
 }
 // This browser's own check-in, even if someone has since reported the seat free.
 export function ownCheckIn(room, seat, state, now) {

@@ -12,8 +12,8 @@ export const ttl = {
   sensor: 5 * 60000,
   ble: 2 * 60000,
 }
-// In a demo room nothing expires: a `lasting` reading counts until someone
-// replaces it by reporting the seat, checking in or checking out.
+// In a demo room nothing expires: a `lasting` reading counts until it is
+// replaced by a report, a check-in, a check-out or a new sensor reading.
 export function lifetime(event) {
   if (event.lasting) return Infinity
   return event.source === 'qr' && event.value === 'free'

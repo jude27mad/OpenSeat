@@ -270,11 +270,11 @@ export default function PhoneView(p) {
             </button>
             <h1>How the data works</h1>
             <p className="lead">
-              Each seat shows the newest information from four sources, with how long ago it
+              Each seat shows information from four sources, with how long ago it
               arrived. Old information stops counting, so a seat with nothing recent says “No
               recent info” rather than guessing.
               {demo &&
-                ' In the demo nothing expires: seats change only when someone reports them, checks in or checks out.'}
+                ' In the demo nothing expires: seats change only when someone reports them, checks in, checks out or makes a sensor reading.'}
             </p>
             <h2 className="sr-only">The four sources</h2>
             <SourceCards events={events} now={now} full />

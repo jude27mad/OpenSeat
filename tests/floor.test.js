@@ -136,6 +136,8 @@ test('A current seat sensor decides the seat, over any report or check-in', () =
   assert.deepEqual(suggestions(reported.locations, now), [])
   const held = derive([event('qr', 'I020', 'occupied', 100), event('sensor', 'I020', 'free', 60000)], now)
   assert.equal(held.states.get('I020').status, 'free')
+  // A free sensor also ends the hold, so someone else may check in.
+  assert.equal(activeCheckIn(held.states.get('I020'), now), null)
   // Once the sensor reading is old, the newest report or check-in decides again.
   const old = derive([event('sensor', 'I020', 'free', ttl.sensor), event('report', 'I020', 'occupied', 100)], now)
   assert.equal(old.states.get('I020').status, 'occupied')
