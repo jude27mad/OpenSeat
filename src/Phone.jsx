@@ -178,7 +178,7 @@ export default function PhoneView(p) {
     (best, e) => (fresh(e, now) && e.source !== 'ble' && (!best || e.at > best.at) ? e : best),
     null,
   )
-  // Nothing fresh anywhere on the floor, not even a table sensor.
+  // Nothing fresh anywhere on the floor, not even a seat sensor.
   const empty =
     n.unknown === seats.length &&
     ![...model.locations.values()].some((l) => l.status !== 'unknown')
@@ -270,11 +270,11 @@ export default function PhoneView(p) {
             </button>
             <h1>How the data works</h1>
             <p className="lead">
-              Each seat shows the newest information from four sources, with how long ago it
+              Each seat shows information from four sources, with how long ago it
               arrived. Old information stops counting, so a seat with nothing recent says “No
               recent info” rather than guessing.
               {demo &&
-                ' In the demo nothing expires: seats change only when someone reports them, checks in or checks out.'}
+                ' In the demo nothing expires: seats change only when someone reports them, checks in, checks out or makes a sensor reading.'}
             </p>
             <h2 className="sr-only">The four sources</h2>
             <SourceCards events={events} now={now} full />
@@ -300,7 +300,6 @@ export default function PhoneView(p) {
                   <h1 id="hero-title">{n.unknown ? 'No free seats reported' : 'Every seat is taken'}</h1>
                   <p className="hero-sub">
                     {n.occupied} taken · {n.unknown} no recent info
-                    {n.mixed ? ' · ' + n.mixed + ' mixed' : ''}
                     {latest ? ' · updated ' + age(latest.at, now).toLowerCase() : ''}
                   </p>
                   {n.unknown > 0 && !choices && (
@@ -317,7 +316,6 @@ export default function PhoneView(p) {
                   </h1>
                   <p className="hero-sub">
                     {n.occupied} taken · {n.unknown} no recent info
-                    {n.mixed ? ' · ' + n.mixed + ' mixed' : ''}
                     {latest ? ' · updated ' + age(latest.at, now).toLowerCase() : ''}
                   </p>
                 </>

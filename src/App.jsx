@@ -636,22 +636,18 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
               <Stat
                 name="Taken seats"
                 value={n.occupied}
-                detail="Checked in or reported taken"
+                detail="Checked in, reported or sensed taken"
                 icon={UsersRound}
                 tone="orange"
                 percent={(n.occupied * 100) / seats.length}
               />
               <Stat
                 name="No recent info"
-                value={n.unknown + n.mixed}
-                detail={
-                  n.mixed
-                    ? n.mixed + ' with mixed reports'
-                    : 'Waiting for a check-in or report'
-                }
+                value={n.unknown}
+                detail="Waiting for a check-in or report"
                 icon={Clock3}
                 tone="stone"
-                percent={((n.unknown + n.mixed) * 100) / seats.length}
+                percent={(n.unknown * 100) / seats.length}
               />
               <Stat
                 name="Nearby devices"

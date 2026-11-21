@@ -14,7 +14,7 @@ for (const width of [390, 1280]) {
     }
     await below(map)
     await panel.scrollIntoViewIfNeeded()
-    for (const name of ['QR check-in', 'Student reports', 'Bluetooth', 'Table sensors']) {
+    for (const name of ['QR check-in', 'Student reports', 'Bluetooth', 'Seat sensors']) {
       await expect(panel.getByText(name, { exact: true })).toBeInViewport()
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

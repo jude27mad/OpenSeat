@@ -59,6 +59,14 @@ test('a newer free report releases an abandoned check-in, and only a newer one',
   await assert.rejects(record(a, { ...chair, value: 'free' }, takeover), /belongs/)
 })
 
+test('a seat sensor that reads free lets someone else check in', async () => {
+  const id = randomUUID(), seat = { source: 'qr', target: 'I031', value: 'occupied' }
+  await record(a, seat, id)
+  await assert.rejects(record(b, seat, id), /belongs/)
+  await record(a, { source: 'sensor', target: 'I031', value: 'free', simulated: true }, id)
+  assert.equal((await record(b, seat, id)).value, 'occupied')
+})
+
 test('reports can still be saved on installations running older rules', async () => {
   const oldSchema = randomUUID()
   const request = (path, options) => {
@@ -114,7 +122,7 @@ test('source, seat, scope, timestamps and read-only public data are enforced', a
   const invalid = [
     report('T41-A', 'free'), report('T00-B', 'occupied'), report('I197', 'free'),
     report('T01', 'free'), report('I001', 'other'),
-    { source: 'sensor', target: 'T17-B', value: 'occupied', simulated: true },
+    { source: 'sensor', target: 'T17', value: 'occupied', simulated: true },
     { source: 'ble', target: 'I001', value: 1, simulated: true },
     { source: 'ble', target: 'tables', value: 1.5, simulated: true },
     { source: 'ble', target: 'tables', value: 10001, simulated: true },
@@ -173,12 +181,12 @@ test('live hardware needs station authorization, retains original sample time an
   await assert.rejects(record(a, { ...sample, id: randomUUID(), measuredAt: sample.measuredAt - 1000 }, 'floor8'))
   await assert.rejects(record(b, { ...sample, id: randomUUID() }, 'floor8'))
   await assert.rejects(record(a, { ...sample, id: randomUUID(), simulated: true }, 'floor8'))
-  const sensor = { source: 'sensor', target: 'T40', value: 'occupied', measuredAt: Date.now() }
+  const sensor = { source: 'sensor', target: 'T40-D', value: 'occupied', measuredAt: Date.now() }
   assert.equal((await record(a, sensor, 'floor8')).value, 'occupied')
   const seat = { source: 'sensor', target: 'I140', value: 'free', measuredAt: Date.now() }
   assert.equal((await record(a, seat, 'floor5')).value, 'free')
-  assert.equal((await record(a, { ...sensor, id: randomUUID(), target: 'T03', measuredAt: Date.now() }, 'floor7')).value, 'occupied')
-  await assert.rejects(record(a, { ...sensor, id: randomUUID(), target: 'T04', measuredAt: Date.now() }, 'floor7'))
+  assert.equal((await record(a, { ...sensor, id: randomUUID(), target: 'T03-D', measuredAt: Date.now() }, 'floor7')).value, 'occupied')
+  await assert.rejects(record(a, { ...sensor, id: randomUUID(), target: 'T04-A', measuredAt: Date.now() }, 'floor7'))
   await assert.rejects(record(a, { ...sample, id: randomUUID(), measuredAt: Date.now() }, 'floor5'))
   assert.equal((await record(a, { ...sample, id: randomUUID(), target: 'individuals', measuredAt: Date.now() }, 'floor5')).value, 5)
   await seed('/private/feedDigest', await digest(randomUUID()))

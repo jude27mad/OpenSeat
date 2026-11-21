@@ -11,9 +11,7 @@ export const palette = {
   free: { fill: '#3a9d5d', stroke: '#1f6b3b' },
   occupied: { fill: '#f3d2b5', stroke: '#a35a26' },
   unknown: { fill: '#ffffff', stroke: '#7c8a80' },
-  mixed: { fill: '#d9c7ef', stroke: '#6d4791' },
   inuse: { fill: '#f7e3d1', stroke: '#a35a26' },
-  sensorfree: { fill: '#bfe3c9', stroke: '#2f7d49' },
 }
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 

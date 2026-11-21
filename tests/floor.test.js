@@ -42,7 +42,6 @@ test('All live seats start unknown without evidence', () =>
     unknown: 252,
     free: 0,
     occupied: 0,
-    mixed: 0,
   }))
 test('Bluetooth threshold includes −75 and deduplicates identifiers within one scan', () => {
   assert.equal(
@@ -71,23 +70,19 @@ test('Historical Bluetooth readings do not become fresh through replay', () => {
     { value: 1, measuredAt: now },
   )
 })
-test('Nearby device counts and shared-table sensors never occupy four chairs', () => {
-  const m = derive(
-    [event('ble', 'tables', 128), event('sensor', 'T12', 'occupied')],
-    now,
-  )
+test('Nearby device counts never mark seats taken', () => {
+  const m = derive([event('ble', 'tables', 128)], now)
   assert.equal(m.ble.tables.value, 128)
-  assert.equal(m.locations.get('T12').status, 'inuse')
   assert.equal(m.counts.unknown, 252)
 })
-test('A chair can be free at a table that is in use', () => {
-  const m = derive(
-    [event('report', 'T08-A', 'free'), event('sensor', 'T08', 'occupied')],
-    now,
-  )
-  assert.equal(m.states.get('T08-A').status, 'free')
-  assert.equal(m.locations.get('T08').status, 'free')
-  assert.equal(m.counts.free, 1)
+test('A table is free if any chair is, partly in use if some are taken, taken if all are', () => {
+  const free = derive([event('report', 'T08-A', 'free'), event('report', 'T08-B', 'occupied')], now)
+  assert.equal(free.locations.get('T08').status, 'free')
+  assert.equal(free.counts.free, 1)
+  const some = derive([event('report', 'T08-B', 'occupied')], now)
+  assert.equal(some.locations.get('T08').status, 'inuse')
+  const all = derive(['A', 'B', 'C', 'D'].map((c) => event('report', 'T08-' + c, 'occupied')), now)
+  assert.equal(all.locations.get('T08').status, 'occupied')
 })
 test('The newer of a report and a check-in wins, and both stay as evidence', () => {
   const released = derive(
@@ -133,17 +128,21 @@ test('A check-in and free report timestamp tie resolve consistently in either or
     assert.equal(activeCheckIn(state, now), qr)
   }
 })
-test('A table sensor that disagrees with every chair still shows mixed reports', () => {
-  const m = derive(
-    [
-      ...['A', 'B', 'C', 'D'].map((c) => event('report', 'T08-' + c, 'free')),
-      event('sensor', 'T08', 'occupied'),
-    ],
-    now,
-  )
-  assert.equal(m.locations.get('T08').status, 'mixed')
-  assert.equal(looksFree(m.locations.get('T08')), false)
-  assert.deepEqual(suggestions(m.locations, now), [])
+test('A current seat sensor decides the seat, over any report or check-in', () => {
+  // The sensor wins even when a report or check-in is newer.
+  const reported = derive([event('sensor', 'T08-A', 'occupied', 60000), event('report', 'T08-A', 'free', 100)], now)
+  assert.equal(reported.states.get('T08-A').status, 'occupied')
+  assert.equal(looksFree(reported.locations.get('T08')), false)
+  assert.deepEqual(suggestions(reported.locations, now), [])
+  const held = derive([event('qr', 'I020', 'occupied', 100), event('sensor', 'I020', 'free', 60000)], now)
+  assert.equal(held.states.get('I020').status, 'free')
+  // A free sensor also ends the hold, so someone else may check in.
+  assert.equal(activeCheckIn(held.states.get('I020'), now), null)
+  // Once the sensor reading is old, the newest report or check-in decides again.
+  const old = derive([event('sensor', 'I020', 'free', ttl.sensor), event('report', 'I020', 'occupied', 100)], now)
+  assert.equal(old.states.get('I020').status, 'occupied')
+  // There is no Mixed state any more.
+  assert.equal('mixed' in derive([], now).counts, false)
 })
 test('Evidence expires at the specified boundary and retains its source and age', () => {
   const stale = event('report', 'I020', 'free', ttl.report)
@@ -237,14 +236,14 @@ test('Search understands seat names the way people type them', async () => {
   assert.equal(find('round').length, 40)
   assert.equal(find('').length, 132)
 })
-test('Suggestions put the most free chairs first and include tables a sensor reports free', async () => {
+test('Suggestions put the most free chairs first, counting chairs a seat sensor reads free', async () => {
   const { suggestions } = await import('../src/model.js')
   const m = derive(
     [
       event('report', 'T03-A', 'free'),
       event('report', 'T09-A', 'free'),
       event('report', 'T09-B', 'free'),
-      event('sensor', 'T30', 'free'),
+      event('sensor', 'T30-C', 'free'),
       event('report', 'I005', 'occupied'),
     ],
     now,
@@ -270,13 +269,13 @@ test('Demo readings never expire: only a new report or check-in changes a seat',
     [
       lasting(event('qr', 'I020', 'free', 5 * 60000)),
       lasting(event('report', 'I021', 'occupied')),
-      lasting(event('sensor', 'T08', 'occupied')),
+      lasting(event('sensor', 'T08-A', 'occupied')),
     ],
     later,
   )
   assert.equal(m.states.get('I020').status, 'free')
   assert.equal(m.states.get('I021').status, 'occupied')
-  assert.equal(m.locations.get('T08').status, 'inuse')
+  assert.equal(m.states.get('T08-A').status, 'occupied')
   const hold = lasting(event('qr', 'I022', 'occupied'))
   assert.equal(holdsUntil(hold), Infinity)
   assert.equal(endingSoon(hold, later), false)
@@ -295,7 +294,7 @@ test('Floor 5 counts its 166 individual seats and leaves the rooms out', async (
     assert.equal(new Set(f.seats).size, 166)
     assert.equal(plan.bookable.length, 11)
     assert.equal(plan.media.length, 3)
-    assert.deepEqual(derive([], now).counts, { unknown: 166, free: 0, occupied: 0, mixed: 0 })
+    assert.deepEqual(derive([], now).counts, { unknown: 166, free: 0, occupied: 0 })
     assert.deepEqual(parseSpot('I166'), { id: 'I166', seat: 'I166' })
     assert.equal(parseSpot('I167'), null)
     assert.equal(parseSpot('T01-A'), null)
@@ -336,7 +335,7 @@ test('Floor 7 counts 196 individual seats and the three grad-space tables, not t
     assert.equal(f.individuals.length, 196)
     assert.equal(new Set(f.seats).size, 208)
     assert.equal(plan.bookable.length, 30)
-    assert.deepEqual(derive([], now).counts, { unknown: 208, free: 0, occupied: 0, mixed: 0 })
+    assert.deepEqual(derive([], now).counts, { unknown: 208, free: 0, occupied: 0 })
     assert.deepEqual(parseSpot('T03-D'), { id: 'T03', seat: 'T03-D' })
     assert.equal(parseSpot('T04-A'), null)
     assert.deepEqual(parseSpot('I196'), { id: 'I196', seat: 'I196' })
@@ -383,36 +382,8 @@ test('a renewal waiting for confirmation recognizes either owned check-in', () =
   assert.equal(ownCheckIn(room, 'S01', { evidence: [renewal] }, now), null)
   remember(room, 'S01', null)
 })
-test('A newer sensor reading changes the map: a seat takes its value, a table shows it', () => {
-  // A seat's own sensor is the newest word on that seat.
-  const seat = derive([event('report', 'I020', 'occupied', 60000), event('sensor', 'I020', 'free', 100)], now)
-  assert.equal(seat.states.get('I020').status, 'free')
-  assert.equal(seat.counts.free, 1)
-  // A table sensor newer than the chair reports decides how the table looks.
-  const busy = derive([event('sensor', 'T08', 'occupied', 100)], now)
-  assert.equal(busy.locations.get('T08').status, 'inuse')
-  assert.equal(busy.locations.get('T08').sensorLeads, true)
-  // Someone at the table doesn't hide a chair reported free.
-  const shared = derive([event('report', 'T08-A', 'free', 60000), event('sensor', 'T08', 'occupied', 100)], now)
-  assert.equal(shared.locations.get('T08').status, 'free')
-  assert.equal(shared.states.get('T08-A').status, 'free')
-  const empty = derive([event('report', 'T08-A', 'occupied', 60000), event('sensor', 'T08', 'free', 100)], now)
-  assert.equal(empty.locations.get('T08').status, 'sensorfree')
-  // A newer chair report takes over again.
-  const later = derive([event('sensor', 'T08', 'occupied', 60000), event('report', 'T08-A', 'free', 100)], now)
-  assert.equal(later.locations.get('T08').status, 'free')
-})
-test('A sensor never clears a check-in, and ties settle the same way everywhere', () => {
-  // Free from the seat sensor while someone is checked in: Mixed, not free.
-  const held = derive([event('qr', 'I020', 'occupied', 600000), event('sensor', 'I020', 'free', 60000)], now)
-  assert.equal(held.states.get('I020').status, 'mixed')
-  // A table whose chairs are all checked in isn't suggested because its sensor reads free.
-  const chairs = ['A', 'B', 'C', 'D'].map((c) => event('qr', 'T02-' + c, 'occupied', 600000))
-  const table = derive([...chairs, event('sensor', 'T02', 'free', 60000)], now)
-  assert.notEqual(table.locations.get('T02').status, 'sensorfree')
-  assert.equal(table.locations.get('T02').status, 'mixed')
-  // Same time, any order: the same answer.
+test('Readings at the same time settle the same way everywhere', () => {
   const a = event('report', 'I030', 'free', 1000),
-    b = event('sensor', 'I030', 'occupied', 1000)
+    b = event('qr', 'I030', 'occupied', 1000)
   assert.equal(derive([a, b], now).states.get('I030').status, derive([b, a], now).states.get('I030').status)
 })
