@@ -21,11 +21,11 @@ import {
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
 import { FLOORS, floor, floorNumbers, individuals, label, places, seats, setFloor, tables } from './floor.js'
-import { age, derive, fresh, parseSpot, placeDescription, suggestions } from './model.js'
+import { age, derive, fresh, matchesQuery, parseSpot, placeDescription, suggestions } from './model.js'
 import { chosenRoom, isLive, roomUrl, serverNow, useFloor } from './session.js'
 import { startScanner } from './ble.js'
 import { activeCheckIn, friendly, myCheckIns, remember, uncertain } from './checkin.js'
-import FloorMap from './FloorMap.jsx'
+import FloorMap, { isDim } from './FloorMap.jsx'
 import { FeedControls, QRDialog } from './Controls.jsx'
 import SeatDetails from './SeatDetails.jsx'
 import PhoneView from './Phone.jsx'
@@ -134,9 +134,12 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
     [announce, setAnnounce] = useState(''),
     [busyMine, setBusyMine] = useState(false),
     [mineNote, setMineNote] = useState(null)
-  // Desktop always shows a location in its side panel; the phone starts with none.
-  const shownId = selected || (phone ? null : places[0].id),
-    place = shownId ? model.locations.get(shownId) : null,
+  const listing = page === 'finder' || view === 'list'
+  const defaultPlace = !phone && !selected
+    ? [...model.locations.values()].find((p) => !isDim(p, section, filter) && (!listing || matchesQuery(p, query)))
+    : null
+  const place = selected ? model.locations.get(selected) : defaultPlace,
+    shownId = place?.id,
     shownSeat = place && seat?.split('-')[0] === place.id ? seat : place && firstChair(place, model, now)
   const bridgeStop = useRef(null),
     detail = useRef(null),
@@ -244,11 +247,19 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
     setFindId(null)
     setUrl(room)
   }
+  function changeFilters(nextSection, nextFilter, nextQuery = query) {
+    setSection(nextSection)
+    setFilter(nextFilter)
+    setQuery(nextQuery)
+    if (selected && (isDim(place, nextSection, nextFilter) || (listing && !matchesQuery(place, nextQuery)))) {
+      close()
+    }
+  }
   // `then` runs once the page has changed, after any history step settles.
   function nav(key, then) {
     setDrawer(false)
-    if (key === 'finder') setFilter('free')
-    else setFilter('all')
+    if (phone) setFilter(key === 'finder' ? 'free' : 'all')
+    else changeFilters(section, key === 'finder' ? 'free' : 'all')
     if (key !== page) {
       if (phone && page === 'sources' && history.state?.openseatPage === 'sources') {
         afterPop.current = then || null
@@ -307,18 +318,20 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
   }
   const findCount = { at: seen.length, of: choices.length }
   async function checkInAgain(target, undo = false) {
+    const previous = mine.find((entry) => entry.seat === target)?.event.id ?? null
     const id = crypto.randomUUID()
-    remember(room, target, id)
+    remember(room, target, id, previous)
     setBusyMine(true)
     try {
       await record({ source: 'qr', target, value: 'occupied', id })
+      remember(room, target, id)
       setMineNote({
         text: undo
           ? "You're checked in at " + label(target) + ' again.'
           : 'You have ' + label(target) + ' for another 60 minutes.',
       })
     } catch (e) {
-      if (!uncertain(e)) remember(room, target, null)
+      if (!uncertain(e)) remember(room, target, previous)
       setMineNote({ text: friendly(e) })
     } finally {
       setBusyMine(false)
@@ -415,11 +428,9 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
             view,
             setView: changeView,
             filter,
-            setFilter,
+            changeFilters,
             section,
-            setSection,
             query,
-            setQuery,
             page,
             nav,
             setModal,
@@ -684,7 +695,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                   <select
                     aria-label="Map area"
                     value={section}
-                    onChange={(e) => setSection(e.target.value)}
+                    onChange={(e) => changeFilters(e.target.value, filter)}
                   >
                     <option value="all">All areas</option>
                     {tables.length > 0 && <option value="tables">Round tables</option>}
@@ -693,7 +704,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                   <button
                     className={'filter-pill ' + (filter === 'free' ? 'selected' : '')}
                     aria-pressed={filter === 'free'}
-                    onClick={() => setFilter(filter === 'free' ? 'all' : 'free')}
+                    onClick={() => changeFilters(section, filter === 'free' ? 'all' : 'free')}
                   >
                     <span />
                     Free only
@@ -707,7 +718,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                         aria-label="Search seats"
                         placeholder="Search: table 5, seat 12"
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={(e) => changeFilters(section, filter, e.target.value)}
                       />
                     </label>
                     <SeatList
@@ -715,10 +726,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                       {...{ section, filter, query, now }}
                       selected={shownId}
                       onPick={(id, s) => pick(id, s, { scroll: true })}
-                      onShowAll={() => {
-                        setFilter('all')
-                        setSection('all')
-                      }}
+                      onShowAll={() => changeFilters('all', 'all')}
                     />
                   </>
                 ) : (
@@ -743,7 +751,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                 )}
               </Card>
               <div ref={detail} className="inspector-wrap">
-                <SeatDetails
+                {place && <SeatDetails
                   {...{ room, place, model, now, record }}
                   seat={shownSeat}
                   canCheckIn={qrPlace === shownId}
@@ -753,7 +761,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                     setUrl(room, id, qrPlace === place.id)
                   }}
                   openQR={() => setModal('qr')}
-                />
+                />}
               </div>
             </div>
           )}

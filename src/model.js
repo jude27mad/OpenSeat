@@ -70,9 +70,20 @@ export function seedDemo(anchor) {
     if (i % 4 === 0) put('sensor', p.id, 'occupied', 1)
   return rows
 }
+// A free confirmation expires as evidence of availability, but permanently
+// releases a preceding hold. A later check-in starts a new hold.
+export function clearsHold(report, qr, now) {
+  if (report?.source !== 'report') return false
+  const lastFreeAt = report.value === 'free' ? report.at : report.lastFreeAt
+  return Number.isFinite(lastFreeAt) && lastFreeAt > qr.at && lastFreeAt <= now + 5000
+}
 export function resolveSeat(events, now) {
-  const ordered = [...events].sort((a, b) => b.at - a.at)
-  const active = ordered.filter((e) => fresh(e, now))
+  // A free report must be strictly newer to release a hold, including on ties.
+  const ordered = [...events].sort((a, b) =>
+    b.at - a.at || Number(b.source === 'qr') - Number(a.source === 'qr'))
+  const report = ordered.find((e) => e.source === 'report')
+  const active = ordered.filter((e) =>
+    fresh(e, now) && !(e.source === 'qr' && e.value === 'occupied' && clearsHold(report, e, now)))
   if (!active.length)
     return {
       status: 'unknown',
@@ -144,7 +155,10 @@ export function derive(events, now) {
       tally,
       status,
       sensor,
-      latest: evidence.find((e) => fresh(e, now)) || evidence[0],
+      latest: [
+        ...member.filter((s) => !s.stale && s.latest).map((s) => s.latest),
+        ...(sensorActive ? [sensor] : []),
+      ].sort((a, b) => b.at - a.at)[0] || evidence[0],
       evidence,
     })
   }
@@ -196,7 +210,7 @@ export function placeDescription(p) {
     : 'All 4 chairs taken'
 }
 // A place worth suggesting: a reported free chair, or a table its sensor reports free.
-export const looksFree = (p) => p.tally.free > 0 || p.status === 'sensorfree'
+export const looksFree = (p) => p.status === 'free' || p.status === 'sensorfree'
 // Best suggestions first: most free chairs, then the freshest evidence.
 export function suggestions(locations, now, section = 'all') {
   return [...locations.values()]
