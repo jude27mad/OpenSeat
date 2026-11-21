@@ -655,8 +655,12 @@ export default function SeatDetails({
               <ChevronDown size={14} />
             </summary>
             <p>
-              The newest update below decides.
-              {demo ? ' In the demo nothing expires.' : ' Reports last 15 minutes, check-ins 60.'}
+              {demo
+                ? 'In the demo nothing expires: a seat changes only when someone reports it, checks in or checks out.'
+                : 'Each source counts for a while: check-ins 60 minutes, student reports 15 minutes, table sensors 5 minutes.'}{' '}
+              For a seat, the newest report, check-in or seat-sensor reading wins, but only a
+              free report clears a check-in. A table sensor reading newer than the chair reports
+              colours the table; an older one that disagrees with the chairs shows Mixed reports.
             </p>
             {state.evidence.map((e) => (
               <div key={e.id}>
