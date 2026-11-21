@@ -196,7 +196,7 @@ export function FeedControls({
       title="Device inputs"
       description={
         demo
-          ? 'Connect a real scanner or table station. In the demo you can also try both inputs on the main screen.'
+          ? 'Connect a real scanner or table station. In the demo you can also try a table sensor from any table.'
           : 'Connect a station to its own section or table. Hardware observations carry their measurement time.'
       }
       onClose={onClose}
@@ -250,11 +250,6 @@ export function FeedControls({
             Only identifiers seen at −75 dBm or stronger count in a scan. The
             map receives the total for that section.
           </p>
-          {demo && (
-            <p>
-              To try it in the demo, close this and press − or + beside the Bluetooth count under the map.
-            </p>
-          )}
           <details>
             <summary>Check a saved BLE2MQTT scan</summary>
             <label className="field-label">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
   Armchair,
   ArrowRight,
@@ -7,8 +7,6 @@ import {
   Clock3,
   FlaskConical,
   MessageSquare,
-  Minus,
-  Plus,
   QrCode,
   Radio,
   Search,
@@ -36,22 +34,7 @@ export const sourceText = {
 
 // What each of the four sources currently knows, alongside the floor overview.
 // These are readouts, not choices: the map already combines all four.
-export function SourcesPanel({ model, now, onScanner, onMore, demo: demoRoom = false, record }) {
-  const [busy, setBusy] = useState(false)
-  // In the demo, − and + beside each area's count act as a scanner reading.
-  async function scan(zone, value) {
-    if (busy || value < 0) return
-    setBusy(true)
-    try {
-      await record({ source: 'ble', target: zone, value, simulated: true })
-    } finally {
-      setBusy(false)
-    }
-  }
-  const zones = [
-    ...(tables.length ? [['tables', 'Round tables']] : []),
-    ['individuals', 'Individual seats'],
-  ]
+export function SourcesPanel({ model, now, onScanner, onMore }) {
   let checkIns = 0,
     reports = 0,
     lastReport = 0,
@@ -123,34 +106,7 @@ export function SourcesPanel({ model, now, onScanner, onMore, demo: demoRoom = f
             <p className="live-name">
               Bluetooth
             </p>
-            {demoRoom && record ? (
-              zones.map(([zone, area]) => {
-                const e = model.ble[zone],
-                  n = fresh(e, now) ? e.value : 0
-                return (
-                  <div className="ble-try" key={zone}>
-                    <p className="live-value">
-                      {area}: {plural(n, 'device')}
-                      {fresh(e, now) && ' · ' + ago(e.at)} {e?.simulated && <DemoTag />}
-                    </p>
-                    <button
-                      aria-label={'Fewer devices: ' + area}
-                      aria-disabled={busy || n === 0 || undefined}
-                      onClick={() => scan(zone, n - 1)}
-                    >
-                      <Minus size={16} />
-                    </button>
-                    <button
-                      aria-label={'More devices: ' + area}
-                      aria-disabled={busy || undefined}
-                      onClick={() => scan(zone, n + 1)}
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                )
-              })
-            ) : areas.length ? (
+            {areas.length ? (
               areas.map(([area, e]) => (
                 <p className="live-value" key={area}>
                   {area}: {plural(e.value, 'device')} · {ago(e.at)} {e.simulated && <DemoTag />}

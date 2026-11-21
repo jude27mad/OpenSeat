@@ -2401,34 +2401,6 @@ html:has(.phone) .floating-note-region {
   text-align: left;
 }
 .live-action:hover { text-decoration: underline; }
-/* Demo only: − and + beside each Bluetooth count act as a scanner reading. */
-.ble-try {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 6px;
-  margin-bottom: 4px;
-}
-.ble-try .live-value {
-  flex-basis: 100%;
-  min-width: 0;
-}
-.ble-try button {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  border: 1px solid #cfdccf;
-  border-radius: 8px;
-  background: #fff;
-  color: #1e5c42;
-}
-.phone .ble-try button {
-  width: 44px;
-  height: 44px;
-}
 /* Demo only: try the sensor right under its reading. */
 .sensor-line:has(.sensor-try) {
   flex-wrap: wrap;

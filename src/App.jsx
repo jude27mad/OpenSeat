@@ -734,8 +734,6 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                   <SourcesPanel
                     model={model}
                     now={now}
-                    demo={demo}
-                    record={record}
                     onScanner={() => setModal('scanner')}
                     onMore={() => nav('sources')}
                   />

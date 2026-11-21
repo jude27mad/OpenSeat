@@ -68,8 +68,6 @@ export function seedDemo(anchor) {
   })
   for (const [i, p] of tables.entries())
     if (i % 4 === 0) put('sensor', p.id, 'occupied', 1)
-  if (tables.length) put('ble', 'tables', 18, 0.5)
-  put('ble', 'individuals', 9, 1)
   return rows
 }
 export function resolveSeat(events, now) {
