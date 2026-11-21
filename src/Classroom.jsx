@@ -1,9 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { ArrowLeft, Bluetooth, Check, Radio, RotateCcw, UsersRound } from 'lucide-react'
-import { startScanner } from './ble.js'
+import { ArrowLeft, Bluetooth, Check, Radio, UsersRound } from 'lucide-react'
 import { applyTheme } from './theme.js'
-import { Button } from './components/ui/button'
 import './style.css'
 import './classroom.css'
 
@@ -50,64 +48,67 @@ function CountDial({ scan, phase }) {
   )
 }
 
+const relay = 'https://openseat-classroom-relay.good-eft-3431.chatgpt.site'
+
 function Classroom() {
-  const [token, setToken] = useState('')
-  const [topic, setTopic] = useState('ble/data/cen100-iphone-01')
-  const [phase, setPhase] = useState('idle')
-  const [message, setMessage] = useState('')
+  const [phase, setPhase] = useState('connecting')
   const [scan, setScan] = useState(null)
-  const active = useRef(null)
-  function stop() {
-    const attempt = active.current
-    active.current = null
-    attempt?.disconnect?.()
-  }
   useEffect(() => {
-    function leave() {
-      stop()
-      setPhase('idle')
-      setScan(null)
-      setMessage('')
-      setToken('')
+    let active = true
+    let timer
+    let controller
+    let watching = false
+    // Keep a server-side scan window open across a short app switch.
+    async function holdWindow() {
+      if (watching || !active) return
+      watching = true
+      try { await fetch(relay + '/watch', { credentials: 'omit', cache: 'no-store', keepalive: true }) }
+      catch { /* The status poll will retry on the next connection. */ }
+      finally { watching = false }
     }
-    window.addEventListener('pagehide', leave)
+    async function refresh() {
+      clearTimeout(timer)
+      controller?.abort()
+      const attempt = new AbortController()
+      controller = attempt
+      const timeout = setTimeout(() => attempt.abort(), 16000)
+      try {
+        holdWindow()
+        const response = await fetch(relay + '/status', {
+          signal: attempt.signal, cache: 'no-store', credentials: 'omit',
+        })
+        if (!response.ok) throw Error('Relay unavailable')
+        const data = await response.json()
+        if (controller !== attempt || !active) return
+        if (data.scan && Number.isSafeInteger(data.scan.measuredAt) &&
+            Number.isInteger(data.scan.value) && data.scan.value >= 0) {
+          setScan(previous => !previous || previous.measuredAt < data.scan.measuredAt ? data.scan : previous)
+        }
+        setPhase(data.listening ? 'waiting' : data.phase === 'starting' || data.phase === 'window ended' ? 'connecting' : 'error')
+      } catch {
+        if (active && controller === attempt) setPhase('error')
+      } finally {
+        clearTimeout(timeout)
+        if (active && controller === attempt && !document.hidden) timer = setTimeout(refresh, 2500)
+      }
+    }
+    function resume() { if (!document.hidden) refresh() }
+    refresh()
+    document.addEventListener('visibilitychange', resume)
+    window.addEventListener('online', resume)
+    window.addEventListener('pageshow', resume)
     return () => {
-      window.removeEventListener('pagehide', leave)
-      stop()
+      active = false
+      clearTimeout(timer)
+      controller?.abort()
+      document.removeEventListener('visibilitychange', resume)
+      window.removeEventListener('online', resume)
+      window.removeEventListener('pageshow', resume)
     }
   }, [])
 
-  async function listen(event) {
-    event?.preventDefault()
-    stop()
-    const attempt = {}
-    active.current = attempt
-    setScan(null)
-    setMessage('')
-    setPhase('connecting')
-    function feedback(text, state) {
-      if (active.current !== attempt) return
-      setMessage(text)
-      if (state) setPhase(state)
-      if (state === 'error') stop()
-    }
-    try {
-      const disconnect = await startScanner({ token, topic }, (reading) => {
-        if (active.current !== attempt) return
-        setScan({ value: reading.value, measuredAt: reading.measuredAt })
-        setPhase('complete')
-        setMessage('')
-        stop()
-      }, feedback)
-      if (active.current === attempt) attempt.disconnect = disconnect
-      else disconnect()
-    } catch (error) {
-      feedback(error.message, 'error')
-    }
-  }
-
-  const setup = phase === 'idle' || phase === 'error'
-  const complete = phase === 'complete'
+  const complete = Boolean(scan)
+  const displayPhase = complete ? 'complete' : phase
   const time = scan && new Date(scan.measuredAt)
   return (
     <main className="classroom-page">
@@ -120,8 +121,8 @@ function Classroom() {
         <p className="classroom-intro">Estimate how many people are here from one Bluetooth scan.</p>
         <div className="classroom-grid">
           <section className="count-panel" aria-label="Classroom estimate">
-            <div className="count-panel-top"><span><Radio size={16} /> Bluetooth demo</span><span className={'phase-label ' + phase}><i />{labels[phase]}</span></div>
-            <CountDial phase={phase} scan={scan} />
+            <div className="count-panel-top"><span><Radio size={16} /> Bluetooth demo</span><span className={'phase-label ' + displayPhase}><i />{labels[displayPhase]}</span></div>
+            <CountDial phase={displayPhase} scan={scan} />
             <dl className="count-stats">
               <div><dt>Nearby devices</dt><dd>{scan?.value ?? '—'}</dd></div>
               <div><dt>Scan time</dt><dd>{time ? <time dateTime={time.toISOString()}>{time.toLocaleTimeString([], {hour:'numeric', minute:'2-digit', second:'2-digit'})}</time> : '—'}</dd></div>
@@ -129,23 +130,8 @@ function Classroom() {
           </section>
           <section className="scanner-panel" aria-labelledby="scanner-heading">
             <span className="scanner-icon">{complete ? <Check /> : <Bluetooth />}</span>
-            <h2 id="scanner-heading">{setup ? 'Connect your scanner' : complete ? 'Count ready' : 'Waiting for your phone'}</h2>
-            {setup ? <form onSubmit={listen}>
-              <label className="field-label">flespi read token
-                <input required type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} />
-              </label>
-              <label className="field-label">Scanner MQTT topic
-                <input required value={topic} autoCapitalize="none" spellCheck={false} onChange={(e) => setTopic(e.target.value)} />
-              </label>
-              <Button type="submit" disabled={!token.trim() || !topic.trim()}><Radio /> Connect scanner</Button>
-            </form> : complete ? <>
-              <p>Your estimate will stay on screen until you take another scan.</p>
-              <Button onClick={listen}><RotateCcw /> Take another scan</Button>
-            </> : <>
-              <p>{phase === 'waiting' ? <>Press <b>Master</b> in BLE2MQTT on your iPhone to send a scan.</> : 'Opening the connection to flespi…'}</p>
-              <Button variant="outline" onClick={() => { stop(); setPhase('idle'); setMessage('') }}>Cancel</Button>
-            </>}
-            <p role="status" className="scan-feedback">{message}</p>
+            <h2 id="scanner-heading">{complete ? 'Latest classroom scan' : phase === 'waiting' ? 'Ready for your phone' : phase === 'error' ? 'Reconnecting' : 'Connecting to flespi'}</h2>
+            <p role="status">{phase === 'waiting' ? <>Press <b>Master</b> in BLE2MQTT on your iPhone. The count updates here when the scan arrives.</> : phase === 'error' ? 'The scanner connection is unavailable. This display will retry automatically.' : 'Opening the classroom scanner connection…'}</p>
             <div className="estimate-note"><h3>How the estimate works</h3><p>Each device at −75 dBm or stronger counts once. We divide by 2.2 devices per person and round up. People carrying more or fewer devices can shift the estimate.</p></div>
           </section>
         </div>
