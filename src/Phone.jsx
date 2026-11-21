@@ -7,7 +7,7 @@ import {
   List,
   Map as MapIcon,
   Menu,
-  PlugZap,
+  Bluetooth,
   RotateCcw,
   Search,
   Share2,
@@ -104,6 +104,7 @@ function PhoneMenu({ demo, onClose, onRoom, onFloor, onShare, onSources }) {
             <button onClick={() => onClose(onShare)}>
               <Share2 size={18} /> Share this map
             </button>
+            <a href="./classroom/"><Bluetooth size={18} /> Classroom demo</a>
             <button onClick={() => onClose(onSources)}>
               <Info size={18} /> How the data works
             </button>
@@ -276,11 +277,7 @@ export default function PhoneView(p) {
                 ' In the demo nothing expires: seats change only when someone reports them, checks in or checks out.'}
             </p>
             <h2 className="sr-only">The four sources</h2>
-            <SourceCards events={events} now={now} full onDevices={(s) => setModal(s)} />
-            <Button variant="outline" className="wide big" onClick={() => setModal('sensor')}>
-              <PlugZap />
-              Device inputs
-            </Button>
+            <SourceCards events={events} now={now} full />
             <Activity events={events} now={now} />
           </section>
         ) : (

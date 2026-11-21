@@ -220,7 +220,7 @@ export function CheckInBanner({ checkIns, now, onShow, onCheckOut, onKeep, busy 
   )
 }
 
-export function SourceCards({ events, now, onDevices, full }) {
+export function SourceCards({ events, now, full }) {
   return (
     <div className={'source-cards ' + (full ? 'full' : '')}>
       {['ble', 'qr', 'report', 'sensor'].map((s) => {
@@ -243,11 +243,6 @@ export function SourceCards({ events, now, onDevices, full }) {
                 {latest?.simulated && <DemoTag />}
               </div>
             </div>
-            {full && onDevices && (s === 'ble' || s === 'sensor') && (
-              <button className="text-btn" onClick={() => onDevices(s)}>
-                Open input <ArrowRight size={14} />
-              </button>
-            )}
           </Card>
         )
       })}
