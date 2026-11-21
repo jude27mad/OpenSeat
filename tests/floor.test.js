@@ -12,12 +12,15 @@ import {
   age,
   derive,
   fresh,
+  looksFree,
   merge,
   parseSpot,
   scanCount,
   seedDemo,
+  suggestions,
   ttl,
 } from '../src/model.js'
+import { activeCheckIn, ownCheckIn, remember } from '../src/checkin.js'
 import { observation } from '../src/ble.js'
 const now = 1700000000000
 const event = (source, target, value, offset = 0) => ({
@@ -100,6 +103,36 @@ test('The newer of a report and a check-in wins, and both stay as evidence', () 
   )
   assert.equal(seated.states.get('I020').status, 'occupied')
 })
+test('An expired free confirmation cannot revive a cleared live check-in', () => {
+  const qr = event('qr', 'I020', 'occupied', 60000)
+  const release = event('report', 'I020', 'free')
+  for (const elapsed of [ttl.report - 1, ttl.report, ttl.qr - 60001]) {
+    const at = now + elapsed
+    const model = derive([qr, release], at)
+    const state = model.states.get('I020')
+    assert.equal(state.status, elapsed < ttl.report ? 'free' : 'unknown')
+    assert.equal(activeCheckIn(state, at), null)
+    assert.equal(state.latest, release)
+    assert.equal(model.locations.get('I020').latest, release)
+  }
+  const nextReport = { ...release, value: 'occupied', at: now + 1000, lastFreeAt: now }
+  const after = nextReport.at + ttl.report
+  const state = derive([qr, nextReport], after).states.get('I020')
+  assert.equal(state.status, 'unknown')
+  assert.equal(activeCheckIn(state, after), null)
+  // A new check-in after the confirmation is valid even when the old report is retained.
+  const nextQr = { ...qr, id: 'new', at: now + 500 }
+  assert.equal(activeCheckIn(derive([nextQr, nextReport], after).states.get('I020'), after), nextQr)
+})
+test('A check-in and free report timestamp tie resolve consistently in either order', () => {
+  const qr = event('qr', 'I020', 'occupied')
+  const report = event('report', 'I020', 'free')
+  for (const rows of [[qr, report], [report, qr]]) {
+    const state = derive(rows, now).states.get('I020')
+    assert.equal(state.status, 'occupied')
+    assert.equal(activeCheckIn(state, now), qr)
+  }
+})
 test('A table sensor that disagrees with every chair still shows mixed reports', () => {
   const m = derive(
     [
@@ -109,6 +142,8 @@ test('A table sensor that disagrees with every chair still shows mixed reports',
     now,
   )
   assert.equal(m.locations.get('T08').status, 'mixed')
+  assert.equal(looksFree(m.locations.get('T08')), false)
+  assert.deepEqual(suggestions(m.locations, now), [])
 })
 test('Evidence expires at the specified boundary and retains its source and age', () => {
   const stale = event('report', 'I020', 'free', ttl.report)
@@ -180,6 +215,14 @@ test('A tap picks the seat a fingertip can tell apart and zooms into crowded sea
     resolveTap({ at: between, pxPerUnit: 2, zoom: 4, touch: true, dim: (id) => id === 'I020' }).id,
     neighbour,
   )
+})
+test('filtered map locations cannot be selected by a mouse or touch', async () => {
+  const { resolveTap, mapPoints } = await import('../src/hit.js')
+  for (const touch of [false, true]) {
+    const tap = { at: mapPoints.get('T17'), pxPerUnit: 2, zoom: 4, touch }
+    assert.deepEqual(resolveTap({ ...tap, dim: (id) => id === 'T17' }), { action: 'none' })
+    assert.deepEqual(resolveTap({ ...tap, dim: () => true }), { action: 'none' })
+  }
 })
 test('Search understands seat names the way people type them', async () => {
   const { matchesQuery } = await import('../src/model.js')
@@ -325,4 +368,18 @@ test('Floor 7 counts 196 individual seats and the three grad-space tables, not t
   } finally {
     f.setFloor(8)
   }
+})
+
+test('a renewal waiting for confirmation recognizes either owned check-in', () => {
+  const room = { id: 'renewal-test' }
+  const old = event('qr', 'S01', 'occupied', 5000)
+  const renewal = event('qr', 'S01', 'occupied')
+  remember(room, 'S01', renewal.id, old.id)
+  for (const qr of [old, renewal]) {
+    assert.equal(ownCheckIn(room, 'S01', { evidence: [qr] }, now), qr)
+  }
+  remember(room, 'S01', old.id)
+  assert.equal(ownCheckIn(room, 'S01', { evidence: [old] }, now), old)
+  assert.equal(ownCheckIn(room, 'S01', { evidence: [renewal] }, now), null)
+  remember(room, 'S01', null)
 })

@@ -378,7 +378,7 @@ export function SeatList({
           ) : filter === 'free' ? (
             <>
               <h3>No free seats reported right now</h3>
-              <p>Seen an empty seat? Tap it on the map and choose “It's free”.</p>
+              <p>Choose “Show all seats” to select a seat and report it free.</p>
             </>
           ) : (
             <h3>No places in this area</h3>

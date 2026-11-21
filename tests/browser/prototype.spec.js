@@ -18,6 +18,31 @@ function observeService(page, label) {
   })
   page.on('pageerror', (error) => console.log(label, error.message))
 }
+test('Free only excludes taken map markers and clears their details', async ({ page }) => {
+  await page.goto(demo() + '&level=7')
+  await page.getByRole('combobox', { name: 'Map area' }).selectOption('individuals')
+  const taken = page.locator('.plan-svg .map-marker.occupied[role="button"]').first()
+  const id = await taken.getAttribute('data-id')
+  const marker = page.locator(`.plan-svg .map-marker[data-id="${id}"]`).first()
+  await marker.click()
+  await expect(page).toHaveURL(new RegExp('spot=' + id))
+  await page.getByRole('button', { name: 'Free only' }).click()
+  await expect(marker).toHaveAttribute('aria-hidden', 'true')
+  await expect(marker).not.toHaveAttribute('role', 'button')
+  await expect(page).not.toHaveURL(new RegExp('spot=' + id))
+  const panel = page.locator('.inspector-title h2')
+  await expect(panel).not.toHaveText('Seat ' + String(Number(id.slice(1))).padStart(2, '0'))
+  await marker.click()
+  await expect(page).not.toHaveURL(new RegExp('spot=' + id))
+  await page.getByRole('button', { name: 'List view' }).click()
+  await page.getByRole('textbox', { name: 'Search seats' }).fill(id)
+  await expect(page.locator('.list-location')).toHaveCount(0)
+  await expect(panel).toHaveCount(0)
+  await page.getByRole('button', { name: 'Free only' }).click()
+  await expect(page.locator('.list-location')).toHaveCount(1)
+  await expect(panel).toHaveText('Seat ' + String(Number(id.slice(1))).padStart(2, '0'))
+})
+
 test('Floor inventory, filter and independent mobile QR session use all four sources', async ({
   page,
   playwright,

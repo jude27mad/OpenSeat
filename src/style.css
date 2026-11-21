@@ -551,11 +551,11 @@ h3 {
   font-weight: 690;
   fill: #4a6152;
 }
-.map-marker {
+.map-marker[role="button"] {
   cursor: pointer;
   outline: none;
 }
-.map-marker:hover {
+.map-marker[role="button"]:hover {
   filter: drop-shadow(0 0 3px #386047);
 }
 .map-overlay {

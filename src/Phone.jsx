@@ -131,11 +131,9 @@ export default function PhoneView(p) {
     view,
     setView,
     filter,
-    setFilter,
+    changeFilters,
     section,
-    setSection,
     query,
-    setQuery,
     page,
     nav,
     setModal,
@@ -331,7 +329,7 @@ export default function PhoneView(p) {
               <button
                 className={'filter-pill ' + (filter === 'free' ? 'selected' : '')}
                 aria-pressed={filter === 'free'}
-                onClick={() => setFilter(filter === 'free' ? 'all' : 'free')}
+                onClick={() => changeFilters(section, filter === 'free' ? 'all' : 'free')}
               >
                 <span />
                 Free only
@@ -345,7 +343,7 @@ export default function PhoneView(p) {
               ]
                 .filter(([key]) => key !== 'tables' || tables.length)
                 .map(([key, text]) => (
-                <button key={key} aria-pressed={section === key} onClick={() => setSection(key)}>
+                <button key={key} aria-pressed={section === key} onClick={() => changeFilters(key, filter)}>
                   {text}
                 </button>
               ))}
@@ -370,7 +368,7 @@ export default function PhoneView(p) {
                     aria-label="Search seats"
                     placeholder="Search: table 5, seat 12"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => changeFilters(section, filter, e.target.value)}
                     onFocus={(e) => {
                       // Lift the box to the top so the keyboard does not hide the results.
                       const box = e.currentTarget.closest('.list-search')
@@ -384,14 +382,10 @@ export default function PhoneView(p) {
                   {...{ section, filter, query, now }}
                   selected={place?.id}
                   onPick={(id, s) => pick(id, s, { heading: true })}
-                  onShowAll={() => {
-                    setFilter('all')
-                    setSection('all')
-                  }}
+                  onShowAll={() => changeFilters('all', 'all')}
                   hiddenBy={[filter === 'free' && 'Free only', section !== 'all' && (section === 'tables' ? 'Round tables' : 'Solo seats')].filter(Boolean)}
                   onReveal={(id, s) => {
-                    setFilter('all')
-                    setSection('all')
+                    changeFilters('all', 'all')
                     pick(id, s, { heading: true })
                   }}
                 />

@@ -1,5 +1,5 @@
 import { seats } from './floor.js'
-import { fresh, holdsUntil, ttl } from './model.js'
+import { clearsHold, fresh, holdsUntil, ttl } from './model.js'
 
 export const ownedKey = (room, seat) => 'openseat.owned.' + room.id + '.' + seat
 
@@ -13,7 +13,9 @@ function stored(room, seat) {
     return memory.get(key) ?? null
   }
 }
-export function remember(room, seat, id) {
+export function remember(room, seat, id, previous = null) {
+  // Either event may be visible until Firebase acknowledges a renewal.
+  if (id && previous) id = previous + ' ' + id
   const key = ownedKey(room, seat)
   if (id) memory.set(key, id)
   else memory.delete(key)
@@ -32,9 +34,7 @@ function liveCheckIn(state, now) {
 }
 // A student confirmed the seat is empty after this check-in was made.
 export function released(state, qr, now) {
-  return !!state?.evidence.some(
-    (e) => e.source === 'report' && e.value === 'free' && e.at > qr.at && fresh(e, now),
-  )
+  return !!state?.evidence.some((e) => clearsHold(e, qr, now))
 }
 // The check-in that is holding a seat for someone, if any.
 export function activeCheckIn(state, now) {
@@ -44,7 +44,7 @@ export function activeCheckIn(state, now) {
 // This browser's own check-in, even if someone has since reported the seat free.
 export function ownCheckIn(room, seat, state, now) {
   const qr = liveCheckIn(state, now)
-  return qr && stored(room, seat) === qr.id ? qr : null
+  return qr && (stored(room, seat) || '').split(' ').includes(qr.id) ? qr : null
 }
 // Every seat this browser currently holds on this floor, newest first.
 export function myCheckIns(room, model, now) {

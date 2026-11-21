@@ -155,10 +155,11 @@ export default function SeatDetails({
     run(async () => {
       const id = crypto.randomUUID(),
         before = renew ? mine?.id : null
-      remember(room, target, id)
+      remember(room, target, id, before)
       setPending(target)
       try {
         const event = await record({ source: 'qr', target, value: 'occupied', id })
+        remember(room, target, id)
         const extra = renew ? '' : await releaseOthers()
         return (
           (renew ? 'Your seat is held' : 'Checked in at ' + label(target) + '. Held') +

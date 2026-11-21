@@ -50,10 +50,39 @@ test('a newer free report releases an abandoned check-in, and only a newer one',
   await record(a, chair, takeover)
   // The free report came before the check-in, so it does not release it.
   await assert.rejects(record(b, chair, takeover), /belongs/)
-  await record(b, report('I030', 'free'), takeover)
+  const cleared = await record(b, report('I030', 'free'), takeover)
+  assert.equal(cleared.lastFreeAt, cleared.at)
+  const occupied = await record(a, report('I030', 'occupied'), takeover)
+  assert.equal(occupied.lastFreeAt, cleared.at)
   assert.equal((await record(b, chair, takeover)).value, 'occupied')
   // The first student can no longer end the new student's check-in.
   await assert.rejects(record(a, { ...chair, value: 'free' }, takeover), /belongs/)
+})
+
+test('reports can still be saved on installations running older rules', async () => {
+  const oldSchema = randomUUID()
+  const request = (path, options) => {
+    if (options?.body && 'lastFreeAt' in JSON.parse(options.body))
+      return Promise.resolve(new Response(null, { status: 403 }))
+    return a.request(path, options)
+  }
+  const empty = await postObservation({ request, room: oldSchema, uid: a.uid, input: report('I003', 'free') })
+  assert.equal(empty.value, 'free')
+  assert.equal(empty.lastFreeAt, undefined)
+})
+
+test('a confirmed empty chair stays released when the report expires', async () => {
+  const id = randomUUID(), target = 'I034', now = Date.now()
+  const chair = { source: 'qr', target, value: 'occupied' }
+  await record(a, chair, id)
+  await seed('/rooms/' + id + '/events/qr/' + target + '/at', now - 30 * 60000)
+  await seed('/rooms/' + id + '/events/report/' + target, {
+    id: randomUUID(), value: 'free', at: now - 20 * 60000, simulated: false,
+  })
+  const reported = await record(b, report(target, 'occupied'), id)
+  assert.equal(reported.lastFreeAt, now - 20 * 60000)
+  await record(b, chair, id)
+  await assert.rejects(record(a, chair, id), /belongs/)
 })
 
 test('a legacy ticket can release its imported check-in and an expired chair can be claimed', async () => {
@@ -66,7 +95,10 @@ test('a legacy ticket can release its imported check-in and an expired chair can
   await record(a, qr('free'), oldRoom, ticket)
   await record(b, qr('occupied'), oldRoom)
   await seed('/rooms/' + oldRoom + '/events/qr/T17-B/at', Date.now() - 3601000)
-  await record(a, qr('occupied'), oldRoom)
+  await assert.rejects(record(a, qr('occupied'), oldRoom), /belongs/)
+  await record(b, qr('occupied'), 'floor8')
+  await seed('/rooms/floor8/events/qr/T17-B/at', Date.now() - 3601000)
+  await record(a, qr('occupied'), 'floor8')
 })
 
 test('source, seat, scope, timestamps and read-only public data are enforced', async () => {
