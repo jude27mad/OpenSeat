@@ -532,7 +532,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
         >
           {themeChoices.map(([value, text]) => (
             <option key={value} value={value}>
-              {value === 'auto' ? 'Auto (match this device)' : text}
+              {text}
             </option>
           ))}
         </select>

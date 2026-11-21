@@ -2091,6 +2091,8 @@ html:has(.phone) {
   width: auto;
   height: auto;
   clip: auto;
+  clip-path: none;
+  overflow: visible;
   display: block;
   margin: 8px 14px;
   padding: 10px 14px;
@@ -3775,4 +3777,1027 @@ details[open] > :not(summary) {
 /* Native controls, scrollbars and form fields follow the theme. */
 :root[data-theme='dark'] {
   color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------
+ * Dark mode: used when Appearance is Dark, or Auto on a device set to
+ * dark. Every rule is scoped to :root[data-theme='dark'], so light mode
+ * is unchanged. The floor plan keeps its colours in the code; these rules
+ * swap them for dark versions.
+ * ------------------------------------------------------------------ */
+/* ==========================================================================
+   OpenSeat — dark mode
+   Loaded after style.css. Every rule is scoped to :root[data-theme='dark'],
+   so the light look is unchanged. Deep green-tinted greys (never pure
+   black), the same soft mint brand, and status colours that read at a
+   glance on a dark floor plan.
+   ========================================================================== */
+
+/* ---------- Tokens ---------- */
+:root[data-theme='dark'] {
+  --soft-ink: #e7f2eb;
+  --soft-text: #cbd9d0;
+  --soft-muted: #9fb2a6;
+  --soft-primary: #6dd19b;
+  --soft-primary-deep: #a3e6bf;
+  --soft-primary-hi: #8be0b0;
+  --soft-mint-25: #121e18;
+  --soft-mint-50: #182a21;
+  --soft-mint-100: #1d3529;
+  --soft-mint-200: #26473a;
+  --soft-line: rgba(150, 215, 180, 0.13);
+  --soft-line-strong: rgba(150, 215, 180, 0.24);
+  --soft-peach-50: #33231a;
+  --soft-peach-100: #412b1d;
+  --soft-peach-text: #f4b98f;
+  --soft-butter: #2c2512;
+  --soft-butter-line: #5a4a1f;
+  --soft-glass: rgba(22, 36, 29, 0.78);
+  --soft-glass-strong: rgba(20, 33, 27, 0.95);
+  --soft-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px -2px rgba(0, 0, 0, 0.35);
+  --soft-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 12px 32px -14px rgba(0, 0, 0, 0.6);
+  --soft-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.3), 0 18px 44px -16px rgba(0, 0, 0, 0.7);
+
+  /* Dark surfaces used below */
+  --dk-bg: #0e1813;
+  --dk-raised: #1c2d25;
+  --dk-field: #15241d;
+  --dk-sheet: #14211b;
+  --dk-btn: linear-gradient(180deg, #24835a 0%, #1f7550 55%, #1a6443 100%);
+  --dk-btn-hover: linear-gradient(180deg, #24835a 0%, #22804f 55%, #1d6c49 100%);
+  --dk-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%239fdcb9' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+
+  /* Map status colours (dark). Free stays the strongest mark. */
+  --map-free: #3fae6a;
+  --map-free-line: #a4ebbf;
+  --map-taken: #80451e;
+  --map-taken-line: #f0a067;
+  --map-unknown: #2a3530;
+  --map-unknown-line: #aab8af;
+  --map-mixed: #4b3868;
+  --map-mixed-line: #c9a8f0;
+  --map-inuse: #5e3b24;
+  --map-sensorfree: #2b5a40;
+  --map-sensorfree-line: #8fdcaa;
+  --map-sensor-ring: #93a9f7;
+  --map-sensor-inuse: #ec8a45;
+  --map-floor: #1a2520;
+  --map-canvas: #101b16;
+
+  /* Tailwind / shadcn tokens used by <Button> and <Card> */
+  --color-primary: #217a51;
+  --color-primary-foreground: #fff;
+  --color-background: #14211b;
+  --color-foreground: #e7f2eb;
+  --color-card: #15221c;
+  --color-card-foreground: #e7f2eb;
+  --color-border: #2b3d33;
+  --color-input: #2e4237;
+  --color-muted-foreground: #9fb2a6;
+  --color-accent: #1d3529;
+  --color-accent-foreground: #a3e6bf;
+  --color-secondary: #1d3529;
+  --color-ring: #6dd19b;
+
+  color: var(--soft-ink);
+  background-color: var(--dk-bg);
+  background-image:
+    radial-gradient(1100px 620px at 0% -8%, rgba(38, 104, 72, 0.32) 0%, rgba(38, 104, 72, 0) 62%),
+    radial-gradient(900px 520px at 100% 0%, rgba(30, 92, 88, 0.22) 0%, rgba(30, 92, 88, 0) 58%),
+    linear-gradient(180deg, #10201a 0%, #0e1913 38%, #0c1511 100%);
+}
+:root[data-theme='dark'] body {
+  background: transparent;
+}
+:root[data-theme='dark'] button:focus-visible,
+:root[data-theme='dark'] a:focus-visible,
+:root[data-theme='dark'] input:focus-visible,
+:root[data-theme='dark'] select:focus-visible,
+:root[data-theme='dark'] summary:focus-visible {
+  outline-color: #6dd19b;
+}
+:root[data-theme='dark'] ::selection {
+  background: rgba(109, 209, 155, 0.35);
+}
+
+/* ---------- Glass surfaces ---------- */
+:root[data-theme='dark'] .panel,
+:root[data-theme='dark'] .hero,
+:root[data-theme='dark'] .sources-live,
+:root[data-theme='dark'] .campus,
+:root[data-theme='dark'] .phone .seat-list,
+:root[data-theme='dark'] .phone-map {
+  background: var(--soft-glass);
+  border-color: var(--soft-line);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-theme='dark'] .panel,
+  :root[data-theme='dark'] .hero,
+  :root[data-theme='dark'] .sources-live,
+  :root[data-theme='dark'] .campus,
+  :root[data-theme='dark'] .phone .seat-list,
+  :root[data-theme='dark'] .phone-map,
+  :root[data-theme='dark'] .phone-top,
+  :root[data-theme='dark'] .sidebar,
+  :root[data-theme='dark'] .dialog-content {
+    background: var(--dk-sheet);
+  }
+}
+:root[data-theme='dark'] .hero {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    var(--soft-shadow);
+}
+:root[data-theme='dark'] .floor-panel > .sources-live {
+  background: transparent;
+}
+
+/* ---------- Buttons ---------- */
+:root[data-theme='dark'] [data-slot='button'][data-variant='default'] {
+  background: var(--dk-btn);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 8px 18px -8px rgba(0, 0, 0, 0.7);
+}
+:root[data-theme='dark'] [data-slot='button'][data-variant='default']:hover {
+  background: var(--dk-btn-hover);
+}
+:root[data-theme='dark'] [data-slot='button'][data-variant='outline'] {
+  background: var(--soft-mint-50);
+  border-color: var(--soft-line-strong);
+  color: var(--soft-primary-deep);
+}
+:root[data-theme='dark'] [data-slot='button'][data-variant='outline']:hover {
+  background: var(--soft-mint-100);
+}
+
+/* ---------- Desktop: sidebar ---------- */
+:root[data-theme='dark'] .sidebar {
+  background: rgba(16, 28, 22, 0.62);
+  border-right-color: var(--soft-line);
+}
+:root[data-theme='dark'] .brand img,
+:root[data-theme='dark'] .brand-mini img {
+  box-shadow: 0 0 0 1px rgba(150, 215, 180, 0.16), 0 4px 12px -4px rgba(0, 0, 0, 0.6);
+}
+:root[data-theme='dark'] .campus > div,
+:root[data-theme='dark'] .brand-bottom > span {
+  background: var(--soft-mint-100);
+  color: var(--soft-primary);
+}
+:root[data-theme='dark'] .nav-heading {
+  color: #93a89a;
+}
+:root[data-theme='dark'] .sidebar nav button {
+  color: #c0cfc5;
+}
+:root[data-theme='dark'] .sidebar nav button:hover {
+  background: rgba(150, 215, 180, 0.08);
+}
+:root[data-theme='dark'] .sidebar nav button[aria-current='page'] {
+  background: var(--dk-raised);
+  color: var(--soft-primary-deep);
+  box-shadow: var(--soft-shadow-sm), inset 0 0 0 1px var(--soft-line);
+}
+:root[data-theme='dark'] .floor-select,
+:root[data-theme='dark'] .sidebar .floor-select {
+  background-color: var(--dk-field);
+  background-image: var(--dk-arrow);
+  color: var(--soft-ink);
+  border-color: var(--soft-line-strong);
+}
+:root[data-theme='dark'] .phone .floor-select,
+:root[data-theme='dark'] .menu-sheet .floor-select {
+  background-color: var(--soft-mint-50);
+}
+:root[data-theme='dark'] .brand-bottom {
+  border-top-color: var(--soft-line);
+}
+@media (max-width: 950px) {
+  :root[data-theme='dark'] .sidebar {
+    background: rgba(16, 27, 22, 0.97);
+    box-shadow: 18px 0 48px -24px rgba(0, 0, 0, 0.8);
+  }
+  :root[data-theme='dark'] .nav-scrim {
+    background: rgba(3, 8, 6, 0.55);
+  }
+}
+
+/* ---------- Desktop: top bar, banners, heading ---------- */
+:root[data-theme='dark'] .topbar {
+  background: rgba(14, 25, 20, 0.6);
+  border-bottom-color: var(--soft-line);
+  color: var(--soft-muted);
+}
+:root[data-theme='dark'] .topbar > svg {
+  color: #5f7569;
+}
+:root[data-theme='dark'] .sync {
+  color: #b5c6bb;
+}
+:root[data-theme='dark'] .sync i,
+:root[data-theme='dark'] .source-age i {
+  background: #7d8c83;
+}
+:root[data-theme='dark'] .sync.shared i,
+:root[data-theme='dark'] .source-age i.current {
+  background: #5fc488;
+}
+:root[data-theme='dark'] .sync.offline i {
+  background: #e39a4a;
+}
+:root[data-theme='dark'] .sync i {
+  box-shadow: 0 0 0 3px rgba(125, 140, 131, 0.22);
+}
+:root[data-theme='dark'] .sync.shared i {
+  box-shadow: 0 0 0 3px rgba(95, 196, 136, 0.22);
+}
+:root[data-theme='dark'] .sync.offline i {
+  box-shadow: 0 0 0 3px rgba(227, 154, 74, 0.22);
+}
+
+/* Demo banner: still an amber warning, just dark */
+:root[data-theme='dark'] .demo-banner {
+  background: linear-gradient(100deg, #2f2711 0%, #282112 100%);
+  border: 1px solid #5f4d1c;
+  color: #f3dfa6;
+}
+:root[data-theme='dark'] .demo-banner > svg {
+  color: #f0c95a;
+}
+:root[data-theme='dark'] .demo-banner button {
+  background: rgba(255, 228, 150, 0.08);
+  border-color: #6f5a22;
+  color: #ffe7a3;
+  box-shadow: none;
+}
+:root[data-theme='dark'] .demo-banner button:hover {
+  background: rgba(255, 228, 150, 0.15);
+}
+
+/* Check-in banner */
+:root[data-theme='dark'] .mine-banner {
+  background: linear-gradient(100deg, #173528 0%, #142a20 100%);
+  border: 1px solid #2c5a43;
+  color: #d3f0de;
+}
+:root[data-theme='dark'] .mine-banner small {
+  color: #a9d9bd;
+}
+:root[data-theme='dark'] .mine-banner.soon {
+  background: linear-gradient(100deg, #34261a 0%, #2a2018 100%);
+  border-color: #6a4b26;
+  color: #f6dcc0;
+}
+:root[data-theme='dark'] .mine-banner.soon small {
+  color: #e5c19d;
+}
+:root[data-theme='dark'] .mine-banner button {
+  background: var(--dk-field);
+  border-color: #3a6b52;
+  color: #d3f0de;
+}
+:root[data-theme='dark'] .mine-banner.soon button {
+  border-color: #6a4b26;
+  color: #f6dcc0;
+}
+:root[data-theme='dark'] .mine-banner button.solid {
+  background: var(--dk-btn);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.7);
+}
+
+:root[data-theme='dark'] .floor-eyebrow {
+  background: rgba(150, 215, 180, 0.06);
+  border-color: var(--soft-line);
+  color: var(--soft-primary);
+}
+:root[data-theme='dark'] .floor-eyebrow span {
+  background: #4cc07e;
+  box-shadow: 0 0 0 3px rgba(76, 192, 126, 0.2);
+}
+:root[data-theme='dark'] .mode-select,
+:root[data-theme='dark'] .plan-toolbar select,
+:root[data-theme='dark'] .field-label select {
+  background-color: var(--dk-field);
+  background-image: var(--dk-arrow);
+  border-color: var(--soft-line-strong);
+  color: var(--soft-text);
+}
+
+/* ---------- Desktop: metric cards ---------- */
+:root[data-theme='dark'] .metric-label {
+  color: #b9c9bf;
+}
+:root[data-theme='dark'] .metric-icon {
+  background: var(--soft-mint-100);
+  color: var(--soft-primary);
+}
+:root[data-theme='dark'] .metric.orange .metric-icon {
+  background: var(--soft-peach-100);
+  color: #f0a872;
+}
+:root[data-theme='dark'] .metric.stone .metric-icon {
+  background: #232e29;
+  color: #aab8af;
+}
+:root[data-theme='dark'] .metric.blue .metric-icon {
+  background: #1c2840;
+  color: #9db7ef;
+}
+:root[data-theme='dark'] .metric.green strong {
+  color: #6fd59f;
+}
+:root[data-theme='dark'] .meter {
+  background: rgba(150, 215, 180, 0.1);
+}
+:root[data-theme='dark'] .meter i {
+  background: linear-gradient(90deg, #2f8a55, #5fd08e);
+}
+:root[data-theme='dark'] .orange .meter i {
+  background: linear-gradient(90deg, #a2582a, #f0a067);
+}
+:root[data-theme='dark'] .stone .meter i {
+  background: linear-gradient(90deg, #4f5d55, #8d9c92);
+}
+
+/* ---------- Segmented controls, chips, pills ---------- */
+:root[data-theme='dark'] .map-tabs,
+:root[data-theme='dark'] .switch-row,
+:root[data-theme='dark'] .segmented {
+  background: rgba(150, 215, 180, 0.08);
+}
+:root[data-theme='dark'] .map-tabs button,
+:root[data-theme='dark'] .switch-row button {
+  color: #b3c4b9;
+}
+:root[data-theme='dark'] .segmented button {
+  color: #bccbc1;
+}
+:root[data-theme='dark'] .map-tabs button[aria-pressed='true'],
+:root[data-theme='dark'] .switch-row button[aria-pressed='true'],
+:root[data-theme='dark'] .segmented button[aria-pressed='true'] {
+  background: var(--dk-raised);
+  color: var(--soft-primary-deep);
+  box-shadow:
+    0 0 0 1.5px var(--soft-primary),
+    0 4px 12px -4px rgba(0, 0, 0, 0.6);
+}
+:root[data-theme='dark'] .filter-pill {
+  background: var(--dk-field);
+  color: #c3d2c8;
+  border-color: var(--soft-line-strong);
+}
+:root[data-theme='dark'] .filter-pill span {
+  border-color: #6dd19b;
+}
+:root[data-theme='dark'] .filter-pill.selected,
+:root[data-theme='dark'] .phone .filter-pill.selected {
+  background: var(--soft-mint-100);
+  color: var(--soft-primary-deep);
+  border-color: var(--soft-primary);
+}
+:root[data-theme='dark'] .filter-pill.selected span {
+  background: #6dd19b;
+}
+:root[data-theme='dark'] .phone .filter-pill {
+  background: rgba(26, 41, 34, 0.88);
+  color: #d3e0d8;
+  border-color: var(--soft-line-strong);
+}
+:root[data-theme='dark'] .area-chips button {
+  background: rgba(26, 41, 34, 0.88);
+  border-color: var(--soft-line-strong);
+  color: #d0ddd5;
+}
+:root[data-theme='dark'] .area-chips button[aria-pressed='true'] {
+  background: var(--dk-btn);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.7);
+}
+
+/* ---------- Map container ---------- */
+:root[data-theme='dark'] .map-canvas {
+  background-color: var(--map-canvas);
+  background-image: radial-gradient(rgba(140, 210, 170, 0.16) 0.8px, transparent 0.95px);
+  border-color: var(--soft-line);
+}
+:root[data-theme='dark'] .map-overlay {
+  background: rgba(22, 36, 29, 0.95);
+  border-color: var(--soft-line);
+}
+:root[data-theme='dark'] .floor-stamp {
+  color: #b3c4b9;
+}
+:root[data-theme='dark'] .map-hint {
+  background: rgba(220, 245, 230, 0.96);
+  color: #0f2a1c;
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.7);
+}
+:root[data-theme='dark'] .icon-btn:hover {
+  background: var(--soft-mint-100);
+}
+:root[data-theme='dark'] .locator {
+  background: var(--map-canvas);
+  border-color: var(--soft-line);
+}
+
+/* ---------- Floor plan drawing (SVG attributes, overridden by CSS) ---------- */
+:root[data-theme='dark'] .plan-svg [fill='#fafcf7'] {
+  fill: var(--map-floor);
+}
+:root[data-theme='dark'] .plan-svg [stroke='#798d7e'] {
+  stroke: #8aa093;
+}
+:root[data-theme='dark'] .plan-svg [stroke='#c4d1c0'] {
+  stroke: #34453b;
+}
+/* Rooms, lifts, service walls and room furniture inherit from this group. */
+:root[data-theme='dark'] .plan-svg [stroke='#9cae9e'] {
+  stroke: #5c7265;
+}
+:root[data-theme='dark'] .plan-svg [fill='#f1f4ed'] {
+  fill: #223029;
+}
+:root[data-theme='dark'] .plan-svg [fill='#e4ebe0'] {
+  fill: #2a3830;
+}
+:root[data-theme='dark'] .plan-svg [stroke='#c3d0c3'] {
+  stroke: #52685b;
+}
+/* Hatching of the bookable rooms */
+:root[data-theme='dark'] .plan-svg [stroke='#cdd7cd'] {
+  stroke: #34463c;
+}
+:root[data-theme='dark'] .plan-label {
+  fill: #a3b8aa;
+}
+:root[data-theme='dark'] .plan-label.along {
+  stroke: var(--map-floor);
+}
+
+/* Seat and table status */
+:root[data-theme='dark'] .plan-svg [fill='#3a9d5d'] {
+  fill: var(--map-free);
+}
+:root[data-theme='dark'] .plan-svg [stroke='#1f6b3b'] {
+  stroke: var(--map-free-line);
+}
+:root[data-theme='dark'] .plan-svg [fill='#f3d2b5'] {
+  fill: var(--map-taken);
+}
+:root[data-theme='dark'] .plan-svg [stroke='#a35a26'] {
+  stroke: var(--map-taken-line);
+}
+:root[data-theme='dark'] .plan-svg [fill='#ffffff'] {
+  fill: var(--map-unknown);
+}
+:root[data-theme='dark'] .plan-svg [stroke='#7c8a80'] {
+  stroke: var(--map-unknown-line);
+}
+:root[data-theme='dark'] .plan-svg [fill='#d9c7ef'] {
+  fill: var(--map-mixed);
+}
+:root[data-theme='dark'] .plan-svg [stroke='#6d4791'] {
+  stroke: var(--map-mixed-line);
+}
+:root[data-theme='dark'] .plan-svg [fill='#f7e3d1'] {
+  fill: var(--map-inuse);
+}
+:root[data-theme='dark'] .plan-svg [fill='#bfe3c9'] {
+  fill: var(--map-sensorfree);
+}
+:root[data-theme='dark'] .plan-svg [stroke='#2f7d49'] {
+  stroke: var(--map-sensorfree-line);
+}
+/* Sensor dot: green or orange inside a blue ring */
+:root[data-theme='dark'] .plan-svg .sensor-dot[fill='#d0702f'] {
+  fill: var(--map-sensor-inuse);
+}
+:root[data-theme='dark'] .plan-svg [stroke='#3b4e8c'] {
+  stroke: var(--map-sensor-ring);
+}
+/* Seat numbers when zoomed in */
+:root[data-theme='dark'] .plan-svg .plan-number[fill='#22352a'] {
+  fill: #f1e9e0;
+}
+:root[data-theme='dark'] .plan-svg .plan-number[fill='#fff'] {
+  fill: #0b1d12;
+}
+/* Selection ring and name tag */
+:root[data-theme='dark'] .plan-svg [stroke='#18583f'] {
+  stroke: #b4f2cf;
+  fill: rgba(180, 242, 207, 0.12);
+}
+:root[data-theme='dark'] .plan-svg [fill='#194533'] {
+  fill: #dcf5e7;
+}
+:root[data-theme='dark'] .plan-svg text[fill='white'] {
+  fill: #0f2a1c;
+}
+:root[data-theme='dark'] .map-marker[role='button']:hover {
+  filter: drop-shadow(0 0 3px rgba(164, 235, 191, 0.55));
+}
+
+/* ---------- Legend (same colours as the dark map) ---------- */
+:root[data-theme='dark'] .legend > span {
+  color: #b9c9bf;
+}
+:root[data-theme='dark'] .phone .legend > span {
+  color: #cdd9d1;
+}
+:root[data-theme='dark'] .legend i {
+  box-shadow: none;
+}
+:root[data-theme='dark'] .legend .free {
+  background: var(--map-free);
+  border-color: var(--map-free-line);
+}
+:root[data-theme='dark'] .legend .occupied {
+  background: var(--map-taken);
+  border-color: var(--map-taken-line);
+}
+:root[data-theme='dark'] .legend .unknown {
+  background: var(--map-unknown);
+  border-color: var(--map-unknown-line);
+}
+:root[data-theme='dark'] .legend .mixed {
+  background: var(--map-mixed);
+  border-color: var(--map-mixed-line);
+  border-style: dashed;
+}
+:root[data-theme='dark'] .legend .sensor-dot {
+  background: var(--map-free);
+  border-color: var(--map-sensor-ring);
+}
+:root[data-theme='dark'] .legend .sensor-dot.in-use {
+  background: var(--map-sensor-inuse);
+}
+:root[data-theme='dark'] .legend .booked {
+  border-color: #5c7265;
+  background: repeating-linear-gradient(45deg, #3a4c42 0 1px, var(--map-floor) 1px 3px);
+}
+
+/* Small status dots in chips, chair tabs and the list */
+:root[data-theme='dark'] .free i {
+  background: #4cc07e;
+}
+:root[data-theme='dark'] .occupied i {
+  background: #ec9a5f;
+}
+:root[data-theme='dark'] .unknown i {
+  background: var(--map-unknown);
+  box-shadow: inset 0 0 0 1.5px var(--map-unknown-line);
+}
+:root[data-theme='dark'] .mixed i {
+  background: #b893e6;
+}
+
+/* ---------- Floor data sources ---------- */
+:root[data-theme='dark'] .sources-live-head,
+:root[data-theme='dark'] .sources-live li + li,
+:root[data-theme='dark'] .sources-live li:nth-child(n + 3) {
+  border-color: var(--soft-line);
+}
+:root[data-theme='dark'] .sources-live .live-name {
+  color: var(--soft-ink);
+}
+:root[data-theme='dark'] .live-value {
+  color: #c9d7ce;
+}
+:root[data-theme='dark'] .source-icon,
+:root[data-theme='dark'] .list-icon {
+  background: var(--soft-mint-100);
+  color: #8fd6ae;
+}
+:root[data-theme='dark'] .source-icon.qr {
+  background: #16303a;
+  color: #8cc9d9;
+}
+:root[data-theme='dark'] .source-icon.report {
+  background: #33291a;
+  color: #e6c27e;
+}
+:root[data-theme='dark'] .source-icon.sensor {
+  background: #2a2340;
+  color: #c4abee;
+}
+:root[data-theme='dark'] .source-icon.ble {
+  background: #1c2840;
+  color: #9db7ef;
+}
+:root[data-theme='dark'] .source-card p,
+:root[data-theme='dark'] .activity-row small,
+:root[data-theme='dark'] .source-age {
+  color: #a3b5a9;
+}
+:root[data-theme='dark'] .demo-tag {
+  background: #3a2f12;
+  color: #f2d27f;
+}
+:root[data-theme='dark'] .activity-row,
+:root[data-theme='dark'] .list-location {
+  border-top-color: var(--soft-line);
+}
+
+/* ---------- Seat inspector (desktop panel + phone sheet) ---------- */
+:root[data-theme='dark'] .inspector-head {
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(58, 157, 105, 0.2) 0%, rgba(58, 157, 105, 0) 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+  border-bottom-color: var(--soft-line);
+}
+:root[data-theme='dark'] .kicker {
+  color: #9cc4a7;
+}
+:root[data-theme='dark'] .field-title {
+  color: #c3d2c8;
+}
+:root[data-theme='dark'] .status {
+  color: #93e3b3;
+  background: var(--soft-mint-100);
+}
+:root[data-theme='dark'] .status.occupied {
+  color: #f4b98f;
+  background: var(--soft-peach-50);
+}
+:root[data-theme='dark'] .status.unknown {
+  color: #b4c2b9;
+  background: #222d28;
+}
+:root[data-theme='dark'] .status.mixed {
+  color: #d4baf3;
+  background: #2e2440;
+}
+:root[data-theme='dark'] .chair-tabs button {
+  background: #1d2924;
+  color: var(--soft-ink);
+}
+:root[data-theme='dark'] .chair-tabs button small {
+  color: #c2d0c7;
+}
+:root[data-theme='dark'] .chair-tabs button.free {
+  background: var(--soft-mint-100);
+}
+:root[data-theme='dark'] .chair-tabs button.occupied {
+  background: var(--soft-peach-50);
+}
+:root[data-theme='dark'] .chair-tabs button.mixed {
+  background: #2e2440;
+}
+:root[data-theme='dark'] .chair-tabs button.unknown {
+  background: #17211c;
+  border-color: #44544a;
+}
+:root[data-theme='dark'] .chair-tabs button[aria-pressed='true'] {
+  background: var(--dk-raised);
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 2px var(--soft-primary),
+    0 6px 14px -8px rgba(0, 0, 0, 0.7);
+}
+:root[data-theme='dark'] .chair-tabs button:hover {
+  filter: brightness(1.08);
+}
+:root[data-theme='dark'] .sensor-line {
+  color: #b3c3b9;
+  border-top-color: var(--soft-line);
+}
+:root[data-theme='dark'] .sensor-line b {
+  color: var(--soft-text);
+}
+:root[data-theme='dark'] .sensor-line small {
+  color: #9caea2;
+}
+:root[data-theme='dark'] .sensor-try button {
+  background: var(--soft-mint-50);
+  color: var(--soft-primary-deep);
+  box-shadow: inset 0 0 0 1px var(--soft-line-strong);
+}
+:root[data-theme='dark'] .sensor-try button:hover {
+  background: var(--soft-mint-100);
+}
+:root[data-theme='dark'] .report-row .report.free,
+:root[data-theme='dark'] .confirm .report.free {
+  background: #1b3a2a;
+  color: #9be6b9;
+  box-shadow: inset 0 0 0 1px rgba(110, 210, 155, 0.32);
+}
+:root[data-theme='dark'] .report-row .report.free:hover {
+  background: #214633;
+}
+:root[data-theme='dark'] .report-row .report.taken,
+:root[data-theme='dark'] .confirm .report.taken {
+  background: var(--soft-peach-50);
+  color: var(--soft-peach-text);
+  box-shadow: inset 0 0 0 1px rgba(240, 160, 103, 0.32);
+}
+:root[data-theme='dark'] .report-row .report.taken:hover {
+  background: var(--soft-peach-100);
+}
+:root[data-theme='dark'] .whole-table {
+  color: #b9c9bf;
+}
+:root[data-theme='dark'] .whole-table button {
+  background: #1d2924;
+  color: var(--soft-text);
+  box-shadow: inset 0 0 0 1px rgba(150, 215, 180, 0.14);
+}
+:root[data-theme='dark'] .whole-table button:hover {
+  background: var(--soft-mint-100);
+}
+:root[data-theme='dark'] .checkin-block,
+:root[data-theme='dark'] .qr-block,
+:root[data-theme='dark'] .qr-hint,
+:root[data-theme='dark'] .inspector-actions,
+:root[data-theme='dark'] .inspector-qr {
+  border-top-color: var(--soft-line);
+}
+:root[data-theme='dark'] .inspector-qr {
+  color: #9fdcb9;
+}
+:root[data-theme='dark'] .checkin-note {
+  color: #c3d2c8;
+}
+:root[data-theme='dark'] .checkin-note b {
+  color: var(--soft-ink);
+}
+:root[data-theme='dark'] .report-heading {
+  color: var(--soft-text);
+}
+:root[data-theme='dark'] .confirm {
+  border-color: #5c4128;
+  background: #2b2017;
+  color: #f1d3b4;
+}
+:root[data-theme='dark'] .feedback {
+  color: #8fdfb0;
+}
+:root[data-theme='dark'] .error {
+  color: #f2a58c;
+}
+:root[data-theme='dark'] .toast-region .feedback {
+  background: #1b3a2a;
+  color: #b5ecc9;
+}
+:root[data-theme='dark'] .toast-region .error {
+  background: #3a1f19;
+  color: #f6b8a6;
+}
+:root[data-theme='dark'] .toast-region .toast-undo {
+  background: rgba(255, 255, 255, 0.1);
+}
+:root[data-theme='dark'] .qr-hint {
+  color: #b3c3b9;
+}
+:root[data-theme='dark'] .qr-block {
+  color: #b9c9bf;
+}
+:root[data-theme='dark'] .qr-block b {
+  color: var(--soft-ink);
+}
+:root[data-theme='dark'] .evidence-detail summary {
+  color: var(--soft-primary);
+}
+:root[data-theme='dark'] .evidence-detail > p {
+  color: #a7b8ad;
+}
+:root[data-theme='dark'] .where {
+  color: var(--soft-muted);
+}
+/* "Student report · 1m ago" lines */
+:root[data-theme='dark'] .origin,
+:root[data-theme='dark'] .metric-foot {
+  color: #a8baae;
+}
+
+/* ---------- Lists ---------- */
+:root[data-theme='dark'] .list-search {
+  background: var(--dk-field);
+  border-color: var(--soft-line-strong);
+  color: #9fb2a6;
+}
+:root[data-theme='dark'] .list-search input {
+  color: var(--soft-ink);
+}
+:root[data-theme='dark'] .list-search input::placeholder {
+  color: #869a8d;
+}
+:root[data-theme='dark'] .list-search:focus-within {
+  border-color: var(--soft-primary);
+  box-shadow: 0 0 0 4px rgba(109, 209, 155, 0.2);
+}
+:root[data-theme='dark'] .phone-list .list-search {
+  background: rgba(26, 41, 34, 0.88);
+  color: #a9bbaf;
+}
+:root[data-theme='dark'] .list-total,
+:root[data-theme='dark'] .phone .list-total {
+  color: #a9bbaf;
+}
+:root[data-theme='dark'] .list-location {
+  background: transparent;
+}
+:root[data-theme='dark'] .list-location.picked,
+:root[data-theme='dark'] .list-location:hover {
+  background: rgba(110, 210, 155, 0.1);
+}
+:root[data-theme='dark'] .list-location small {
+  color: #a3b5a9;
+}
+:root[data-theme='dark'] .phone .list-location:first-of-type {
+  border-top-color: var(--soft-line);
+}
+:root[data-theme='dark'] .list-status.free,
+:root[data-theme='dark'] .list-status.sensorfree {
+  color: #8fe0ae;
+}
+:root[data-theme='dark'] .list-status.occupied,
+:root[data-theme='dark'] .list-status.inuse {
+  color: #f2ae7f;
+}
+:root[data-theme='dark'] .list-status.mixed {
+  color: #d0b5f1;
+}
+:root[data-theme='dark'] .list-icon.free,
+:root[data-theme='dark'] .list-icon.sensorfree {
+  background: #1d3a2a;
+  color: #8fe0ae;
+}
+:root[data-theme='dark'] .list-icon.occupied,
+:root[data-theme='dark'] .list-icon.inuse {
+  background: var(--soft-peach-100);
+  color: #f2ae7f;
+}
+:root[data-theme='dark'] .list-icon.mixed {
+  background: #2e2440;
+  color: #d0b5f1;
+}
+:root[data-theme='dark'] .list-icon.unknown {
+  background: #222d28;
+  color: #aab8af;
+}
+:root[data-theme='dark'] .empty {
+  color: #a7b8ad;
+}
+:root[data-theme='dark'] footer {
+  border-top-color: var(--soft-line);
+  color: var(--soft-muted);
+}
+
+/* ---------- Dialogs ---------- */
+:root[data-theme='dark'] .dialog-overlay {
+  background: rgba(3, 8, 6, 0.6);
+}
+:root[data-theme='dark'] .dialog-content {
+  background: var(--soft-glass-strong);
+  border: 1px solid rgba(150, 215, 180, 0.14);
+  box-shadow: 0 24px 70px -20px rgba(0, 0, 0, 0.85);
+  color: var(--soft-ink);
+}
+:root[data-theme='dark'] .dialog-content > p,
+:root[data-theme='dark'] .dialog-content details,
+:root[data-theme='dark'] .dialog-content h3 {
+  color: #b0c1b6;
+}
+:root[data-theme='dark'] .dialog-content details {
+  border-bottom-color: var(--soft-line);
+}
+:root[data-theme='dark'] details summary {
+  color: var(--soft-text);
+}
+:root[data-theme='dark'] .field-label {
+  color: var(--soft-text);
+}
+:root[data-theme='dark'] .field-label input,
+:root[data-theme='dark'] .field-label textarea {
+  background: #101c16;
+  border-color: rgba(150, 215, 180, 0.22);
+  color: var(--soft-ink);
+}
+:root[data-theme='dark'] .qr-frame {
+  background: #1a2a22;
+  border-color: var(--soft-line);
+}
+/* The code itself stays dark on white so it scans. */
+:root[data-theme='dark'] .qr-frame img {
+  background: #fff;
+  border-radius: 10px;
+}
+
+/* ---------- Toasts and notes ---------- */
+:root[data-theme='dark'] .floating-note,
+:root[data-theme='dark'] .phone-toast .feedback {
+  background: #234a37;
+  color: #effaf3;
+  box-shadow:
+    inset 0 0 0 1px rgba(150, 230, 190, 0.22),
+    0 14px 36px -12px rgba(0, 0, 0, 0.8);
+}
+:root[data-theme='dark'] .phone-toast .error {
+  background: #8f3a24;
+  color: #fff;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 180, 160, 0.25),
+    0 14px 36px -12px rgba(0, 0, 0, 0.8);
+}
+:root[data-theme='dark'] .toast-undo {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* ==========================================================================
+   Phone
+   ========================================================================== */
+:root[data-theme='dark'] .phone {
+  background: transparent;
+  color: var(--soft-ink);
+}
+:root[data-theme='dark'] .phone-top {
+  background: rgba(14, 24, 19, 0.9);
+  border-bottom-color: var(--soft-line);
+  box-shadow: 0 6px 20px -16px rgba(0, 0, 0, 0.8);
+}
+:root[data-theme='dark'] .brand-mini small {
+  color: var(--soft-muted);
+}
+:root[data-theme='dark'] .phone-top .sync {
+  background: rgba(150, 215, 180, 0.08);
+  color: #c9d7ce;
+}
+:root[data-theme='dark'] .phone-top .sync.offline {
+  background: #33261a;
+  color: #f3c08c;
+}
+:root[data-theme='dark'] .phone .menu-btn {
+  background: rgba(150, 215, 180, 0.08);
+  color: var(--soft-primary-deep);
+}
+:root[data-theme='dark'] .hero-kicker {
+  background: var(--soft-mint-100);
+  color: #9be6b9;
+}
+:root[data-theme='dark'] .hero h1 strong {
+  color: #6fd59f;
+}
+:root[data-theme='dark'] .hero-sub {
+  color: #b6c6bc;
+}
+:root[data-theme='dark'] .hero-hint {
+  background: var(--soft-mint-50);
+  color: #c3d2c8;
+}
+:root[data-theme='dark'] .map-tip {
+  color: #b0c1b6;
+}
+:root[data-theme='dark'] .phone .map-canvas {
+  border-bottom-color: var(--soft-line);
+}
+:root[data-theme='dark'] .phone-foot {
+  color: var(--soft-muted);
+}
+:root[data-theme='dark'] .phone-sources .lead {
+  color: #bccbc1;
+}
+:root[data-theme='dark'] .back-btn {
+  color: var(--soft-primary);
+}
+
+/* Phone bottom sheet */
+:root[data-theme='dark'] .sheet {
+  background: var(--dk-sheet);
+  box-shadow:
+    0 -1px 0 rgba(150, 215, 180, 0.14),
+    0 -18px 48px -12px rgba(0, 0, 0, 0.75);
+}
+:root[data-theme='dark'] .sheet-handle span {
+  background: #3e5146;
+}
+:root[data-theme='dark'] .sheet .inspector-head {
+  background: rgba(20, 33, 27, 0.95);
+  border-bottom-color: var(--soft-line);
+}
+:root[data-theme='dark'] .close-sheet {
+  background: var(--soft-mint-50);
+  color: var(--soft-primary-deep);
+  box-shadow: inset 0 0 0 1px var(--soft-line-strong);
+}
+
+/* Phone menu */
+:root[data-theme='dark'] .dialog-content.menu-sheet {
+  background: rgba(20, 33, 27, 0.97);
+  border-bottom: 0;
+}
+:root[data-theme='dark'] .menu-label {
+  color: var(--soft-muted);
+}
+:root[data-theme='dark'] .menu-list {
+  border-top-color: var(--soft-line);
+}
+:root[data-theme='dark'] .menu-list button,
+:root[data-theme='dark'] .menu-list a {
+  color: #dce8e0;
+  border-bottom-color: var(--soft-line);
 }
