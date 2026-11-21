@@ -25,6 +25,7 @@ import { age, derive, fresh, matchesQuery, parseSpot, placeDescription, suggesti
 import { chosenRoom, isLive, roomUrl, serverNow, useFloor } from './session.js'
 import { startScanner } from './ble.js'
 import { activeCheckIn, friendly, myCheckIns, remember, uncertain } from './checkin.js'
+import { themeChoices, useTheme } from './theme.js'
 import FloorMap, { isDim } from './FloorMap.jsx'
 import { FeedControls, QRDialog } from './Controls.jsx'
 import SeatDetails from './SeatDetails.jsx'
@@ -108,6 +109,7 @@ function Stat({ name, value, detail, icon: Icon, tone, percent }) {
 }
 function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
   const demo = !isLive(room)
+  const [theme, setTheme] = useTheme()
   const phone = useMedia(PHONE),
     drawerMode = useMedia(DRAWER)
   const [page, setPage] = useState(() => history.state?.openseatPage || 'overview'),
@@ -518,6 +520,19 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
           {floorNumbers.map((number) => (
             <option key={number} value={number}>
               {FLOORS[number].title}
+            </option>
+          ))}
+        </select>
+        <span className="nav-heading floor-heading">Appearance</span>
+        <select
+          className="floor-select theme-select"
+          aria-label="Appearance"
+          value={theme}
+          onChange={(e) => setTheme(e.target.value)}
+        >
+          {themeChoices.map(([value, text]) => (
+            <option key={value} value={value}>
+              {value === 'auto' ? 'Auto (match this device)' : text}
             </option>
           ))}
         </select>

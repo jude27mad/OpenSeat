@@ -3767,3 +3767,12 @@ details[open] > :not(summary) {
     animation: none !important;
   }
 }
+
+/* The desktop Appearance dropdown sits under the floor dropdown. */
+.sidebar .theme-select {
+  margin-top: 0;
+}
+/* Native controls, scrollbars and form fields follow the theme. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}

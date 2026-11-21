@@ -17,6 +17,7 @@ import {
 import { Button } from './components/ui/button'
 import { FLOORS, floor, floorNumbers, label, seats, tables } from './floor.js'
 import { age, fresh } from './model.js'
+import { themeChoices, useTheme } from './theme.js'
 import FloorMap from './FloorMap.jsx'
 import SeatDetails from './SeatDetails.jsx'
 import {
@@ -29,6 +30,20 @@ import {
   SourcesPanel,
   plural,
 } from './parts.jsx'
+
+// Auto follows the phone's own light or dark setting.
+function ThemeSwitch() {
+  const [choice, choose] = useTheme()
+  return (
+    <div className="segmented" role="group" aria-label="Appearance">
+      {themeChoices.map(([value, text]) => (
+        <button key={value} aria-pressed={choice === value} onClick={() => choose(value)}>
+          {text}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 // The floor dropdown, on the main screen and in the menu.
 function FloorSelect({ onFloor }) {
@@ -83,6 +98,8 @@ function PhoneMenu({ demo, onClose, onRoom, onFloor, onShare, onSources }) {
               Demo
             </button>
           </div>
+          <div className="menu-label">Appearance</div>
+          <ThemeSwitch />
           <nav className="menu-list" aria-label="More">
             <button onClick={() => onClose(onShare)}>
               <Share2 size={18} /> Share this map
