@@ -736,6 +736,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                     now={now}
                     demo={demo}
                     record={record}
+                    selected={place?.id}
                     onScanner={() => setModal('scanner')}
                     onMore={() => nav('sources')}
                   />

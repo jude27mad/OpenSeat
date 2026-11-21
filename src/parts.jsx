@@ -7,15 +7,13 @@ import {
   Clock3,
   FlaskConical,
   MessageSquare,
-  Minus,
-  Plus,
   QrCode,
   Radio,
   Search,
 } from 'lucide-react'
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
-import { floor, label, tables } from './floor.js'
+import { floor, label, places, tables } from './floor.js'
 import { age, fresh, matchesQuery, looksFree, placeDescription, sources } from './model.js'
 import { endingSoon, holdText, remaining } from './checkin.js'
 import { DemoTag, Origin } from './SeatDetails.jsx'
@@ -36,22 +34,21 @@ export const sourceText = {
 
 // What each of the four sources currently knows, alongside the floor overview.
 // These are readouts, not choices: the map already combines all four.
-export function SourcesPanel({ model, now, onScanner, onMore, demo: demoRoom = false, record }) {
-  const [busy, setBusy] = useState(false)
-  // In the demo, − and + beside each area's count act as a scanner reading.
-  async function scan(zone, value) {
-    if (busy || value < 0) return
+export function SourcesPanel({ model, now, onScanner, onMore, demo: demoRoom = false, record, selected }) {
+  // Demo only: send a sensor reading for any table or seat from here. Bluetooth
+  // is never simulated; it comes from the real scanner through flespi.
+  const [target, setTarget] = useState(null),
+    [busy, setBusy] = useState(false)
+  const chosen = target || selected || places[0].id
+  async function sense(value) {
+    if (busy) return
     setBusy(true)
     try {
-      await record({ source: 'ble', target: zone, value, simulated: true })
+      await record({ source: 'sensor', target: chosen, value, simulated: true })
     } finally {
       setBusy(false)
     }
   }
-  const zones = [
-    ...(tables.length ? [['tables', 'Round tables']] : []),
-    ['individuals', 'Individual seats'],
-  ]
   let checkIns = 0,
     reports = 0,
     lastReport = 0,
@@ -123,34 +120,7 @@ export function SourcesPanel({ model, now, onScanner, onMore, demo: demoRoom = f
             <p className="live-name">
               Bluetooth
             </p>
-            {demoRoom && record ? (
-              zones.map(([zone, area]) => {
-                const e = model.ble[zone],
-                  n = fresh(e, now) ? e.value : 0
-                return (
-                  <div className="ble-try" key={zone}>
-                    <p className="live-value">
-                      {area}: {plural(n, 'device')}
-                      {fresh(e, now) && ' · ' + ago(e.at)} {e?.simulated && <DemoTag />}
-                    </p>
-                    <button
-                      aria-label={'Fewer devices: ' + area}
-                      aria-disabled={busy || n === 0 || undefined}
-                      onClick={() => scan(zone, n - 1)}
-                    >
-                      <Minus size={16} />
-                    </button>
-                    <button
-                      aria-label={'More devices: ' + area}
-                      aria-disabled={busy || undefined}
-                      onClick={() => scan(zone, n + 1)}
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                )
-              })
-            ) : areas.length ? (
+            {areas.length ? (
               areas.map(([area, e]) => (
                 <p className="live-value" key={area}>
                   {area}: {plural(e.value, 'device')} · {ago(e.at)} {e.simulated && <DemoTag />}
@@ -180,6 +150,35 @@ export function SourcesPanel({ model, now, onScanner, onMore, demo: demoRoom = f
                 : 'No recent readings'}
             </p>
             <small>Sensor dots on the map: green reads free, orange in use.</small>
+            {demoRoom && record && (
+              <div className="sensor-card-try" role="group" aria-label="Try a sensor">
+                <select
+                  aria-label="Sensor to try"
+                  value={chosen}
+                  onChange={(e) => setTarget(e.target.value)}
+                >
+                  {places.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {label(p.id)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  aria-label="Sensor reads free"
+                  aria-disabled={busy || undefined}
+                  onClick={() => sense('free')}
+                >
+                  Free
+                </button>
+                <button
+                  aria-label="Sensor reads in use"
+                  aria-disabled={busy || undefined}
+                  onClick={() => sense('occupied')}
+                >
+                  In use
+                </button>
+              </div>
+            )}
           </div>
         </li>
       </ul>

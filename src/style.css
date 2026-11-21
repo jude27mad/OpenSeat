@@ -2401,33 +2401,40 @@ html:has(.phone) .floating-note-region {
   text-align: left;
 }
 .live-action:hover { text-decoration: underline; }
-/* Demo only: − and + beside each Bluetooth count act as a scanner reading. */
-.ble-try {
+/* Demo only: try a sensor from the sensors card under the map. */
+.sensor-card-try {
   grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 6px;
-  margin-bottom: 4px;
-}
-.ble-try .live-value {
-  flex-basis: 100%;
-  min-width: 0;
-}
-.ble-try button {
   display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  flex: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 4px;
+}
+.sensor-card-try select {
+  grid-column: 1 / -1;
+  min-height: 34px;
+  border: 1px solid #cfdccf;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 8px;
+  font-size: 13px;
+  color: #22352a;
+}
+.sensor-card-try button {
   border: 1px solid #cfdccf;
   border-radius: 8px;
   background: #fff;
   color: #1e5c42;
+  font-weight: 650;
+  font-size: 12px;
+  min-height: 34px;
 }
-.phone .ble-try button {
-  width: 44px;
-  height: 44px;
+.sensor-card-try button:hover {
+  background: #f2f7ef;
+}
+.phone .sensor-card-try select,
+.phone .sensor-card-try button {
+  min-height: 44px;
+  font-size: 15px;
 }
 /* Demo only: try the sensor right under its reading. */
 .sensor-line:has(.sensor-try) {
