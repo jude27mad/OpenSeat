@@ -2401,6 +2401,41 @@ html:has(.phone) .floating-note-region {
   text-align: left;
 }
 .live-action:hover { text-decoration: underline; }
+/* Demo only: try a sensor from the sensors card under the map. */
+.sensor-card-try {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 4px;
+}
+.sensor-card-try select {
+  grid-column: 1 / -1;
+  min-height: 34px;
+  border: 1px solid #cfdccf;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 8px;
+  font-size: 13px;
+  color: #22352a;
+}
+.sensor-card-try button {
+  border: 1px solid #cfdccf;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e5c42;
+  font-weight: 650;
+  font-size: 12px;
+  min-height: 34px;
+}
+.sensor-card-try button:hover {
+  background: #f2f7ef;
+}
+.phone .sensor-card-try select,
+.phone .sensor-card-try button {
+  min-height: 44px;
+  font-size: 15px;
+}
 /* Demo only: try the sensor right under its reading. */
 .sensor-line:has(.sensor-try) {
   flex-wrap: wrap;

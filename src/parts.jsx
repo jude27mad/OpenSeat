@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Armchair,
   ArrowRight,
@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
-import { floor, label, tables } from './floor.js'
+import { floor, label, places, tables } from './floor.js'
 import { age, fresh, matchesQuery, looksFree, placeDescription, sources } from './model.js'
 import { endingSoon, holdText, remaining } from './checkin.js'
 import { DemoTag, Origin } from './SeatDetails.jsx'
@@ -34,7 +34,21 @@ export const sourceText = {
 
 // What each of the four sources currently knows, alongside the floor overview.
 // These are readouts, not choices: the map already combines all four.
-export function SourcesPanel({ model, now, onScanner, onMore }) {
+export function SourcesPanel({ model, now, onScanner, onMore, demo: demoRoom = false, record, selected }) {
+  // Demo only: send a sensor reading for any table or seat from here. Bluetooth
+  // is never simulated; it comes from the real scanner through flespi.
+  const [target, setTarget] = useState(null),
+    [busy, setBusy] = useState(false)
+  const chosen = target || selected || places[0].id
+  async function sense(value) {
+    if (busy) return
+    setBusy(true)
+    try {
+      await record({ source: 'sensor', target: chosen, value, simulated: true })
+    } finally {
+      setBusy(false)
+    }
+  }
   let checkIns = 0,
     reports = 0,
     lastReport = 0,
@@ -136,6 +150,35 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
                 : 'No recent readings'}
             </p>
             <small>Sensor dots on the map: green reads free, orange in use.</small>
+            {demoRoom && record && (
+              <div className="sensor-card-try" role="group" aria-label="Try a sensor">
+                <select
+                  aria-label="Sensor to try"
+                  value={chosen}
+                  onChange={(e) => setTarget(e.target.value)}
+                >
+                  {places.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {label(p.id)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  aria-label="Sensor reads free"
+                  aria-disabled={busy || undefined}
+                  onClick={() => sense('free')}
+                >
+                  Free
+                </button>
+                <button
+                  aria-label="Sensor reads in use"
+                  aria-disabled={busy || undefined}
+                  onClick={() => sense('occupied')}
+                >
+                  In use
+                </button>
+              </div>
+            )}
           </div>
         </li>
       </ul>

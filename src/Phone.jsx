@@ -400,6 +400,9 @@ export default function PhoneView(p) {
             <SourcesPanel
               model={model}
               now={now}
+              demo={demo}
+              record={record}
+              selected={place?.id}
               onScanner={() => setModal('scanner')}
               onMore={() => nav('sources')}
             />
