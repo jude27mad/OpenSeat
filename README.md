@@ -23,8 +23,8 @@ OpenSeat shows which study seats are free in TMU's Student Learning Centre (SLC)
 
 Simple rules:
 
-- For a seat, the newest report, check-in or seat-sensor reading wins.
-- A table sensor reading newer than the chair reports sets how the table looks. The chairs keep their own status.
+- For a seat, the newest report, check-in or seat-sensor reading wins. Only a free report can clear someone's check-in.
+- A table sensor reading newer than the chair reports colours the table. The chairs keep their own status.
 - If a table's sensor says one thing and the reports for its chairs say another, the table turns purple and shows **Mixed reports**.
 - When nothing is recent, the seat says **No recent info** instead of guessing.
 - Bluetooth gives a count for an area, not for a single seat.

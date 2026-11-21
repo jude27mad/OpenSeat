@@ -389,12 +389,30 @@ test('A newer sensor reading changes the map: a seat takes its value, a table sh
   assert.equal(seat.states.get('I020').status, 'free')
   assert.equal(seat.counts.free, 1)
   // A table sensor newer than the chair reports decides how the table looks.
-  const busy = derive([event('report', 'T08-A', 'free', 60000), event('sensor', 'T08', 'occupied', 100)], now)
+  const busy = derive([event('sensor', 'T08', 'occupied', 100)], now)
   assert.equal(busy.locations.get('T08').status, 'inuse')
-  assert.equal(busy.states.get('T08-A').status, 'free')
+  assert.equal(busy.locations.get('T08').sensorLeads, true)
+  // Someone at the table doesn't hide a chair reported free.
+  const shared = derive([event('report', 'T08-A', 'free', 60000), event('sensor', 'T08', 'occupied', 100)], now)
+  assert.equal(shared.locations.get('T08').status, 'free')
+  assert.equal(shared.states.get('T08-A').status, 'free')
   const empty = derive([event('report', 'T08-A', 'occupied', 60000), event('sensor', 'T08', 'free', 100)], now)
   assert.equal(empty.locations.get('T08').status, 'sensorfree')
   // A newer chair report takes over again.
   const later = derive([event('sensor', 'T08', 'occupied', 60000), event('report', 'T08-A', 'free', 100)], now)
   assert.equal(later.locations.get('T08').status, 'free')
+})
+test('A sensor never clears a check-in, and ties settle the same way everywhere', () => {
+  // Free from the seat sensor while someone is checked in: Mixed, not free.
+  const held = derive([event('qr', 'I020', 'occupied', 600000), event('sensor', 'I020', 'free', 60000)], now)
+  assert.equal(held.states.get('I020').status, 'mixed')
+  // A table whose chairs are all checked in isn't suggested because its sensor reads free.
+  const chairs = ['A', 'B', 'C', 'D'].map((c) => event('qr', 'T02-' + c, 'occupied', 600000))
+  const table = derive([...chairs, event('sensor', 'T02', 'free', 60000)], now)
+  assert.notEqual(table.locations.get('T02').status, 'sensorfree')
+  assert.equal(table.locations.get('T02').status, 'mixed')
+  // Same time, any order: the same answer.
+  const a = event('report', 'I030', 'free', 1000),
+    b = event('sensor', 'I030', 'occupied', 1000)
+  assert.equal(derive([a, b], now).states.get('I030').status, derive([b, a], now).states.get('I030').status)
 })
