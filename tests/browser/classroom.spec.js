@@ -25,6 +25,13 @@ test('classroom reads the shared count after switching apps without a token', as
   await expect(page.getByText('10 estimated people', {exact:true})).toHaveCount(1)
   await page.reload()
   await expect(page.getByText('10 estimated people', {exact:true})).toHaveCount(1)
+  await page.getByRole('button', { name: 'Reset' }).click()
+  await expect(page.getByText('Listening for scan')).toBeVisible()
+  await Promise.all([
+    page.waitForResponse(response => response.url().endsWith('/status')),
+    page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))),
+  ])
+  await expect(page.getByText('No count yet')).toHaveCount(1)
   await update(0)
   await expect(page.getByText('0 estimated people', {exact:true})).toHaveCount(1)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
