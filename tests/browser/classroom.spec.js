@@ -52,15 +52,16 @@ test('classroom demo listens on its own page and holds one estimate per scan', a
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
-test('projector layout opens from the desktop menu and fits the count on screen', async ({ page }) => {
+test('projector layout opens from the desktop menu and fits the count on screen', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   await page.goto('./')
   await page.getByRole('link', { name: 'Classroom demo' }).click()
   await expect(page.getByRole('heading', { name: 'Classroom count' })).toBeVisible()
-  const dial = await page.locator('.count-dial').boundingBox()
-  expect(dial.y).toBeGreaterThanOrEqual(0)
-  expect(dial.y + dial.height).toBeLessThanOrEqual(800)
+  const panel = await page.locator('.count-panel').boundingBox()
+  expect(panel.y).toBeGreaterThanOrEqual(0)
+  expect(panel.y + panel.height).toBeLessThanOrEqual(800)
   await expect(page.getByRole('button', { name: 'Connect scanner' })).toBeInViewport()
+  await page.screenshot({ path: testInfo.outputPath('classroom-projector.png') })
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Classroom count' })).toBeVisible()
   await page.getByRole('link', { name: 'Back to map' }).click()
