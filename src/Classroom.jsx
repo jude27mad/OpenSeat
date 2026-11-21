@@ -14,24 +14,31 @@ const labels = {
   error: 'Connection failed',
 }
 
+// People carry 1 to 2.2 detected devices each, so one count can't tell which.
+// Show the range: fewest if everyone carries 2.2 devices, most if everyone carries one.
+const peopleRange = (devices) => ({ low: Math.ceil(devices * 5 / 11), high: devices })
+const rangeText = ({ low, high }, dash = '–') => (low === high ? String(low) : low + dash + high)
+
 function CountDial({ scan, phase }) {
-  const people = scan ? Math.ceil(scan.value * 5 / 11) : null
-  const [display, setDisplay] = useState(0)
+  const range = scan ? peopleRange(scan.value) : null
+  const [display, setDisplay] = useState({ low: 0, high: 0 })
   useEffect(() => {
-    if (people === null || matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setDisplay(people ?? 0)
+    if (!range || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDisplay(range ?? { low: 0, high: 0 })
       return
     }
     const start = performance.now()
     let frame
     function tick(now) {
-      const elapsed = Math.min(1, (now - start) / 850)
-      setDisplay(Math.round(people * (1 - (1 - elapsed) ** 3)))
+      const elapsed = Math.min(1, (now - start) / 850),
+        eased = 1 - (1 - elapsed) ** 3
+      setDisplay({ low: Math.round(range.low * eased), high: Math.round(range.high * eased) })
       if (elapsed < 1) frame = requestAnimationFrame(tick)
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [people])
+  }, [range?.low, range?.high])
+  const unit = range?.high === 1 ? 'estimated person' : 'estimated people'
   return (
     <div className={'count-dial ' + phase}>
       <svg viewBox="0 0 240 240" aria-hidden="true">
@@ -41,10 +48,12 @@ function CountDial({ scan, phase }) {
       </svg>
       <div className="dial-center" aria-hidden="true">
         <UsersRound size={24} />
-        <strong>{people === null ? '—' : display}</strong>
-        <span>estimated people</span>
+        <strong className={range && range.low !== range.high ? 'range' : undefined}>
+          {range ? rangeText(display) : '—'}
+        </strong>
+        <span>{unit}</span>
       </div>
-      <span className="sr-only" role="status">{people === null ? 'No count yet' : people + ' estimated people'}</span>
+      <span className="sr-only" role="status">{range ? rangeText(range, ' to ') + ' ' + unit : 'No count yet'}</span>
     </div>
   )
 }
@@ -138,7 +147,7 @@ function Classroom() {
             <Button type="button" variant="outline" disabled={!scan} onClick={() => setClearedThrough(scan.measuredAt)}>
               <RotateCcw aria-hidden="true" /> Reset
             </Button>
-            <div className="estimate-note"><h3>How the estimate works</h3><p>Each device at −75 dBm or stronger counts once. We divide by 2.2 devices per person and round up. People carrying more or fewer devices can shift the estimate.</p></div>
+            <div className="estimate-note"><h3>How the estimate works</h3><p>Each device at −75 dBm or stronger counts once. A person carries 1 to 2.2 devices, so the estimate is a range: the fewest people if everyone carries 2.2 devices, the most if everyone carries one.</p></div>
           </section>
         </div>
       </div>

@@ -54,6 +54,7 @@
 .dial-center svg { width: 23px; color: #b9ed93; }
 .dial-center strong { font-size: clamp(64px, 8.8vw, 134px); line-height: 1.12; font-weight: 580; color: #effce7; font-variant-numeric: tabular-nums; letter-spacing: -.065em; }
 .dial-center span { font-size: clamp(15px, 1.5vw, 20px); }
+.dial-center strong.range { font-size: clamp(44px, 5.6vw, 88px); letter-spacing: -.04em; }
 .count-stats { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #426355; padding-top: 16px; }
 .count-stats div + div { padding-left: 24px; border-left: 1px solid #426355; }
 .count-stats dt { font-size: 13px; color: #c2d3c7; }
