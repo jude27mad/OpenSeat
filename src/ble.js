@@ -62,8 +62,8 @@ export async function startScanner(
 ) {
   if (!topic.trim() || /[+#\0]/.test(topic))
     throw Error('Use the exact topic configured on the iPhone.')
-  const { connect } = await import('mqtt')
-  const client = connect('wss://mqtt.flespi.io:443', {
+  const { default: mqtt } = await import('mqtt')
+  const client = mqtt.connect('wss://mqtt.flespi.io:443', {
     username: token.trim(),
     clean: true,
     reconnectPeriod: 4000,
