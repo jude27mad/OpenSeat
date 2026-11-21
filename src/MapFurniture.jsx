@@ -45,6 +45,11 @@ export function MapFurniture({ place, location, model, now, palette, active }) {
     )
   }
 
+  // A table sensor reading newer than the chair reports colours the tabletop;
+  // the chairs keep their own colours.
+  const centre = location.sensorLeads
+    ? palette[location.sensor.value === 'free' ? 'sensorfree' : 'inuse']
+    : color
   return (
     <g className="table-symbol">
       <circle r="15" fill="transparent" />
@@ -67,8 +72,8 @@ export function MapFurniture({ place, location, model, now, palette, active }) {
       })}
       <circle
         r="8.5"
-        fill={color.fill}
-        stroke={color.stroke}
+        fill={centre.fill}
+        stroke={centre.stroke}
         strokeWidth={active ? 2.5 : 1.5}
         strokeDasharray={dash}
       />
