@@ -1,18 +1,53 @@
 import { scanCount, ttl } from './model.js'
 
-// BLE2MQTT exports a full scan with local wall-clock times. A station can also send epoch milliseconds.
+const futureTolerance = 5000
+const campusClock = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Toronto',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+// Map the few minutes a live scan can contain to the wall clock on the SLC scanner.
+// Formatting the real instants also handles skipped and repeated daylight-saving hours.
+function recentCampusMinutes(now) {
+  const minutes = new Map()
+  const first = Math.floor((now - ttl.ble) / 60000) * 60000
+  for (let start = first; start <= now + futureTolerance; start += 60000) {
+    const parts = Object.fromEntries(
+      campusClock.formatToParts(start).map(({ type, value }) => [type, value]),
+    )
+    minutes.set(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`, start)
+  }
+  return minutes
+}
+
+function scanTime(row, campusMinutes) {
+  if (Number.isSafeInteger(row?.measuredAt)) return row.measuredAt
+  if (typeof row?.time !== 'string') return NaN
+  const time = row.time.replace(' ', 'T')
+  const extraMillis = /^\d{1,3}$/.test(row.msec) ? Number(row.msec) : 0
+  if (/(?:Z|[+-]\d{2}:?\d{2})$/i.test(time))
+    return Date.parse(time) + (time.includes('.') ? 0 : extraMillis)
+  const local = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(?::([0-5]\d)(?:\.(\d+))?)?$/.exec(time)
+  if (!local || !campusMinutes.has(local[1])) return NaN
+  const [, minute, seconds = '0', fraction] = local
+  const millis = fraction ? Number(fraction.slice(0, 3).padEnd(3, '0')) : extraMillis
+  return campusMinutes.get(minute) + Number(seconds) * 1000 + millis
+}
+
 export function observation(rows, now = Date.now()) {
   if (!Array.isArray(rows) || rows.length > 20000)
     throw Error('Select one BLE2MQTT JSON scan array.')
   const recent = []
+  const campusMinutes = recentCampusMinutes(now)
   let measuredAt = -Infinity
   for (const row of rows) {
-    let stamp = row?.measuredAt
-    if (!Number.isSafeInteger(stamp) && typeof row?.time === 'string') {
-      stamp = Date.parse(row.time.replace(' ', 'T'))
-      if (/^\d{1,3}$/.test(row.msec)) stamp += Number(row.msec)
-    }
-    if (!Number.isSafeInteger(stamp) || stamp > now + 5000 || now - stamp >= ttl.ble) continue
+    const stamp = scanTime(row, campusMinutes)
+    if (!Number.isSafeInteger(stamp) || stamp > now + futureTolerance || now - stamp >= ttl.ble) continue
     measuredAt = Math.max(measuredAt, stamp)
     recent.push(row)
   }

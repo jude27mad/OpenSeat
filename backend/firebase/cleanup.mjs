@@ -80,7 +80,7 @@ export async function cleanup({ request, now = Date.now(), maxAge = 24 * HOUR, d
 }
 
 // Signs in as the service account and returns a short-lived access token.
-async function accessToken(account) {
+export async function accessToken(account) {
   const now = Math.floor(Date.now() / 1000)
   const part = (value) => Buffer.from(JSON.stringify(value)).toString('base64url')
   const unsigned =

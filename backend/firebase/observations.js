@@ -19,6 +19,27 @@ export function databaseRequest(settings, emulator, path, token, options = {}) {
   })
 }
 
+// A later occupied report must retain when this seat was last confirmed empty.
+async function saveReport(request, path, event) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const headers = {}
+    let lastFreeAt = event.at
+    if (event.value !== 'free') {
+      const current = await request(path, { headers: { 'X-Firebase-ETag': 'true' } })
+      if (!current.ok) return current
+      const previous = await current.json()
+      lastFreeAt = previous?.value === 'free' ? previous.at : previous?.lastFreeAt
+      headers['if-match'] = current.headers.get('etag')
+    }
+    const save = (data) => request(path, { method: 'PUT', headers, body: JSON.stringify(data) })
+    let result = await save(lastFreeAt == null ? event : { ...event, lastFreeAt })
+    // Existing installations may still enforce the previous report schema.
+    if (lastFreeAt != null && [401, 403].includes(result.status)) result = await save(event)
+    if (result.status !== 412) return result
+  }
+  throw new Error('Another report just changed this seat. Please try again.')
+}
+
 export async function postObservation({ request, room, uid, input, previousTicket }) {
   const { source, target, value, measuredAt, simulated = false, id = crypto.randomUUID() } = input
   const isDevice = source === 'sensor' || source === 'ble'
@@ -31,10 +52,12 @@ export async function postObservation({ request, room, uid, input, previousTicke
     if (previousTicket) claim.previous = await digest(previousTicket)
     patch['owners/' + target] = claim
   }
-  const result = await request(roomPath, { method: 'PATCH', body: JSON.stringify(patch) })
+  const result = source === 'report'
+    ? await saveReport(request, roomPath + '/' + eventPath, event)
+    : await request(roomPath, { method: 'PATCH', body: JSON.stringify(patch) })
   if (result.ok) {
     const response = await result.json()
-    const saved = response.events?.[source]?.[target] ?? response[eventPath]
+    const saved = source === 'report' ? response : response.events?.[source]?.[target] ?? response[eventPath]
     if (saved?.id !== id || !Number.isFinite(saved.at)) throw new Error('The shared service did not confirm this observation.')
     return { ...saved, source, target }
   }

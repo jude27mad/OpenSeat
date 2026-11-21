@@ -88,7 +88,9 @@ export function PlanDrawing({
       {places.map((p) => {
         const location = model.locations.get(p.id),
           [x, y] = mapPoints.get(p.id)
-        const active = p.id === selected
+        const dimmed = isDim(location, section, filter)
+        const interactive = !!onTap && !dimmed
+        const active = p.id === selected && !dimmed
         const e = location.latest,
           provenance = e
             ? sources[e.source] + ' · ' + age(e.at, now) + (e.simulated ? ' · Demo' : '')
@@ -99,12 +101,12 @@ export function PlanDrawing({
             data-id={p.id}
             transform={`translate(${x} ${y})`}
             className={'map-marker ' + location.status + (active ? ' active' : '')}
-            opacity={isDim(location, section, filter) ? 0.22 : 1}
-            role={onTap ? 'button' : undefined}
-            tabIndex={onTap ? -1 : undefined}
-            aria-hidden={onTap ? undefined : true}
+            opacity={dimmed ? 0.22 : 1}
+            role={interactive ? 'button' : undefined}
+            tabIndex={interactive ? -1 : undefined}
+            aria-hidden={interactive ? undefined : true}
             aria-label={
-              onTap
+              interactive
                 ? label(p.id) + ', ' + placeDescription(location) + ', ' + provenance
                 : undefined
             }
@@ -133,7 +135,7 @@ export function PlanDrawing({
           </g>
         )
       })}
-      {selectedPlace && (
+      {selectedPlace && !isDim(selectedPlace, section, filter) && (
         <g pointerEvents="none">
           <circle
             cx={px}
@@ -292,9 +294,11 @@ export default function FloorMap({ onSelect, focus, onPlaced, onShowList, ...pro
   }, [hint])
 
   function onTap(e) {
+    const id = e.target.closest?.('[data-id]')?.getAttribute('data-id')
+    const dim = (id) => isDim(props.model.locations.get(id), props.section, props.filter)
+    if (id && dim(id)) return
     // Keyboard and screen-reader activation has no position: use the marker itself.
     if (e.detail === 0) {
-      const id = e.target.closest?.('[data-id]')?.getAttribute('data-id')
       if (id) onSelect(id)
       return
     }
@@ -306,8 +310,7 @@ export default function FloorMap({ onSelect, focus, onPlaced, onShowList, ...pro
       pxPerUnit: m.a,
       zoom,
       touch: pointer.current !== 'mouse',
-      dim: (id) =>
-        isDim(props.model.locations.get(id), props.section, props.filter),
+      dim,
     })
     if (result.action === 'zoom') {
       zoomAt(result.zoom, e.clientX, e.clientY)

@@ -64,6 +64,14 @@ jobs:
         with:
           ref: gh-pages
           path: site
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: actions/download-artifact@v4
         with:
           name: production-site
@@ -72,6 +80,8 @@ jobs:
         id: publish
         env:
           GH_TOKEN: ${{ github.token }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENSEAT_FIREBASE_CONFIG: ${{ vars.OPENSEAT_FIREBASE_CONFIG }}
         run: |
           set -euo pipefail
           cd site
@@ -79,6 +89,11 @@ jobs:
           if [ "$main_head" != "$GITHUB_SHA" ]; then
             echo 'A newer main commit owns the next release.'
             exit 0
+          fi
+          if [[ -n "$FIREBASE_SERVICE_ACCOUNT" ]]; then
+            node ../source/backend/firebase/publish-rules.mjs
+          else
+            echo '::warning::Firebase rules could not be synchronized because FIREBASE_SERVICE_ACCOUNT is missing. Check the published two-student handoff test.'
           fi
           # Compare contents even when a rebuilt HTML file has the same size and timestamp.
           rsync -a --checksum --delete --exclude='/.git/' --exclude='/.github/' --exclude='/CNAME' ../build/ ./

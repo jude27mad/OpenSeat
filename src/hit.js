@@ -13,9 +13,7 @@ const ROOMY = 32
 
 /*
  * Decide what a tap at `at` (plan units) means.
- * `dim(id)` is true for places the current filter fades out; they lose to
- * a highlighted place within reach but can still be chosen on their own,
- * so a student can always report a faded seat.
+ * Only places included by the current map filters can be selected.
  */
 export function resolveTap({ at, pxPerUnit, zoom, touch, dim = () => false }) {
   const [x, y] = at
@@ -29,6 +27,11 @@ export function resolveTap({ at, pxPerUnit, zoom, touch, dim = () => false }) {
     second = near[1]
   if (!nearest) return { action: 'none' }
   const gap = spacing.get(nearest.id) * pxPerUnit
+  const reach = touch
+    ? Math.min(28, Math.max(12, gap * 0.55))
+    : Math.max(8, gap * 0.5)
+  const candidate = near.find((p) => p.d <= reach && !dim(p.id))
+  if (!candidate) return { action: 'none' }
   // Zoom first when neighbours are too close for a fingertip, or when the tap
   // lands between two places that are only a little further apart.
   const between = gap < ROOMY && second && second.d < nearest.d * 1.5 + 4
@@ -41,11 +44,5 @@ export function resolveTap({ at, pxPerUnit, zoom, touch, dim = () => false }) {
       action: 'zoom',
       zoom: Math.min(MAX_ZOOM, Math.max(zoom * 1.5, (zoom * COMFORT) / gap)),
     }
-  const reach = touch
-    ? Math.min(28, Math.max(12, gap * 0.55))
-    : Math.max(8, gap * 0.5)
-  const inReach = near.filter((c) => c.d <= reach)
-  if (!inReach.length) return { action: 'none' }
-  const lit = inReach.find((c) => !dim(c.id))
-  return { action: 'select', id: (lit || inReach[0]).id }
+  return { action: 'select', id: candidate.id }
 }
