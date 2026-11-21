@@ -19,7 +19,8 @@ for (const width of [390, 1280]) {
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await panel.getByRole('button', { name: 'Connect scanner' }).click()
-    const dialog = page.getByRole('dialog', { name: 'Device inputs' })
+    const dialog = page.getByRole('dialog', { name: 'Bluetooth scanner' })
+    await expect(dialog.getByText('Table sensor', { exact: true })).toHaveCount(0)
     await expect(dialog.getByLabel('flespi read token')).toBeVisible()
     await expect(dialog.getByLabel('Scanner MQTT topic')).toBeVisible()
     await expect(dialog.getByLabel('OpenSeat operator key')).toBeVisible()

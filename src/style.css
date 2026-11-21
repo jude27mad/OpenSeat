@@ -154,7 +154,7 @@ button {
   display: grid;
   gap: 4px;
 }
-.sidebar nav button {
+.sidebar nav :is(button, a) {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -166,10 +166,10 @@ button {
   font-size: 13px;
   color: #46564a;
 }
-.sidebar nav button:hover {
+.sidebar nav :is(button, a):hover {
   background: #e6eee3;
 }
-.sidebar nav button[aria-current='page'] {
+.sidebar nav :is(button, a)[aria-current='page'] {
   background: #dfeada;
   color: #245438;
   font-weight: 650;
@@ -2675,7 +2675,7 @@ summary:focus-visible {
 .sidebar nav {
   gap: 4px;
 }
-.sidebar nav button {
+.sidebar nav :is(button, a) {
   border-radius: var(--pill);
   min-height: 40px;
   padding: 10px 14px;
@@ -2683,16 +2683,16 @@ summary:focus-visible {
   font-weight: 540;
   transition: background-color 0.15s;
 }
-.sidebar nav button:hover {
+.sidebar nav :is(button, a):hover {
   background: rgba(29, 102, 71, 0.07);
 }
-.sidebar nav button[aria-current='page'] {
+.sidebar nav :is(button, a)[aria-current='page'] {
   background: #fff;
   color: var(--soft-primary-deep);
   font-weight: 660;
   box-shadow: var(--soft-shadow-sm), inset 0 0 0 1px var(--soft-line);
 }
-.sidebar nav button[aria-current='page'] svg {
+.sidebar nav :is(button, a)[aria-current='page'] svg {
   color: var(--soft-primary);
 }
 .sidebar .floor-select {
@@ -3949,13 +3949,13 @@ details[open] > :not(summary) {
 :root[data-theme='dark'] .nav-heading {
   color: #93a89a;
 }
-:root[data-theme='dark'] .sidebar nav button {
+:root[data-theme='dark'] .sidebar nav :is(button, a) {
   color: #c0cfc5;
 }
-:root[data-theme='dark'] .sidebar nav button:hover {
+:root[data-theme='dark'] .sidebar nav :is(button, a):hover {
   background: rgba(150, 215, 180, 0.08);
 }
-:root[data-theme='dark'] .sidebar nav button[aria-current='page'] {
+:root[data-theme='dark'] .sidebar nav :is(button, a)[aria-current='page'] {
   background: var(--dk-raised);
   color: var(--soft-primary-deep);
   box-shadow: var(--soft-shadow-sm), inset 0 0 0 1px var(--soft-line);
