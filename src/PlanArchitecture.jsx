@@ -10,7 +10,7 @@ const accents = {
 }
 const floor7StairArrows = [[50, 102], [50, 371], [647, 149]]
 const floor8Outline = 'M232 23H620V754H130L57 639 14 88H232Z'
-const floor8Services = 'M233 88v91h360M293 177v-72h259v72M237 68h120m138 0h122M465 597h151'
+const floor8Services = 'M233 88v91h360M293 177v-72h259v72M237 68h120m138 0h122'
 
 function polygon(points) {
   return 'M' + points.map(([x, y]) => x + ' ' + y).join('L') + 'Z'
