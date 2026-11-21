@@ -6,7 +6,7 @@ OpenSeat shows which study seats are free in TMU's Student Learning Centre (SLC)
 
 ## What it does
 
-- Shows a map of the floor. Each seat is green (free), orange (taken), white (no recent info) or purple (mixed reports).
+- Shows a map of the floor. Each seat is green (free), orange (taken) or white (no recent info).
 - **Find me a free seat** takes you to a free spot, starting with the most free chairs and the newest reports. **Next free spot** shows another one.
 - Tap a seat or table to report it: **It's free** or **It's taken**.
 - Scan the QR code of a table or seat to check in. Your spot is held for 60 minutes.
@@ -18,14 +18,14 @@ OpenSeat shows which study seats are free in TMU's Student Learning Centre (SLC)
 | --- | --- | --- |
 | Student report | A student taps **It's free** or **It's taken** | 15 minutes |
 | QR check-in | A student scans the code on a table or seat and checks in | 60 minutes. After checking out, the spot shows free for 5 minutes |
-| Table sensor | A sensor on a table or seat says whether it is in use. No real sensors are installed yet: in the demo you make readings with buttons, and live floors take them from a table station | 5 minutes |
+| Seat sensor | A sensor on a seat or chair says whether it is in use. No real sensors are installed yet: in the demo you make readings with buttons, and live floors take them from a sensor station | 5 minutes |
 | Bluetooth scanner | Counts the Bluetooth devices (phones, watches, earbuds) near a scanner. Only strong signals count (−75 dBm or stronger). The counts travel through flespi, an online message service | 2 minutes |
 
 Simple rules:
 
-- For a seat, the newest report, check-in or seat-sensor reading wins. Only a free report can clear someone's check-in.
-- A table sensor reading newer than the chair reports colours the table. The chairs keep their own status.
-- If a table's sensor says one thing and the reports for its chairs say another, the table turns purple and shows **Mixed reports**.
+- A current seat-sensor reading decides the seat. It overrides everything else.
+- Otherwise the newest report or check-in wins. A free report releases an earlier check-in.
+- A table is free if any of its chairs is free.
 - When nothing is recent, the seat says **No recent info** instead of guessing.
 - Bluetooth gives a count for an area, not for a single seat.
 
@@ -42,7 +42,7 @@ Simple rules:
 - The first visit opens a **demo** with example data and a banner at the top. To see the real map everyone shares, press **See live floor** in that banner.
 - In the demo, reports never time out. A seat only changes when someone reports it, checks in or checks out.
 - **Check-in:** select a table or seat, press **Show table QR code** (or **Show seat QR code**) and scan it with another phone.
-- **Sensors:** open any table or seat and press **Sensor: free** or **Sensor: in use**. The seat or table changes colour on the map, with a sensor dot: green for free, orange for in use.
+- **Sensors:** open any seat or table, pick a chair, and press **Sensor: free** or **Sensor: in use**. That seat changes colour on the map. In the demo, a seat with a sensor reading keeps it until the next sensor reading.
 - **Bluetooth** is never simulated. It only shows real readings from the scanner. Press **Connect scanner** to set it up.
 - **Share map** shows a QR code and a link. Open either on another device to join the same demo. A demo nobody uses for 24 hours is deleted, and its link then opens an empty demo.
 - **Restart demo** starts a fresh one.
@@ -114,7 +114,7 @@ Without the secret, the job deletes nothing and shows a warning. To see what it 
 3. On a live floor, also enter the **OpenSeat operator key** (the same key as `OPENSEAT_FEED_KEY` below).
 4. Keep the page open. It counts the devices and saves only the count and the time to OpenSeat's database. Scan times without a time zone are read as Toronto time.
 
-**Table station.** A station is a small program that sends sensor readings. Run it with two environment variables, for example:
+**Sensor station.** A station is a small program that sends seat-sensor readings. Run it with two environment variables, for example:
 
 ```
 OPENSEAT_FEED_KEY=yourkey OPENSEAT_FLOOR=8 node backend/firebase/station.mjs
@@ -126,12 +126,12 @@ OPENSEAT_FEED_KEY=yourkey OPENSEAT_FLOOR=8 node backend/firebase/station.mjs
 Type or pipe readings into the running station, one JSON object per line, for example:
 
 ```
-{"id":"3f1c2a7e-5b9d-4c3a-9e2f-1a2b3c4d5e6f","source":"sensor","target":"T01","value":"free","measuredAt":1767225600000}
+{"id":"3f1c2a7e-5b9d-4c3a-9e2f-1a2b3c4d5e6f","source":"sensor","target":"T01-A","value":"free","measuredAt":1767225600000}
 ```
 
 - `id`: a version 4 UUID (for example from `crypto.randomUUID()`). To resend a reading, keep the same `id` and the same `measuredAt` so it isn't counted twice.
 - `source`: `sensor` or `ble` (Bluetooth).
-- `target`: for a sensor, a table (T) or single seat (I): Floor 8 T01–T40 or I001–I092; Floor 7 T01–T03 or I001–I196; Floor 5 I001–I166. For Bluetooth, `tables` or `individuals` (Floor 5 has only `individuals`).
+- `target`: for a sensor, a chair at a table (T, with A–D) or a single seat (I): Floor 8 T01-A–T40-D or I001–I092; Floor 7 T01-A–T03-D or I001–I196; Floor 5 I001–I166. For Bluetooth, `tables` or `individuals` (Floor 5 has only `individuals`).
 - `value`: `free` or `occupied` for a sensor, or a whole number for Bluetooth.
 - `measuredAt`: when the reading was taken, in milliseconds since 1 January 1970 (what `Date.now()` gives).
 

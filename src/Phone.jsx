@@ -177,7 +177,7 @@ export default function PhoneView(p) {
     (best, e) => (fresh(e, now) && e.source !== 'ble' && (!best || e.at > best.at) ? e : best),
     null,
   )
-  // Nothing fresh anywhere on the floor, not even a table sensor.
+  // Nothing fresh anywhere on the floor, not even a seat sensor.
   const empty =
     n.unknown === seats.length &&
     ![...model.locations.values()].some((l) => l.status !== 'unknown')
@@ -303,7 +303,6 @@ export default function PhoneView(p) {
                   <h1 id="hero-title">{n.unknown ? 'No free seats reported' : 'Every seat is taken'}</h1>
                   <p className="hero-sub">
                     {n.occupied} taken · {n.unknown} no recent info
-                    {n.mixed ? ' · ' + n.mixed + ' mixed' : ''}
                     {latest ? ' · updated ' + age(latest.at, now).toLowerCase() : ''}
                   </p>
                   {n.unknown > 0 && !choices && (
@@ -320,7 +319,6 @@ export default function PhoneView(p) {
                   </h1>
                   <p className="hero-sub">
                     {n.occupied} taken · {n.unknown} no recent info
-                    {n.mixed ? ' · ' + n.mixed + ' mixed' : ''}
                     {latest ? ' · updated ' + age(latest.at, now).toLowerCase() : ''}
                   </p>
                 </>

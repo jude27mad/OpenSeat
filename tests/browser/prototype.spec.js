@@ -141,15 +141,16 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
     path: testInfo.outputPath('phone.png'),
     fullPage: true,
   })
-  // In the demo, a table sensor is tried right where it shows.
+  // In the demo, a seat sensor is tried right where it shows, and it decides the chair.
   const inspector = page.locator('.inspector')
+  const chair = (await inspector.locator('.chair-tabs [aria-pressed="true"] b').textContent()).trim()
   await inspector.getByRole('button', { name: 'Sensor: in use', exact: true }).click()
   await expect(inspector.getByRole('status')).toContainText(
-    'Demo sensor reading: Table 17 is in use.',
+    'Demo sensor reading: Table 17 · Chair ' + chair + ' is in use.',
     { timeout: 17000 },
   )
-  await expect(inspector).toContainText("Table sensor: someone's at this table")
-  await expect(page.locator('[data-id="T17"] .sensor-dot')).toHaveAttribute('fill', '#d0702f')
+  await expect(inspector).toContainText("Chair " + chair + " sensor: someone's in this seat")
+  await expect(inspector.locator('.chair-tabs [aria-pressed="true"]')).toContainText('Taken')
   await page.screenshot({
     path: testInfo.outputPath('dashboard.png'),
     fullPage: true,

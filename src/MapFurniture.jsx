@@ -20,7 +20,6 @@ function SensorDot({ event, now }) {
 
 export function MapFurniture({ place, location, model, now, palette, active }) {
   const color = palette[location.status]
-  const dash = location.status === 'mixed' ? '3 2' : undefined
 
   if (place.section === 'individuals') {
     const sensor = model.states.get(place.id)?.evidence.find((e) => e.source === 'sensor')
@@ -36,7 +35,6 @@ export function MapFurniture({ place, location, model, now, palette, active }) {
           fill={color.fill}
           stroke={color.stroke}
           strokeWidth="1.4"
-          strokeDasharray={dash}
         />
         <path d="M-4 4h8" stroke={color.stroke} strokeWidth="1.25" />
       </g>
@@ -45,11 +43,6 @@ export function MapFurniture({ place, location, model, now, palette, active }) {
     )
   }
 
-  // A table sensor reading newer than the chair reports colours the tabletop;
-  // the chairs keep their own colours.
-  const centre = location.sensorLeads
-    ? palette[location.sensor.value === 'free' ? 'sensorfree' : 'inuse']
-    : color
   return (
     <g className="table-symbol">
       <circle r="15" fill="transparent" />
@@ -72,12 +65,10 @@ export function MapFurniture({ place, location, model, now, palette, active }) {
       })}
       <circle
         r="8.5"
-        fill={centre.fill}
-        stroke={centre.stroke}
+        fill={color.fill}
+        stroke={color.stroke}
         strokeWidth={active ? 2.5 : 1.5}
-        strokeDasharray={dash}
       />
-      <SensorDot event={location.sensor} now={now} />
     </g>
   )
 }

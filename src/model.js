@@ -1,8 +1,8 @@
-import { places, chairs, seats, byId, tables } from './floor.js'
+import { places, chairs, seats, byId } from './floor.js'
 export const sources = {
   report: 'Student report',
   qr: 'QR check-in',
-  sensor: 'Table sensor',
+  sensor: 'Seat sensor',
   ble: 'Bluetooth',
 }
 export const cutoff = -75
@@ -26,7 +26,6 @@ export const statuses = {
   free: 'Free',
   occupied: 'Taken',
   unknown: 'No recent info',
-  mixed: 'Mixed reports',
 }
 export function age(at, now) {
   if (!Number.isFinite(at)) return 'No update'
@@ -66,8 +65,6 @@ export function seedDemo(anchor) {
     const source = n % 3 === 0 ? 'qr' : 'report'
     put(source, seat, n < 34 ? 'free' : 'occupied', 1 + (i % 10))
   })
-  for (const [i, p] of tables.entries())
-    if (i % 4 === 0) put('sensor', p.id, 'occupied', 12)
   return rows
 }
 // A free confirmation expires as evidence of availability, but permanently
@@ -77,10 +74,14 @@ export function clearsHold(report, qr, now) {
   const lastFreeAt = report.value === 'free' ? report.at : report.lastFreeAt
   return Number.isFinite(lastFreeAt) && lastFreeAt > qr.at && lastFreeAt <= now + 5000
 }
+// How a seat's status is decided, in three rules:
+// 1. A current seat-sensor reading decides the seat. It overrides everything.
+// 2. Otherwise the newest student report or check-in decides. A free report
+//    releases an earlier check-in; checking in after a free report takes it.
+// 3. Old updates stop counting, and the seat shows No recent info.
 export function resolveSeat(events, now) {
-  // A free report must be strictly newer to release a hold, including on ties.
-  // Equal times are settled the same way on every device: check-in, then
-  // report, then sensor, then id.
+  // Equal times settle the same way on every device: check-in, then report,
+  // then sensor, then id. A free report must be strictly newer to release a hold.
   const rank = { qr: 3, report: 2, sensor: 1 }
   const ordered = [...events].sort((a, b) =>
     b.at - a.at ||
@@ -89,30 +90,22 @@ export function resolveSeat(events, now) {
   const report = ordered.find((e) => e.source === 'report')
   const active = ordered.filter((e) =>
     fresh(e, now) && !(e.source === 'qr' && e.value === 'occupied' && clearsHold(report, e, now)))
-  if (!active.length)
+  const sensor = active.find((e) => e.source === 'sensor')
+  const decides = sensor || active.find((e) => e.source === 'report' || e.source === 'qr')
+  if (!decides)
     return {
       status: 'unknown',
       evidence: ordered,
       latest: ordered[0],
       stale: !!ordered.length,
     }
-  // A student's report, a check-in and a seat's own sensor describe the same
-  // moment-to-moment fact, so the newest one wins: a confirmed "It's free" clears
-  // an abandoned check-in, checking in after a free report shows the seat as
-  // taken, and a newer seat-sensor reading sets the seat.
-  // A sensor can't clear someone's check-in: only a free report does that, so a
-  // sensor reading "free" on a held seat shows Mixed reports.
-  const people = active.filter((e) => e.source === 'report' || e.source === 'qr' || e.source === 'sensor')
-  const kept = people.length ? [people[0], ...active.filter((e) => !people.includes(e))] : active
-  const held = active.some((e) => e.source === 'qr' && e.value === 'occupied')
-  let status = new Set(kept.map((e) => e.value)).size > 1 ? 'mixed' : kept[0].value
-  if (held && people[0]?.source === 'sensor' && people[0].value === 'free') status = 'mixed'
   return {
-    status,
+    status: decides.value,
     evidence: ordered,
-    latest: active[0],
+    latest: decides,
     stale: false,
-    held,
+    held: active.some((e) => e.source === 'qr' && e.value === 'occupied'),
+    sensor,
   }
 }
 export function derive(events, now) {
@@ -131,71 +124,33 @@ export function derive(events, now) {
   const states = new Map(
     seats.map((id) => [id, resolveSeat(forTarget(id), now)]),
   )
-  const counts = { free: 0, occupied: 0, unknown: 0, mixed: 0 }
+  const counts = { free: 0, occupied: 0, unknown: 0 }
   for (const item of states.values()) counts[item.status]++
   const locations = new Map()
   for (const p of places) {
     const ids = chairs(p),
       member = ids.map((id) => states.get(id)),
-      tally = { free: 0, occupied: 0, unknown: 0, mixed: 0 }
+      tally = { free: 0, occupied: 0, unknown: 0 }
     for (const item of member) tally[item.status]++
-    const sensor =
-      p.section === 'tables'
-        ? forTarget(p.id).find((e) => e.source === 'sensor')
-        : null
-    const sensorActive = fresh(sensor, now)
-    // A table sensor reading newer than everything said about its chairs
-    // decides how the table looks; the chairs keep their own status.
-    const latestChair = Math.max(
-      -Infinity,
-      ...member.flatMap((s) => s.evidence.filter((e) => fresh(e, now)).map((e) => e.at)),
-    )
-    // A sensor reading "free" never overrides a chair someone has checked in to,
-    // and "in use" never hides a chair reported free: someone is at the table,
-    // but that chair can still be taken.
-    const sensorLeads =
-      sensorActive && sensor.at > latestChair && !(sensor.value === 'free' && member.some((s) => s.held))
-    let status = 'unknown'
-    if (sensorLeads)
-      status =
-        sensor.value === 'free'
-          ? tally.free
-            ? 'free'
-            : 'sensorfree'
-          : tally.occupied === ids.length
-            ? 'occupied'
-            : tally.free
-              ? 'free'
-              : 'inuse'
-    else {
-      if (tally.free) status = 'free'
-      else if (tally.occupied === ids.length) status = 'occupied'
-      else if (tally.occupied || (sensorActive && sensor.value === 'occupied'))
-        status = 'inuse'
-      else if (sensorActive && sensor.value === 'free') status = 'sensorfree'
-      if (
-        tally.mixed ||
-        (sensorActive &&
-          ((sensor.value === 'free' && tally.occupied > 0) ||
-            (sensor.value === 'occupied' && tally.free === ids.length)))
-      )
-        status = 'mixed'
-    }
-    const evidence = [
-      ...member.flatMap((s) => s.evidence),
-      ...(sensor ? [sensor] : []),
-    ].sort((a, b) => b.at - a.at)
+    // A table is free if any chair is, taken if all are, partly in use otherwise.
+    const status = tally.free
+      ? 'free'
+      : tally.occupied === ids.length
+        ? 'occupied'
+        : tally.occupied
+          ? 'inuse'
+          : 'unknown'
+    const evidence = member.flatMap((s) => s.evidence).sort((a, b) => b.at - a.at)
     locations.set(p.id, {
       ...p,
       ids,
       tally,
       status,
-      sensor,
-      sensorLeads,
-      latest: [
-        ...member.filter((s) => !s.stale && s.latest).map((s) => s.latest),
-        ...(sensorActive ? [sensor] : []),
-      ].sort((a, b) => b.at - a.at)[0] || evidence[0],
+      latest:
+        member
+          .filter((s) => !s.stale && s.latest)
+          .map((s) => s.latest)
+          .sort((a, b) => b.at - a.at)[0] || evidence[0],
       evidence,
     })
   }
@@ -234,9 +189,6 @@ export function scanCount(rows) {
 }
 export function placeDescription(p) {
   if (!p) return ''
-  if (p.status === 'mixed') return 'Mixed reports'
-  if (p.status === 'sensorfree') return 'Table sensor says free'
-  if (p.sensorLeads && p.status === 'inuse') return 'Table sensor says in use'
   if (p.status === 'unknown') return 'No recent info'
   if (p.ids.length === 1) return statuses[p.status]
   if (p.status === 'inuse')
@@ -247,8 +199,8 @@ export function placeDescription(p) {
     ? p.tally.free + ' of 4 chairs free'
     : 'All 4 chairs taken'
 }
-// A place worth suggesting: a reported free chair, or a table its sensor reports free.
-export const looksFree = (p) => p.status === 'free' || p.status === 'sensorfree'
+// A place worth suggesting: at least one free chair or seat.
+export const looksFree = (p) => p.status === 'free'
 // Best suggestions first: most free chairs, then the freshest evidence.
 export function suggestions(locations, now, section = 'all') {
   return [...locations.values()]

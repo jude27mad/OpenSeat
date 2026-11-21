@@ -51,8 +51,8 @@ export function Origin({ event, now }) {
     </span>
   )
 }
-const tones = { inuse: 'occupied', sensorfree: 'free' }
-const short = { free: 'Free', occupied: 'Taken', unknown: 'No info', mixed: 'Mixed' }
+const tones = { inuse: 'occupied' }
+const short = { free: 'Free', occupied: 'Taken', unknown: 'No info' }
 const chairName = (id) => (id.includes('-') ? 'Chair ' + id.slice(-1) : 'this seat')
 const ago = (at, now) => age(at, now).toLowerCase()
 
@@ -208,22 +208,23 @@ export default function SeatDetails({
         (value === 'free' ? 'free' : 'taken') +
         (demo ? '.' : '. Reports last 15 minutes.') +
         (force ? ' Anyone sitting there can now check in.' : '') +
-        sensorNote(value === 'free' && isTable && place.tally.free + 1 >= place.ids.length)
+        sensorNote(value)
       )
     })
   }
-  // The sensor for this table or seat. In the demo, its buttons sit beside the
+  // The sensor for this seat or chair. In the demo, its buttons sit beside the
   // reading, so the map and the reading change right where you pressed.
-  const sensorEvent = isTable ? place.sensor : state?.evidence.find((e) => e.source === 'sensor')
+  const sensorEvent = state?.evidence.find((e) => e.source === 'sensor')
   function simulateSensor(value) {
     run(async () => {
-      await record({ source: 'sensor', target: place.id, value, simulated: true })
-      return 'Demo sensor reading: ' + label(place.id) + (value === 'free' ? ' is free.' : ' is in use.')
+      await record({ source: 'sensor', target: seat, value, simulated: true })
+      return 'Demo sensor reading: ' + label(seat) + (value === 'free' ? ' is free.' : ' is in use.')
     })
   }
-  function sensorNote(allFree) {
-    return allFree && fresh(place.sensor, now) && place.sensor.value === 'occupied'
-      ? ' The table sensor still sees someone, so the table shows Mixed reports until one of them updates.'
+  // A current seat-sensor reading decides the seat, so say when a report won't change it.
+  function sensorNote(value) {
+    return fresh(sensorEvent, now) && sensorEvent.value !== value
+      ? ' Its sensor still reads ' + (sensorEvent.value === 'free' ? 'free' : 'in use') + ', and the sensor decides.'
       : ''
   }
   function reportTable(value) {
@@ -555,18 +556,14 @@ export default function SeatDetails({
           <div className="sensor-line">
             <Radio size={15} />
             <span>
-              <b>{isTable ? 'Table sensor' : 'Seat sensor'}:</b>{' '}
+              <b>{isTable ? chairName(seat) + ' sensor' : 'Seat sensor'}:</b>{' '}
               {!sensorEvent
                 ? 'no reading yet'
                 : !fresh(sensorEvent, now)
                   ? 'no recent reading'
                   : sensorEvent.value === 'free'
-                    ? isTable
-                      ? 'nobody at this table'
-                      : 'nobody in this seat'
-                    : isTable
-                      ? "someone's at this table"
-                      : "someone's in this seat"}
+                    ? 'nobody in this seat'
+                    : "someone's in this seat"}
               {sensorEvent && (
                 <small>
                   {ago(sensorEvent.at, now)}
@@ -657,10 +654,9 @@ export default function SeatDetails({
             <p>
               {demo
                 ? 'In the demo nothing expires: a seat changes only when someone reports it, checks in or checks out.'
-                : 'Each source counts for a while: check-ins 60 minutes, student reports 15 minutes, table sensors 5 minutes.'}{' '}
-              For a seat, the newest report, check-in or seat-sensor reading wins, but only a
-              free report clears a check-in. A table sensor reading newer than the chair reports
-              colours the table; an older one that disagrees with the chairs shows Mixed reports.
+                : 'Each source counts for a while: check-ins 60 minutes, student reports 15 minutes, seat sensors 5 minutes.'}{' '}
+              A current seat-sensor reading decides the seat. Otherwise the newest report or
+              check-in wins.
             </p>
             {state.evidence.map((e) => (
               <div key={e.id}>

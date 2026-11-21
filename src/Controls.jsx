@@ -196,8 +196,8 @@ export function FeedControls({
       title="Device inputs"
       description={
         demo
-          ? 'Connect a real scanner or table station. In the demo you can also try a table sensor from any table.'
-          : 'Connect a station to its own section or table. Hardware observations carry their measurement time.'
+          ? 'Connect a real scanner or seat-sensor station. In the demo you can also try a seat sensor from any seat.'
+          : 'Connect a station to its own section or seats. Hardware observations carry their measurement time.'
       }
       onClose={onClose}
     >
@@ -207,7 +207,7 @@ export function FeedControls({
           onClick={() => setKind('sensor')}
         >
           <Radio size={15} />
-          Table sensor
+          Seat sensor
         </button>
         <button aria-pressed={kind === 'ble'} onClick={() => setKind('ble')}>
           <Bluetooth size={15} />
@@ -216,15 +216,13 @@ export function FeedControls({
       </div>
       {kind === 'sensor' ? (
         <>
-          <h3>{label(place.id)}</h3>
           <p>
-            {place.section === 'tables'
-              ? 'A round-table sensor reports whether the table is in use. Each chair keeps its own status.'
-              : 'A seat sensor reports whether this seat is in use.'}
+            A seat sensor reports whether one seat or chair is in use. While its reading is
+            current, it decides that seat.
           </p>
           {demo ? (
             <p>
-              To try it in the demo, close this, open any {tables.length ? 'table' : 'seat'} and press{' '}
+              To try it in the demo, close this, open any seat or table and press{' '}
               <b>Sensor: free</b> or <b>Sensor: in use</b> beside its sensor reading.
             </p>
           ) : (

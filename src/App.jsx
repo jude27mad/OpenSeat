@@ -648,15 +648,11 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
               />
               <Stat
                 name="No recent info"
-                value={n.unknown + n.mixed}
-                detail={
-                  n.mixed
-                    ? n.mixed + ' with mixed reports'
-                    : 'Waiting for a check-in or report'
-                }
+                value={n.unknown}
+                detail="Waiting for a check-in or report"
                 icon={Clock3}
                 tone="stone"
-                percent={((n.unknown + n.mixed) * 100) / seats.length}
+                percent={(n.unknown * 100) / seats.length}
               />
               <Stat
                 name="Nearby devices"

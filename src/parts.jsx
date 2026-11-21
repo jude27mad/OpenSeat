@@ -29,7 +29,7 @@ export const sourceText = {
   ble: 'Counts phones nearby in each area',
   qr: 'Students check in by scanning the table code',
   report: 'Students tap “It’s free” or “It’s taken”',
-  sensor: 'Detects whether a table is in use',
+  sensor: 'Detects whether a seat is in use',
 }
 
 // What each of the four sources currently knows, alongside the floor overview.
@@ -54,8 +54,8 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
       demo.report ||= !!report.simulated
     }
   }
-  const sensors = [...model.locations.values()]
-    .map((l) => l.sensor)
+  const sensors = [...model.states.values()]
+    .map((s) => s.sensor)
     .filter((e) => fresh(e, now))
   const newestSensor = sensors.reduce((a, b) => (!a || b.at > a.at ? b : a), null)
   const areas = [
@@ -128,7 +128,7 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
           </span>
           <div>
             <p className="live-name">
-              Table sensors {newestSensor?.simulated && <DemoTag />}
+              Seat sensors {newestSensor?.simulated && <DemoTag />}
             </p>
             <p className="live-value">
               {newestSensor
@@ -150,7 +150,6 @@ export function Legend() {
         ['free', 'Free'],
         ['occupied', 'Taken'],
         ['unknown', 'No recent info'],
-        ['mixed', 'Mixed reports'],
       ].map(([s, text]) => (
         <span key={s}>
           <i className={s} />
