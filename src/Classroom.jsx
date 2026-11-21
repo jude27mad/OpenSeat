@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { ArrowLeft, Bluetooth, Check, Radio, UsersRound } from 'lucide-react'
+import { ArrowLeft, Bluetooth, Check, Radio, RotateCcw, UsersRound } from 'lucide-react'
+import { Button } from './components/ui/button'
 import { applyTheme } from './theme.js'
 import './style.css'
 import './classroom.css'
@@ -52,7 +53,8 @@ const relay = 'https://openseat-classroom-relay.good-eft-3431.chatgpt.site'
 
 function Classroom() {
   const [phase, setPhase] = useState('connecting')
-  const [scan, setScan] = useState(null)
+  const [latestScan, setScan] = useState(null)
+  const [clearedThrough, setClearedThrough] = useState(0)
   useEffect(() => {
     let active = true
     let timer
@@ -107,6 +109,7 @@ function Classroom() {
     }
   }, [])
 
+  const scan = latestScan && latestScan.measuredAt > clearedThrough ? latestScan : null
   const complete = Boolean(scan)
   const displayPhase = complete ? 'complete' : phase
   const time = scan && new Date(scan.measuredAt)
@@ -132,6 +135,9 @@ function Classroom() {
             <span className="scanner-icon">{complete ? <Check /> : <Bluetooth />}</span>
             <h2 id="scanner-heading">{complete ? 'Latest classroom scan' : phase === 'waiting' ? 'Ready for your phone' : phase === 'error' ? 'Reconnecting' : 'Connecting to flespi'}</h2>
             <p role="status">{phase === 'waiting' ? <>Press <b>Master</b> in BLE2MQTT on your iPhone. The count updates here when the scan arrives.</> : phase === 'error' ? 'The scanner connection is unavailable. This display will retry automatically.' : 'Opening the classroom scanner connection…'}</p>
+            <Button type="button" variant="outline" disabled={!scan} onClick={() => setClearedThrough(scan.measuredAt)}>
+              <RotateCcw aria-hidden="true" /> Reset
+            </Button>
             <div className="estimate-note"><h3>How the estimate works</h3><p>Each device at −75 dBm or stronger counts once. We divide by 2.2 devices per person and round up. People carrying more or fewer devices can shift the estimate.</p></div>
           </section>
         </div>
