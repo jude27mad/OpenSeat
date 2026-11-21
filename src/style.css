@@ -3693,3 +3693,77 @@ footer {
     padding: 0 10px;
   }
 }
+
+/* ------------------------------------------------------------------
+ * Motion: things that pop up ease in instead of just appearing.
+ * Uses the separate `translate` and `scale` properties so it adds to
+ * each element's own positioning transform. Turned off for anyone who
+ * asks their device to reduce motion.
+ * ------------------------------------------------------------------ */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes os-fade-in {
+  from { opacity: 0; }
+}
+@keyframes os-pop-in {
+  from { opacity: 0; scale: 0.96; translate: 0 10px; }
+}
+@keyframes os-rise-in {
+  from { translate: 0 100%; }
+}
+@keyframes os-drop-in {
+  from { opacity: 0; translate: 0 -10px; }
+}
+@keyframes os-fade-up {
+  from { opacity: 0; translate: 0 8px; }
+}
+/* Dialogs: the backdrop fades, the card grows in gently. */
+.dialog-overlay {
+  animation: os-fade-in 0.22s ease-out;
+}
+.dialog-content {
+  animation: os-pop-in 0.28s var(--ease-out);
+}
+/* Bottom sheets slide up from the bottom edge. */
+.dialog-content.menu-sheet,
+.sheet {
+  animation: os-rise-in 0.34s var(--ease-out);
+}
+/* Messages, hints and banners ease into place. */
+.toast-region .feedback,
+.toast-region .error,
+.floating-note,
+.map-hint,
+.mine-banner {
+  animation: os-drop-in 0.26s var(--ease-out);
+}
+.confirm,
+details[open] > :not(summary) {
+  animation: os-fade-up 0.24s var(--ease-out);
+}
+/* Switching between the map, the list and the sources page. */
+.phone-sources,
+.phone-list,
+.phone .seat-list {
+  animation: os-fade-up 0.26s var(--ease-out);
+}
+/* A seat or table changing status fades to its new colour. */
+.map-marker rect,
+.map-marker circle,
+.chair-tabs button,
+.status {
+  transition:
+    fill 0.3s ease,
+    stroke 0.3s ease,
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+  }
+}
