@@ -22,9 +22,9 @@ test('classroom reads the shared count after switching apps without a token', as
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
   }
   await update(22)
-  await expect(page.getByText('10 estimated people', {exact:true})).toHaveCount(1)
+  await expect(page.getByText('10 to 22 estimated people', {exact:true})).toHaveCount(1)
   await page.reload()
-  await expect(page.getByText('10 estimated people', {exact:true})).toHaveCount(1)
+  await expect(page.getByText('10 to 22 estimated people', {exact:true})).toHaveCount(1)
   await page.getByRole('button', { name: 'Reset' }).click()
   await expect(page.getByText('Listening for scan')).toBeVisible()
   await Promise.all([
@@ -32,6 +32,10 @@ test('classroom reads the shared count after switching apps without a token', as
     page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))),
   ])
   await expect(page.getByText('No count yet')).toHaveCount(1)
+  await update(1)
+  await expect(page.getByText('1 estimated person', {exact:true})).toHaveCount(1)
+  await update(30)
+  await expect(page.getByText('14 to 30 estimated people', {exact:true})).toHaveCount(1)
   await update(0)
   await expect(page.getByText('0 estimated people', {exact:true})).toHaveCount(1)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
