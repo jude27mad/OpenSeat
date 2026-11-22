@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 for (const width of [390, 1280]) {
-  test('overview shows all four sources with scanner setup behind How it works at width ' + width, async ({ page }) => {
+  test('overview shows all three sources with scanner setup behind How it works at width ' + width, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 })
     await page.goto('./#floor=8')
     const panel = page.getByRole('region', { name: 'Floor data sources' })
@@ -14,9 +14,11 @@ for (const width of [390, 1280]) {
     }
     await below(map)
     await panel.scrollIntoViewIfNeeded()
-    for (const name of ['QR check-in', 'Student reports', 'Bluetooth', 'Seat sensors']) {
+    for (const name of ['Student reports', 'Bluetooth', 'Seat sensors']) {
       await expect(panel.getByText(name, { exact: true })).toBeInViewport()
     }
+    await expect(panel.locator('li')).toHaveCount(3)
+    await expect(panel).not.toContainText(/check-in|checked in/i)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await expect(panel.getByRole('button', { name: 'Connect scanner' })).toHaveCount(0)
     await page.getByRole('button', { name: phone ? 'List' : 'List view', exact: true }).click()

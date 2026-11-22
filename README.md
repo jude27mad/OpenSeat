@@ -9,7 +9,7 @@ OpenSeat shows which study seats are free in TMU's Student Learning Centre (SLC)
 - Shows a map of the floor. Each seat is green (free), orange (taken) or white (no recent info).
 - **Find me a free seat** takes you to a free spot, starting with the most free chairs and the newest reports. **Next free spot** shows another one.
 - Tap a seat or table to report it: **It's free** or **It's taken**.
-- Scan the QR code of a table or seat to check in. Your spot is held for 60 minutes.
+- Each table and seat has its own QR code. Scanning it opens that table or seat on OpenSeat, ready to report.
 - Pick the floor from the dropdown at the top.
 
 ## Where the information comes from
@@ -17,14 +17,15 @@ OpenSeat shows which study seats are free in TMU's Student Learning Centre (SLC)
 | Source | How it works | Stays on the map for |
 | --- | --- | --- |
 | Student report | A student taps **It's free** or **It's taken** | 15 minutes |
-| QR check-in | A student scans the code on a table or seat and checks in | 60 minutes. After checking out, the spot shows free for 5 minutes |
 | Seat sensor | A sensor on a seat or chair says whether it is in use. No real sensors are installed yet: in the demo you make readings with buttons, and live floors take them from a sensor station | 5 minutes |
 | Bluetooth scanner | Counts the Bluetooth devices (phones, watches, earbuds) near a scanner. Only strong signals count (−75 dBm or stronger). The counts travel through flespi, an online message service | 2 minutes |
 
+QR codes are not a source. The QR code on each table and seat opens that spot on OpenSeat, so a student sitting there can report it straight away.
+
 Simple rules:
 
-- A current seat-sensor reading decides the seat. It overrides everything else.
-- Otherwise the newest report or check-in wins. A free report releases an earlier check-in.
+- A current seat-sensor reading decides the seat. It overrides student reports.
+- Otherwise the newest student report wins.
 - A table is free if any of its chairs is free.
 - When nothing is recent, the seat says **No recent info** instead of guessing.
 - Bluetooth gives a count for an area, not for a single seat.
@@ -40,8 +41,8 @@ Simple rules:
 ## Try the demo
 
 - The first visit opens a **demo** with example data and a banner at the top. To see the real map everyone shares, press **See live floor** in that banner.
-- In the demo, nothing times out. A seat only changes when someone reports it, checks in, checks out or makes a sensor reading.
-- **Check-in:** select a table or seat, press **Show table QR code** (or **Show seat QR code**) and scan it with another phone.
+- In the demo, nothing times out. A seat only changes when someone reports it or makes a sensor reading.
+- **QR codes:** select a table or seat, press **Show table QR code** (or **Show seat QR code**) and scan it with another phone. It opens that table or seat.
 - **Sensors:** open any seat or table, pick a chair, and press **Sensor: free** or **Sensor: in use**. That seat changes colour on the map. In the demo, a seat with a sensor reading keeps it until the next sensor reading.
 - **Bluetooth** is never simulated. It only shows real readings from the scanner. Open **How it works** to find scanner setup.
 - **Share map** shows a QR code and a link. Open either on another device to join the same demo. A demo nobody uses for 24 hours is deleted, and its link then opens an empty demo.
@@ -53,7 +54,7 @@ Simple rules:
 
 - The website uses React (a JavaScript library for web pages) and Vite (the tool that runs and builds it). GitHub Pages hosts it.
 - Reports and readings are saved in Firebase Realtime Database, Google's online database, which updates every open page straight away.
-- Visitors don't make an account. Firebase gives each browser an anonymous ID, so only the person who checked in can check out.
+- Visitors don't make an account. Firebase signs each browser in with an anonymous ID, and the database only accepts updates from signed-in browsers.
 
 ### Run it on your computer
 
@@ -137,4 +138,4 @@ Type or pipe readings into the running station, one JSON object per line, for ex
 
 ### Moving old data
 
-`node backend/firebase/import-archive.mjs < private-export.json` imports readings from the old version of OpenSeat, keeping their times and check-in owners. The export is a JSON array of rows with `room`, `source`, `target`, `value`, `at` (milliseconds), `simulated`, `id` and `owner_hash`. It needs the Google Cloud CLI signed in as a project admin (`gcloud auth login`), or an admin access token in `GOOGLE_OAUTH_ACCESS_TOKEN`. Keep the export private. The old version's code is in `backend/floot`.
+`node backend/firebase/import-archive.mjs < private-export.json` imports readings from the old version of OpenSeat, keeping their times. It skips QR check-in rows, since OpenSeat no longer has check-ins. The export is a JSON array of rows with `room`, `source`, `target`, `value`, `at` (milliseconds), `simulated` and `id`. It needs the Google Cloud CLI signed in as a project admin (`gcloud auth login`), or an admin access token in `GOOGLE_OAUTH_ACCESS_TOKEN`. Keep the export private. The old version's code is in `backend/floot`.

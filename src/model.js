@@ -1,24 +1,23 @@
 import { places, chairs, seats, byId } from './floor.js'
 export const sources = {
   report: 'Student report',
-  qr: 'QR check-in',
   sensor: 'Seat sensor',
   ble: 'Bluetooth',
 }
+// The database may still hold updates from sources OpenSeat no longer uses,
+// such as old QR check-ins. Those are left out everywhere.
+export const known = (event) => !!event && Object.hasOwn(sources, event.source)
 export const cutoff = -75
 export const ttl = {
   report: 15 * 60000,
-  qr: 60 * 60000,
   sensor: 5 * 60000,
   ble: 2 * 60000,
 }
 // In a demo room nothing expires: a `lasting` reading counts until it is
-// replaced by a report, a check-in, a check-out or a new sensor reading.
+// replaced by a new report or sensor reading.
 export function lifetime(event) {
-  if (event.lasting) return Infinity
-  return event.source === 'qr' && event.value === 'free'
-    ? 5 * 60000
-    : ttl[event.source]
+  if (!known(event)) return 0
+  return event.lasting ? Infinity : ttl[event.source]
 }
 export const fresh = (event, now) =>
   !!event && now >= event.at - 5000 && now - event.at < lifetime(event)
@@ -62,36 +61,26 @@ export function seedDemo(anchor) {
   seats.forEach((seat, i) => {
     const n = (i * 43 + 7) % 101
     if (n >= 80) return
-    const source = n % 3 === 0 ? 'qr' : 'report'
-    put(source, seat, n < 34 ? 'free' : 'occupied', 1 + (i % 10))
+    put('report', seat, n < 34 ? 'free' : 'occupied', 1 + (i % 10))
   })
   return rows
 }
-// A free confirmation expires as evidence of availability, but permanently
-// releases a preceding hold. A later check-in starts a new hold.
-export function clearsHold(report, qr, now) {
-  if (report?.source !== 'report') return false
-  const lastFreeAt = report.value === 'free' ? report.at : report.lastFreeAt
-  return Number.isFinite(lastFreeAt) && lastFreeAt > qr.at && lastFreeAt <= now + 5000
-}
 // How a seat's status is decided, in three rules:
-// 1. A current seat-sensor reading decides the seat. It overrides everything.
-// 2. Otherwise the newest student report or check-in decides. A free report
-//    releases an earlier check-in; checking in after a free report takes it.
+// 1. A current seat-sensor reading decides the seat. It overrides reports.
+// 2. Otherwise the newest student report decides.
 // 3. Old updates stop counting, and the seat shows No recent info.
 export function resolveSeat(events, now) {
-  // Equal times settle the same way on every device: check-in, then report,
-  // then sensor, then id. A free report must be strictly newer to release a hold.
-  const rank = { qr: 3, report: 2, sensor: 1 }
-  const ordered = [...events].sort((a, b) =>
-    b.at - a.at ||
-    (rank[b.source] || 0) - (rank[a.source] || 0) ||
-    String(b.id).localeCompare(String(a.id)))
-  const report = ordered.find((e) => e.source === 'report')
-  const active = ordered.filter((e) =>
-    fresh(e, now) && !(e.source === 'qr' && e.value === 'occupied' && clearsHold(report, e, now)))
+  // Equal times settle the same way on every device: report, then sensor, then id.
+  const rank = { report: 2, sensor: 1 }
+  const ordered = events
+    .filter(known)
+    .sort((a, b) =>
+      b.at - a.at ||
+      (rank[b.source] || 0) - (rank[a.source] || 0) ||
+      String(b.id).localeCompare(String(a.id)))
+  const active = ordered.filter((e) => fresh(e, now))
   const sensor = active.find((e) => e.source === 'sensor')
-  const decides = sensor || active.find((e) => e.source === 'report' || e.source === 'qr')
+  const decides = sensor || active.find((e) => e.source === 'report')
   if (!decides)
     return {
       status: 'unknown',
@@ -104,13 +93,12 @@ export function resolveSeat(events, now) {
     evidence: ordered,
     latest: decides,
     stale: false,
-    held: active.some((e) => e.source === 'qr' && e.value === 'occupied'),
     sensor,
   }
 }
 export function derive(events, now) {
   const bucket = new Map()
-  for (const event of events) {
+  for (const event of events.filter(known)) {
     const group = bucket.get(event.target) || []
     group.push(event)
     bucket.set(event.target, group)
@@ -213,8 +201,6 @@ export function suggestions(locations, now, section = 'all') {
         a.id.localeCompare(b.id),
     )
 }
-// When the latest check-in on this seat stops holding it.
-export const holdsUntil = (event) => (event.lasting ? Infinity : event.at + ttl.qr)
 // Matches what people type: "table 5", "T5", "seat 12", "12", "T17-B".
 export function matchesQuery(p, query) {
   const q = query.toLowerCase().trim()

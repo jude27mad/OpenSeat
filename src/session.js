@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { merge, seedDemo } from './model.js'
+import { known, merge, seedDemo } from './model.js'
 import { sendObservation, serverNow, watchFloor } from './firebase.js'
 export { serverNow }
 const SESSION = 'openseat.room.v1',
@@ -46,7 +46,7 @@ export function chosenRoom(live = false, forceNew = false, number = 8) {
   set(sessionKey(number), room)
   return { ...room, floor: number }
 }
-export function roomUrl(room, spot, checkin = false) {
+export function roomUrl(room, spot) {
   const target = new URL(location.pathname, location.origin),
     params = new URLSearchParams()
   if (isLive(room)) params.set('floor', String(room.floor))
@@ -56,7 +56,6 @@ export function roomUrl(room, spot, checkin = false) {
     if (room.floor !== 8) params.set('level', String(room.floor))
   }
   if (spot) params.set('spot', spot)
-  if (spot && checkin) params.set('checkin', '1')
   target.hash = params.toString()
   return target.href
 }
@@ -78,13 +77,13 @@ export function useFloor(room) {
   }, [room.id, cache])
 
   async function record(input) {
-    const previousTicket = input.source === 'qr' ? get('openseat.ticket.' + room.id) : null
-    const event = await sendObservation(room.id, input, previousTicket)
+    const event = await sendObservation(room.id, input)
     // Only acknowledged writes are shown immediately; the subscription receives every device's changes.
     if (current.current) setUpdates((prior) => merge(prior, [event]))
     return event
   }
-  const events = merge(demo ? seedDemo(room.anchor) : [], updates)
-  // The demo never changes on its own, only when someone reports, checks in or checks out.
+  // Old updates from sources OpenSeat no longer uses, such as QR check-ins, are left out.
+  const events = merge(demo ? seedDemo(room.anchor) : [], updates).filter(known)
+  // The demo never changes on its own, only when someone reports a seat or makes a sensor reading.
   return { events: demo ? events.map((e) => ({ ...e, lasting: true })) : events, online, record, updates }
 }

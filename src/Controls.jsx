@@ -52,7 +52,8 @@ export function Modal({ title, description, onClose, children }) {
   )
 }
 export function QRDialog({ room, place, onClose }) {
-  const url = roomUrl(room, place?.id, !!place),
+  const url = roomUrl(room, place?.id),
+    kind = place?.section === 'tables' ? 'table' : 'seat',
     [image, setImage] = useState(''),
     [copied, setCopied] = useState(false),
     [error, setError] = useState('')
@@ -82,10 +83,8 @@ export function QRDialog({ room, place, onClose }) {
       description={
         place
           ? room.id.startsWith('floor')
-            ? 'This is the code for the ' +
-              (place.section === 'tables' ? 'table' : 'seat') +
-              '. Scanning it opens check-in for this spot.'
-            : 'Scan with another phone to try checking in here.'
+            ? 'This is the code for the ' + kind + '. Scanning it opens this ' + kind + ' on OpenSeat.'
+            : 'Scanning it opens this ' + kind + ' on OpenSeat. Try it with another phone.'
           : 'Send this link to a friend, or open it on another phone.'
       }
       onClose={onClose}
@@ -143,11 +142,6 @@ export function QRDialog({ room, place, onClose }) {
           </Button>
         )}
       </div>
-      {place && !room.id.startsWith('floor') && (
-        <a className="text-btn open-checkin" href={url} onClick={onClose}>
-          Open check-in on this device
-        </a>
-      )}
       {error && <p className="error">{error}</p>}
     </Modal>
   )

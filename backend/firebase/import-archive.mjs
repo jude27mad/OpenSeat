@@ -1,4 +1,5 @@
 // Read a private SQL export from stdin. Each room is conditionally updated so new observations survive retries.
+// QR check-in rows are skipped: OpenSeat no longer has check-ins, so the map would ignore them anyway.
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { readSettings } from './settings.js'
@@ -8,7 +9,9 @@ const settings = readSettings(process.env.OPENSEAT_FIREBASE_CONFIG ||
 const token = process.env.GOOGLE_OAUTH_ACCESS_TOKEN ||
   execFileSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8' }).trim()
 const headers = { Authorization: 'Bearer ' + token }
-const rows = JSON.parse(readFileSync(0, 'utf8'))
+const all = JSON.parse(readFileSync(0, 'utf8'))
+const rows = all.filter((row) => row?.source !== 'qr')
+const skipped = all.length - rows.length
 const rooms = Map.groupBy(rows, (row) => row.room)
 let copied = 0
 for (const [id, list] of rooms) {
@@ -21,18 +24,13 @@ for (const [id, list] of rooms) {
     const state = (await current.json()) || {}
     let added = 0
     for (const row of list) {
-      if (!['qr', 'report', 'ble', 'sensor'].includes(row.source) || !/^[A-Za-z0-9-]+$/.test(row.target)) throw Error('Invalid observation in export.')
+      if (!['report', 'ble', 'sensor'].includes(row.source) || !/^[A-Za-z0-9-]+$/.test(row.target)) throw Error('Invalid observation in export.')
       const event = { id: row.id, value: row.source === 'ble' ? Number(row.value) : row.value, at: Number(row.at), simulated: row.simulated }
       if (!Number.isSafeInteger(event.at) || typeof event.simulated !== 'boolean') throw Error('Invalid observation metadata.')
       const source = (state.events ??= {})[row.source] ??= {}
       const old = source[row.target]
       if (old && (old.at > event.at || (old.at === event.at && old.id >= event.id))) continue
       source[row.target] = event
-      if (row.source === 'qr') {
-        const owners = state.owners ??= {}
-        if (row.owner_hash) owners[row.target] = { legacy: row.owner_hash, id: event.id }
-        else delete owners[row.target]
-      }
       added++
     }
     if (!added) { finished = true; break }
@@ -47,4 +45,5 @@ for (const [id, list] of rooms) {
   }
   if (!finished) throw Error('Session changed repeatedly. Re-run the import to finish it.')
 }
-console.log('Imported ' + copied + ' observations across ' + rooms.size + ' sessions.')
+console.log('Imported ' + copied + ' observations across ' + rooms.size + ' sessions.' +
+  (skipped ? ' Skipped ' + skipped + ' QR check-in rows, since OpenSeat no longer has check-ins.' : ''))

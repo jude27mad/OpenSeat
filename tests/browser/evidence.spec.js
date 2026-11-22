@@ -7,7 +7,7 @@ test('the evidence page keeps desktop tables and stacks long rows on iPhone', as
   await page.getByRole('link', { name: 'Prototype evidence' }).click()
   await expect(page.getByRole('heading', { name: 'OpenSeat · CEN100 prototype record' })).toBeVisible()
   const images = page.locator('#process-evidence img')
-  await expect(images).toHaveCount(3)
+  await expect(images).toHaveCount(6)
   for (const img of await images.all()) {
     await expect.poll(() => img.evaluate((el) => el.naturalWidth)).toBeGreaterThan(0)
   }

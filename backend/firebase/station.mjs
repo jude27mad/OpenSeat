@@ -22,7 +22,7 @@ for await (const line of lines) {
     if (!['ble', 'sensor'].includes(source) || !id || !Number.isSafeInteger(measuredAt)) {
       throw Error('Supply a stable measurement id, hardware source and Unix time in milliseconds.')
     }
-    const event = await postObservation({ request, room: 'floor' + floor, uid: user.uid, input: { id, source, target, value, measuredAt } })
+    const event = await postObservation({ request, room: 'floor' + floor, input: { id, source, target, value, measuredAt } })
     console.log(JSON.stringify({ id: event.id, at: event.at }))
   } catch (error) {
     console.error(error.message)

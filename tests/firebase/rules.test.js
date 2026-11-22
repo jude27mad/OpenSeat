@@ -20,51 +20,46 @@ function seed(path, value) {
     method: 'PUT', headers: { Authorization: 'Bearer owner' }, body: JSON.stringify(value),
   })
 }
-const record = (user, input, id = room, previousTicket) =>
-  postObservation({ ...user, room: id, input, previousTicket })
-const qr = (value) => ({ source: 'qr', target: 'T17-B', value })
+const record = (user, input, id = room) => postObservation({ ...user, room: id, input })
+// OpenSeat no longer has QR check-ins. These writes must now be refused.
+const qr = (value, target = 'T17-B') => ({ source: 'qr', target, value })
 const report = (target, value) => ({ source: 'report', target, value })
 before(async () => { [a, b] = await Promise.all([anonymous(), anonymous()]) })
 
-test('two visitors share observations and only the holder can release a chair', async () => {
-  const claims = await Promise.allSettled([record(a, qr('occupied')), record(b, qr('occupied'))])
-  assert.equal(claims.filter((r) => r.status === 'fulfilled').length, 1)
-  const [holder, other] = claims[0].status === 'fulfilled' ? [a, b] : [b, a]
-  await assert.rejects(record(other, qr('free')), /belongs/)
-  await record(other, report('T17-B', 'free'))
+test('two visitors share reports, and QR check-ins and owners are refused', async () => {
+  await record(a, report('T17-B', 'occupied'))
+  const free = await record(b, report('T17-B', 'free'))
   const events = await (await read('/rooms/' + room + '/events')).json()
-  assert.equal(events.qr['T17-B'].value, 'occupied')
   assert.equal(events.report['T17-B'].value, 'free')
-  assert.deepEqual(Object.keys(events.qr['T17-B']).sort(), ['at', 'id', 'simulated', 'value'])
-  for (const path of ['/rooms', '/rooms/' + room, '/rooms/' + room + '/owners/T17-B', '/private']) {
-    assert.ok([401, 403].includes((await other.request(path)).status))
+  assert.deepEqual(Object.keys(events.report['T17-B']).sort(), ['at', 'id', 'lastFreeAt', 'simulated', 'value'])
+  assert.equal(events.report['T17-B'].lastFreeAt, free.at)
+  for (const value of ['occupied', 'free']) await assert.rejects(record(a, qr(value)), /declined/)
+  // The old check-in write: an event and its owner saved together.
+  const id = randomUUID()
+  const checkIn = {
+    ['events/qr/T17-B']: { id, value: 'occupied', simulated: false, at: { '.sv': 'timestamp' } },
+    ['owners/T17-B']: { uid: a.uid, id },
   }
-  await record(holder, qr('free'))
-  await record(other, qr('occupied'))
-  await assert.rejects(record(holder, qr('free')), /belongs/)
+  assert.ok([401, 403].includes((await a.request('/rooms/' + room, { method: 'PATCH', body: JSON.stringify(checkIn) })).status))
+  const owner = { method: 'PUT', body: JSON.stringify({ uid: a.uid, id }) }
+  assert.ok([401, 403].includes((await a.request('/rooms/' + room + '/owners/T17-B', owner)).status))
+  assert.equal((await (await read('/rooms/' + room + '/events/qr')).json()), null)
+  for (const path of ['/rooms', '/rooms/' + room, '/rooms/' + room + '/owners/T17-B', '/private']) {
+    assert.ok([401, 403].includes((await b.request(path)).status))
+  }
 })
 
-test('a newer free report releases an abandoned check-in, and only a newer one', async () => {
-  const takeover = randomUUID(), chair = { source: 'qr', target: 'I030', value: 'occupied' }
-  await record(a, report('I030', 'free'), takeover)
-  await record(a, chair, takeover)
-  // The free report came before the check-in, so it does not release it.
-  await assert.rejects(record(b, chair, takeover), /belongs/)
-  const cleared = await record(b, report('I030', 'free'), takeover)
+test('a taken report keeps the time the seat was last reported free', async () => {
+  const id = randomUUID()
+  const cleared = await record(b, report('I030', 'free'), id)
   assert.equal(cleared.lastFreeAt, cleared.at)
-  const occupied = await record(a, report('I030', 'occupied'), takeover)
+  const occupied = await record(a, report('I030', 'occupied'), id)
   assert.equal(occupied.lastFreeAt, cleared.at)
-  assert.equal((await record(b, chair, takeover)).value, 'occupied')
-  // The first student can no longer end the new student's check-in.
-  await assert.rejects(record(a, { ...chair, value: 'free' }, takeover), /belongs/)
-})
-
-test('a seat sensor that reads free lets someone else check in', async () => {
-  const id = randomUUID(), seat = { source: 'qr', target: 'I031', value: 'occupied' }
-  await record(a, seat, id)
-  await assert.rejects(record(b, seat, id), /belongs/)
-  await record(a, { source: 'sensor', target: 'I031', value: 'free', simulated: true }, id)
-  assert.equal((await record(b, seat, id)).value, 'occupied')
+  assert.equal((await record(b, report('I030', 'occupied'), id)).lastFreeAt, cleared.at)
+  // The same works when the free report is older than 15 minutes.
+  const older = Date.now() - 20 * 60000
+  await seed('/rooms/' + id + '/events/report/I034', { id: randomUUID(), value: 'free', at: older, simulated: false })
+  assert.equal((await record(b, report('I034', 'occupied'), id)).lastFreeAt, older)
 })
 
 test('reports can still be saved on installations running older rules', async () => {
@@ -79,49 +74,30 @@ test('reports can still be saved on installations running older rules', async ()
   assert.equal(empty.lastFreeAt, undefined)
 })
 
-test('a confirmed empty chair stays released when the report expires', async () => {
-  const id = randomUUID(), target = 'I034', now = Date.now()
-  const chair = { source: 'qr', target, value: 'occupied' }
-  await record(a, chair, id)
-  await seed('/rooms/' + id + '/events/qr/' + target + '/at', now - 30 * 60000)
-  await seed('/rooms/' + id + '/events/report/' + target, {
-    id: randomUUID(), value: 'free', at: now - 20 * 60000, simulated: false,
-  })
-  const reported = await record(b, report(target, 'occupied'), id)
-  assert.equal(reported.lastFreeAt, now - 20 * 60000)
-  await record(b, chair, id)
-  await assert.rejects(record(a, chair, id), /belongs/)
-})
-
-test('a legacy ticket can release its imported check-in and an expired chair can be claimed', async () => {
-  const oldRoom = randomUUID(), ticket = randomUUID(), id = randomUUID()
+test('a room with old check-ins still takes reports but no new check-ins', async () => {
+  const oldRoom = randomUUID(), id = randomUUID()
   await seed('/rooms/' + oldRoom, {
-    owners: { 'T17-B': { legacy: await digest(ticket), id } },
+    owners: { 'T17-B': { legacy: await digest(randomUUID()), id } },
     events: { qr: { 'T17-B': { id, at: Date.now() - 3000, value: 'occupied', simulated: false } } },
   })
-  await assert.rejects(record(b, qr('free'), oldRoom, randomUUID()), /belongs/)
-  await record(a, qr('free'), oldRoom, ticket)
-  await record(b, qr('occupied'), oldRoom)
-  await seed('/rooms/' + oldRoom + '/events/qr/T17-B/at', Date.now() - 3601000)
-  await assert.rejects(record(a, qr('occupied'), oldRoom), /belongs/)
-  await record(b, qr('occupied'), 'floor8')
-  await seed('/rooms/floor8/events/qr/T17-B/at', Date.now() - 3601000)
-  await record(a, qr('occupied'), 'floor8')
+  assert.equal((await record(a, report('T17-B', 'free'), oldRoom)).value, 'free')
+  assert.equal((await record(b, report('T17-B', 'occupied'), oldRoom)).value, 'occupied')
+  await assert.rejects(record(a, qr('free'), oldRoom), /declined/)
+  await assert.rejects(record(b, qr('occupied'), oldRoom), /declined/)
+  for (const floor of ['floor8', 'floor7', 'floor5']) {
+    await assert.rejects(record(a, qr('occupied', floor === 'floor5' ? 'I001' : 'T01-A'), floor), /declined/)
+  }
 })
 
 test('source, seat, scope, timestamps and read-only public data are enforced', async () => {
   for (const target of ['I091', 'I092']) {
     assert.equal((await record(b, report(target, 'free'))).value, 'free')
-    const checkIn = { source: 'qr', target, value: 'occupied' }
-    assert.equal((await record(a, checkIn)).value, 'occupied')
-    const checkOut = { ...checkIn, value: 'free' }
-    await assert.rejects(record(b, checkOut))
-    assert.equal((await record(a, checkOut)).value, 'free')
+    assert.equal((await record(a, report(target, 'occupied'))).value, 'occupied')
     assert.equal((await record(a, { source: 'sensor', target, value: 'free', simulated: true })).value, 'free')
   }
   const invalid = [
     report('T41-A', 'free'), report('T00-B', 'occupied'), report('I197', 'free'),
-    report('T01', 'free'), report('I001', 'other'),
+    report('T01', 'free'), report('I001', 'other'), qr('occupied', 'I001'),
     { source: 'sensor', target: 'T17', value: 'occupied', simulated: true },
     { source: 'ble', target: 'I001', value: 1, simulated: true },
     { source: 'ble', target: 'tables', value: 1.5, simulated: true },

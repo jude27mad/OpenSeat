@@ -20,7 +20,6 @@ import FloorMap from './FloorMap.jsx'
 import SeatDetails from './SeatDetails.jsx'
 import {
   Activity,
-  CheckInBanner,
   DemoBanner,
   Legend,
   SeatList,
@@ -139,7 +138,6 @@ export default function PhoneView(p) {
     seat,
     setSeat,
     pick,
-    qrPlace,
     record,
     sheet,
     setSheet,
@@ -153,10 +151,6 @@ export default function PhoneView(p) {
     page,
     nav,
     setModal,
-    mine,
-    checkOutMine,
-    checkInAgain,
-    busyMine,
     findButton,
     nextSuggestion,
     choices,
@@ -244,18 +238,6 @@ export default function PhoneView(p) {
         </button>
       </header>
       {demo && <DemoBanner onLive={() => onRoom(true)} />}
-      <CheckInBanner
-        checkIns={mine}
-        now={now}
-        busy={busyMine}
-        onShow={(s) => {
-          const show = () => pick(s.split('-')[0], s, { focus: true, heading: true, full: true })
-          if (page !== 'overview') nav('overview', show)
-          else show()
-        }}
-        onCheckOut={checkOutMine}
-        onKeep={checkInAgain}
-      />
       <p className="sr-only" role="status" aria-live="polite">
         {announce}
       </p>
@@ -267,13 +249,13 @@ export default function PhoneView(p) {
             </button>
             <h1>How the data works</h1>
             <p className="lead">
-              Each seat shows information from four sources, with how long ago it
-              arrived. Old information stops counting, so a seat with nothing recent says “No
-              recent info” rather than guessing.
+              The map uses three sources: student reports, seat sensors and Bluetooth counts.
+              Each update shows how long ago it arrived. Old information stops counting, so a
+              seat with nothing recent says “No recent info” rather than guessing.
               {demo &&
-                ' In the demo nothing expires: seats change only when someone reports them, checks in, checks out or makes a sensor reading.'}
+                ' In the demo nothing expires: seats change only when someone reports them or makes a sensor reading.'}
             </p>
-            <h2 className="sr-only">The four sources</h2>
+            <h2 className="sr-only">The three sources</h2>
             <SourceCards events={events} now={now} full onScanner={() => setModal('scanner')} />
             <Activity events={events} now={now} />
           </section>
@@ -416,7 +398,6 @@ export default function PhoneView(p) {
             mode={sheet}
             focusKey={headingFocus}
             next={nextSuggestion}
-            canCheckIn={qrPlace === place.id}
             locator={view === 'list'}
             section={section}
             filter={filter}
