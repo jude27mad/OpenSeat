@@ -9,27 +9,16 @@ import {
   Radio,
   Search,
 } from 'lucide-react'
-import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
 import { floor, label } from './floor.js'
-import { age, fresh, matchesQuery, looksFree, placeDescription, sources } from './model.js'
+import { age, fresh, matchesQuery, looksFree, placeDescription } from './model.js'
 import { DemoTag, Origin } from './SeatDetails.jsx'
 
-export const plural = (count, noun) => count + ' ' + noun + (count === 1 ? '' : 's')
-export const sourceIcons = {
-  ble: Bluetooth,
-  report: MessageSquare,
-  sensor: Radio,
-}
-export const sourceText = {
-  ble: 'Counts phones nearby in each area',
-  report: 'Students tap “It’s free” or “It’s taken”',
-  sensor: 'Detects whether a seat is in use',
-}
+const plural = (count, noun) => count + ' ' + noun + (count === 1 ? '' : 's')
 
 // What each of the three sources currently knows, alongside the floor overview.
 // These are readouts, not choices: the map already combines all three.
-export function SourcesPanel({ model, now, onMore }) {
+export function SourcesPanel({ model, now }) {
   let reports = 0,
     lastReport = 0,
     demoReport = false
@@ -54,11 +43,6 @@ export function SourcesPanel({ model, now, onMore }) {
     <section className="sources-live" aria-labelledby="sources-live-title">
       <div className="sources-live-head">
         <h2 id="sources-live-title">Floor data sources</h2>
-        {onMore && (
-          <button className="text-btn" onClick={onMore}>
-            How it works <ArrowRight size={14} />
-          </button>
-        )}
       </div>
       <ul>
         <li>
@@ -149,36 +133,6 @@ export function DemoBanner({ onLive }) {
       <button onClick={onLive}>
         See live floor <ArrowRight size={14} />
       </button>
-    </div>
-  )
-}
-
-export function SourceCards({ events, now, full }) {
-  return (
-    <div className={'source-cards ' + (full ? 'full' : '')}>
-      {['ble', 'report', 'sensor'].map((s) => {
-        const Icon = sourceIcons[s],
-          rows = events.filter((e) => e.source === s).sort((a, b) => b.at - a.at),
-          latest = rows[0]
-        return (
-          <Card key={s} className="panel source-card">
-            <div className={'source-icon ' + s}>
-              <Icon size={17} />
-            </div>
-            <div>
-              <h3>{sources[s]}</h3>
-              <p>{sourceText[s]}</p>
-              <div className="source-age">
-                <i className={fresh(latest, now) ? 'current' : ''} />
-                {latest
-                  ? age(latest.at, now) + (fresh(latest, now) ? '' : ' · Out of date')
-                  : 'No readings yet'}
-                {latest?.simulated && <DemoTag />}
-              </div>
-            </div>
-          </Card>
-        )
-      })}
     </div>
   )
 }
@@ -276,50 +230,5 @@ export function SeatList({
         </div>
       )}
     </div>
-  )
-}
-
-export function Activity({ events, now }) {
-  const rows = [...events].sort((a, b) => b.at - a.at)
-  return (
-    <Card className="panel activity">
-      <div className="panel-heading">
-        <div>
-          <h2>Latest updates</h2>
-          <p>The newest reading from each source at each place.</p>
-        </div>
-        <Radio size={19} />
-      </div>
-      {rows.length ? (
-        rows.slice(0, 25).map((e) => {
-          const Icon = sourceIcons[e.source]
-          return (
-            <div className="activity-row" key={e.id}>
-              <span className={'source-icon ' + e.source}>
-                <Icon size={15} />
-              </span>
-              <span>
-                <b>{label(e.target)}</b>
-                <small>
-                  <Origin event={e} now={now} />
-                </small>
-              </span>
-              <strong>
-                {e.source === 'ble'
-                  ? plural(e.value, 'device')
-                  : e.value === 'free'
-                    ? 'Free'
-                    : 'Taken'}
-              </strong>
-            </div>
-          )
-        })
-      ) : (
-        <div className="empty">
-          <Radio />
-          <p>Waiting for the first floor update.</p>
-        </div>
-      )}
-    </Card>
   )
 }

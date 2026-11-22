@@ -5,7 +5,6 @@ import {
   Building2,
   ChevronRight,
   Clock3,
-  Layers,
   LayoutDashboard,
   List,
   Map as MapIcon,
@@ -28,19 +27,8 @@ import FloorMap, { isDim } from './FloorMap.jsx'
 import { ScannerControls, QRDialog } from './Controls.jsx'
 import SeatDetails from './SeatDetails.jsx'
 import PhoneView from './Phone.jsx'
-import {
-  Activity,
-  DemoBanner,
-  Legend,
-  SeatList,
-  SourceCards,
-  SourcesPanel,
-} from './parts.jsx'
+import { DemoBanner, Legend, SeatList, SourcesPanel } from './parts.jsx'
 
-const navigation = [
-  ['overview', 'Floor overview', LayoutDashboard],
-  ['sources', 'Data sources', Layers],
-]
 // Phones held sideways are short rather than narrow, so they keep the phone layout.
 const PHONE = '(max-width: 720px), (max-height: 520px) and (pointer: coarse)',
   DRAWER = '(max-width: 950px)'
@@ -64,10 +52,6 @@ function replace(patch, url = location.href) {
 }
 function setUrl(room, spot) {
   replace({}, roomUrl(room, spot))
-}
-// Older history entries can point to the retired seat-finder page.
-function currentPage() {
-  return history.state?.openseatPage === 'sources' ? 'sources' : 'overview'
 }
 function useMedia(query) {
   const [matches, setMatches] = useState(() => matchMedia(query).matches)
@@ -108,8 +92,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
   const [theme, setTheme] = useTheme()
   const phone = useMedia(PHONE),
     drawerMode = useMedia(DRAWER)
-  const [page, setPage] = useState(currentPage),
-    [view, setView] = useState('map'),
+  const [view, setView] = useState('map'),
     [section, setSection] = useState('all'),
     [filter, setFilter] = useState('all'),
     [query, setQuery] = useState(''),
@@ -166,7 +149,6 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
   useEffect(() => {
     function onPop() {
       const s = history.state || {}
-      setPage(currentPage())
       if (!live.current.phone) setFilter('all')
       else {
         setMenu(!!s.openseatMenu)
@@ -203,10 +185,10 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
   })
   useEffect(() => setSeen([]), [section])
   useEffect(() => {
-    if (!phone && showingSuggestion && page === 'overview') {
+    if (!phone && showingSuggestion) {
       detail.current?.scrollIntoView({ block: 'start' })
     }
-  }, [headingFocus, showingSuggestion, page, phone])
+  }, [headingFocus, showingSuggestion, phone])
 
   function pick(id, specific = null, opts = {}) {
     const p = model.locations.get(id)
@@ -254,25 +236,11 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
       close()
     }
   }
-  // `then` runs once the page has changed, after any history step settles.
-  function nav(key, then) {
+  function showOverview() {
     setDrawer(false)
     if (phone) setFilter('all')
     else changeFilters(section, 'all')
-    if (key !== page) {
-      if (phone && page === 'sources' && history.state?.openseatPage === 'sources') {
-        afterPop.current = then || null
-        history.back()
-        setPage(key)
-        return
-      } else if (phone) {
-        push({ openseatPage: key, openseatSheet: undefined, openseatMenu: undefined })
-        setSheet('closed')
-      } else push({ openseatPage: key })
-      setPage(key)
-    }
     window.scrollTo({ top: 0 })
-    then?.()
   }
   function openMenu() {
     push({ openseatMenu: true })
@@ -385,8 +353,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
             changeFilters,
             section,
             query,
-            page,
-            nav,
+            showOverview,
             setModal,
             findButton,
             nextSuggestion,
@@ -408,15 +375,15 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
   const areaFilters = (
     <>
       {tables.length > 0 && (
-        <select
-          aria-label="Map area"
-          value={section}
-          onChange={(e) => changeFilters(e.target.value, filter)}
-        >
-          <option value="all">All areas</option>
+      <select
+        aria-label="Map area"
+        value={section}
+        onChange={(e) => changeFilters(e.target.value, filter)}
+      >
+        <option value="all">All areas</option>
           <option value="tables">Round tables</option>
-          <option value="individuals">Individual seats</option>
-        </select>
+        <option value="individuals">Individual seats</option>
+      </select>
       )}
       <button
         className={'filter-pill ' + (filter === 'free' ? 'selected' : '')}
@@ -443,7 +410,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
         inert={drawerMode && !drawer}
       >
         <div className="sidebar-top">
-          <button className="brand" onClick={() => nav('overview')}>
+          <button className="brand" onClick={showOverview}>
             <img src="./mark.svg" alt="" />
             <span>OpenSeat</span>
           </button>
@@ -468,16 +435,10 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
         </div>
         <span className="nav-heading">Workspace</span>
         <nav aria-label="Workspace">
-          {navigation.map(([key, text, Icon]) => (
-            <button
-              key={key}
-              aria-current={page === key ? 'page' : undefined}
-              onClick={() => nav(key)}
-            >
-              <Icon size={17} />
-              {text}
-            </button>
-          ))}
+          <button aria-current="page" onClick={showOverview}>
+            <LayoutDashboard size={17} />
+            Floor overview
+          </button>
           <a href="./classroom/"><Bluetooth size={17} /> Classroom demo</a>
         </nav>
         <span className="nav-heading floor-heading">Floors</span>
@@ -552,9 +513,9 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
               <div className="floor-eyebrow">
                 <span /> STUDENT LEARNING CENTRE
               </div>
-              <h1>{page === 'overview' ? 'Floor overview' : 'Data sources'}</h1>
-              <p>{page === 'overview' ? floor.title : 'The three inputs behind the ' + floor.name + ' map.'}</p>
-              {page === 'overview' && findButton}
+              <h1>Floor overview</h1>
+              <p>{floor.title}</p>
+              {findButton}
             </div>
             <div className="lead-actions">
               <select
@@ -572,136 +533,118 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
               </Button>
             </div>
           </div>
-          {page === 'overview' && (
-            <div className="metrics">
-              <Stat
-                name="Free seats"
-                value={n.free}
-                detail={
-                  n.free === 0 && n.unknown
-                    ? `None reported yet · ${n.unknown} with no recent info`
-                    : `of ${seats.length} open seats`
-                }
-                icon={Armchair}
-                tone="green"
-                percent={(n.free * 100) / seats.length}
-              />
-              <Stat
-                name="Taken seats"
-                value={n.occupied}
-                detail="Reported or sensed taken"
-                icon={UsersRound}
-                tone="orange"
-                percent={(n.occupied * 100) / seats.length}
-              />
-              <Stat
-                name="No recent info"
-                value={n.unknown}
-                detail="Waiting for a report"
-                icon={Clock3}
-                tone="stone"
-                percent={(n.unknown * 100) / seats.length}
-              />
-              <Stat
-                name="Nearby devices"
-                value={fresh(latestScan, now) ? latestScan.value : '—'}
-                detail={latestScan ? 'Last scan · ' + age(latestScan.at, now) : 'No scan'}
-                icon={Bluetooth}
-                tone="blue"
-              />
-            </div>
-          )}
-          {page === 'overview' && (
-            <div className="plan-grid">
-              <Card className="panel floor-panel">
-                <div className="panel-heading">
-                  <div>
-                    <h2>Floor plan</h2>
-                    <p>
-                      {(tables.length ? tables.length + ' round tables · ' : '') + individuals.length + ' individual seats'}
-                    </p>
-                  </div>
-                  <div className="map-tabs">
-                    <button
-                      onClick={() => setView('map')}
-                      aria-pressed={view === 'map'}
-                      aria-label="Map view"
-                    >
-                      <MapIcon size={15} />
-                      <span>Map</span>
-                    </button>
-                    <button
-                      onClick={() => setView('list')}
-                      aria-pressed={view === 'list'}
-                      aria-label="List view"
-                    >
-                      <List size={15} />
-                      <span>List</span>
-                    </button>
-                  </div>
-                </div>
-                {listing ? (
-                  <>
-                    <div className="plan-toolbar">{areaFilters}</div>
-                    <label className="list-search">
-                      <Search size={15} />
-                      <input
-                        aria-label="Search seats"
-                        placeholder="Search: table 5, seat 12"
-                        value={query}
-                        onChange={(e) => changeFilters(section, filter, e.target.value)}
-                      />
-                    </label>
-                    <SeatList
-                      locations={model.locations}
-                      {...{ section, filter, query, now }}
-                      selected={shownId}
-                      onPick={(id, s) => pick(id, s, { scroll: true })}
-                      onShowAll={() => changeFilters('all', 'all')}
-                    />
-                  </>
-                ) : (
-                  <FloorMap
-                    desktopFilters={areaFilters}
-                    {...{ model, section, filter, now, focus }}
-                    selected={shownId}
-                    onSelect={(id) => pick(id, null, { scroll: true })}
-                    onShowList={() => setView('list')}
-                  />
-                )}
-                <Legend />
-                <SourcesPanel model={model} now={now} onMore={() => nav('sources')} />
-              </Card>
-              <div ref={detail} className="inspector-wrap">
-                {place && <SeatDetails
-                  {...{ room, place, model, now, record }}
-                  seat={shownSeat}
-                  focusKey={showingSuggestion ? headingFocus : 0}
-                  next={nextSuggestion}
-                  onSeat={(id) => {
-                    setSelected(place.id)
-                    setSeat(id)
-                    setUrl(room, id)
-                  }}
-                  openQR={() => setModal('qr')}
-                />}
-              </div>
-            </div>
-          )}
-          {page === 'sources' && (
-            <section className="sources-section">
-              <div className="section-heading">
+          <div className="metrics">
+            <Stat
+              name="Free seats"
+              value={n.free}
+              detail={
+                n.free === 0 && n.unknown
+                  ? `None reported yet · ${n.unknown} with no recent info`
+                  : `of ${seats.length} open seats`
+              }
+              icon={Armchair}
+              tone="green"
+              percent={(n.free * 100) / seats.length}
+            />
+            <Stat
+              name="Taken seats"
+              value={n.occupied}
+              detail="Reported or sensed taken"
+              icon={UsersRound}
+              tone="orange"
+              percent={(n.occupied * 100) / seats.length}
+            />
+            <Stat
+              name="No recent info"
+              value={n.unknown}
+              detail="Waiting for a report"
+              icon={Clock3}
+              tone="stone"
+              percent={(n.unknown * 100) / seats.length}
+            />
+            <Stat
+              name="Nearby devices"
+              value={fresh(latestScan, now) ? latestScan.value : '—'}
+              detail={latestScan ? 'Last scan · ' + age(latestScan.at, now) : 'No scan'}
+              icon={Bluetooth}
+              tone="blue"
+            />
+          </div>
+          <div className="plan-grid">
+            <Card className="panel floor-panel">
+              <div className="panel-heading">
                 <div>
-                  <h2>{page === 'sources' ? 'Connected sources' : 'Data sources'}</h2>
-                  {page === 'sources' && (
-                    <p>Each reading carries its own place, source and time.</p>
-                  )}
+                  <h2>Floor plan</h2>
+                  <p>
+                    {(tables.length ? tables.length + ' round tables · ' : '') + individuals.length + ' individual seats'}
+                  </p>
+                </div>
+                <div className="map-tabs">
+                  <button
+                    onClick={() => setView('map')}
+                    aria-pressed={view === 'map'}
+                    aria-label="Map view"
+                  >
+                    <MapIcon size={15} />
+                    <span>Map</span>
+                  </button>
+                  <button
+                    onClick={() => setView('list')}
+                    aria-pressed={view === 'list'}
+                    aria-label="List view"
+                  >
+                    <List size={15} />
+                    <span>List</span>
+                  </button>
                 </div>
               </div>
-              <SourceCards events={events} now={now} full />
-            </section>
-          )}
-          {page === 'sources' && <Activity events={events} now={now} />}
+              {listing ? (
+                <>
+                  <div className="plan-toolbar">{areaFilters}</div>
+                  <label className="list-search">
+                    <Search size={15} />
+                    <input
+                      aria-label="Search seats"
+                      placeholder="Search: table 5, seat 12"
+                      value={query}
+                      onChange={(e) => changeFilters(section, filter, e.target.value)}
+                    />
+                  </label>
+                  <SeatList
+                    locations={model.locations}
+                    {...{ section, filter, query, now }}
+                    selected={shownId}
+                    onPick={(id, s) => pick(id, s, { scroll: true })}
+                    onShowAll={() => changeFilters('all', 'all')}
+                  />
+                </>
+              ) : (
+                <FloorMap
+                  desktopFilters={areaFilters}
+                  {...{ model, section, filter, now, focus }}
+                  selected={shownId}
+                  onSelect={(id) => pick(id, null, { scroll: true })}
+                  onShowList={() => setView('list')}
+                />
+              )}
+              <Legend />
+              <SourcesPanel model={model} now={now} />
+            </Card>
+            <div ref={detail} className="inspector-wrap">
+              {place && <SeatDetails
+                {...{ room, place, model, now, record }}
+                seat={shownSeat}
+                focusKey={showingSuggestion ? headingFocus : 0}
+                next={nextSuggestion}
+                onSeat={(id) => {
+                  setSelected(place.id)
+                  setSeat(id)
+                  setUrl(room, id)
+                }}
+                openQR={() => setModal('qr')}
+              />}
+            </div>
+          </div>
           <footer>
             <span>
               <MapPin size={13} /> SLC {floor.name}

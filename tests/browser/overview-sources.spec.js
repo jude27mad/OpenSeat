@@ -1,8 +1,12 @@
 import { test, expect } from '@playwright/test'
 
 for (const width of [390, 1280]) {
-  test('overview shows all three sources without a scanner link on Data sources at width ' + width, async ({ page }) => {
+  test('all three floor data sources stay below the map and list at width ' + width, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 })
+    // A student might reload a tab that was on the old standalone page.
+    await page.addInitScript(() => {
+      history.replaceState({ openseat: true, openseatPage: 'sources' }, '')
+    })
     await page.goto('./#floor=8')
     const panel = page.getByRole('region', { name: 'Floor data sources' })
     const phone = width === 390
@@ -20,14 +24,15 @@ for (const width of [390, 1280]) {
     await expect(panel.locator('li')).toHaveCount(3)
     await expect(panel).not.toContainText(/check-in|checked in/i)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    await expect(panel.getByRole('button', { name: 'Connect scanner' })).toHaveCount(0)
+    await expect(panel.getByRole('button', { name: /How it works|Connect scanner/ })).toHaveCount(0)
+    if (!phone) {
+      const navigation = page.getByRole('navigation', { name: 'Workspace' })
+      await expect(navigation.getByRole('button', { name: 'Floor overview' })).toBeVisible()
+      await expect(navigation).not.toContainText('Data sources')
+    }
     await page.getByRole('button', { name: phone ? 'List' : 'List view', exact: true }).click()
     const list = page.locator('.seat-list')
     await expect(list).toBeVisible()
     await below(list)
-    await panel.getByRole('button', { name: 'How it works' }).click()
-    const bluetooth = page.locator('.source-card').filter({ has: page.getByRole('heading', { name: 'Bluetooth', exact: true }) })
-    await expect(bluetooth).toBeVisible()
-    await expect(bluetooth).not.toContainText('Connect scanner')
   })
 }
