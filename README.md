@@ -44,7 +44,7 @@ Simple rules:
 - In the demo, nothing times out. A seat only changes when someone reports it or makes a sensor reading.
 - **QR codes:** select a table or seat, press **Show table QR code** (or **Show seat QR code**) and scan it with another phone. It opens that table or seat.
 - **Sensors:** open any seat or table, pick a chair, and press **Sensor: free** or **Sensor: in use**. That seat changes colour on the map. In the demo, a seat with a sensor reading keeps it until the next sensor reading.
-- **Bluetooth** is never simulated. It only shows real readings from the scanner. Open **How it works** to find scanner setup.
+- **Bluetooth** is never simulated. It only shows real readings from the scanner. See **Floor data sources** below the map for the latest floor readings.
 - **Share map** shows a QR code and a link. Open either on another device to join the same demo. A demo nobody uses for 24 hours is deleted, and its link then opens an empty demo.
 - **Restart demo** starts a fresh one.
 
@@ -108,12 +108,7 @@ Without the secret, the job deletes nothing and shows a warning. To see what it 
 
 ### Connecting real hardware
 
-**Bluetooth scanner.** The scanner is an iPhone running the BLE2MQTT app. It sends each scan to flespi under its own channel name, called a topic. In OpenSeat:
-
-1. From **Floor data sources**, open **How it works**, press **Connect scanner** and pick the area the scanner covers.
-2. Press **Connect BLE2MQTT via flespi** and enter a **flespi read token** (an access key from flespi that can read the topic) and the exact **Scanner MQTT topic** set in the app.
-3. On a live floor, also enter the **OpenSeat operator key** (the same key as `OPENSEAT_FEED_KEY` below).
-4. Keep the page open. It counts the devices and saves only the count and the time to OpenSeat's database. Scan times without a time zone are read as Toronto time.
+**Bluetooth scanner.** Open **Classroom demo** and press **Master** in BLE2MQTT on the configured iPhone to see the classroom device count. To publish Bluetooth counts for a floor, use the station below with `source` set to `ble`.
 
 **Sensor station.** A station is a small program that sends seat-sensor readings. Run it with two environment variables, for example:
 

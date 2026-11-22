@@ -1,9 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
-  ArrowLeft,
   ExternalLink,
-  Info,
   List,
   Map as MapIcon,
   Menu,
@@ -18,15 +16,7 @@ import { age, fresh } from './model.js'
 import { themeChoices, useTheme } from './theme.js'
 import FloorMap from './FloorMap.jsx'
 import SeatDetails from './SeatDetails.jsx'
-import {
-  Activity,
-  DemoBanner,
-  Legend,
-  SeatList,
-  SourceCards,
-  SourcesPanel,
-  plural,
-} from './parts.jsx'
+import { DemoBanner, Legend, SeatList, SourcesPanel } from './parts.jsx'
 
 // Auto follows the phone's own light or dark setting.
 function ThemeSwitch() {
@@ -60,7 +50,7 @@ function FloorSelect({ onFloor }) {
   )
 }
 
-function PhoneMenu({ demo, onClose, onRoom, onFloor, onShare, onSources }) {
+function PhoneMenu({ demo, onClose, onRoom, onFloor, onShare }) {
   // onClose(then) closes the menu first, then runs the chosen action.
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
@@ -82,7 +72,7 @@ function PhoneMenu({ demo, onClose, onRoom, onFloor, onShare, onSources }) {
             </Dialog.Close>
           </div>
           <Dialog.Description className="sr-only">
-            Pick a floor, switch between the live floor and the demo, share the map or learn how it works.
+            Pick a floor, switch between the live floor and the demo, or share the map.
           </Dialog.Description>
           <div className="menu-label">Which floor?</div>
           <FloorSelect onFloor={(n) => onClose(() => onFloor(n))} />
@@ -102,9 +92,6 @@ function PhoneMenu({ demo, onClose, onRoom, onFloor, onShare, onSources }) {
               <Share2 size={18} /> Share this map
             </button>
             <a href="./classroom/"><Bluetooth size={18} /> Classroom demo</a>
-            <button onClick={() => onClose(onSources)}>
-              <Info size={18} /> How the data works
-            </button>
             {demo && (
               <button onClick={() => onClose(() => onRoom(false, true))}>
                 <RotateCcw size={18} /> Start the demo again
@@ -148,8 +135,7 @@ export default function PhoneView(p) {
     changeFilters,
     section,
     query,
-    page,
-    nav,
+    showOverview,
     setModal,
     findButton,
     nextSuggestion,
@@ -195,7 +181,7 @@ export default function PhoneView(p) {
   useEffect(() => () => document.documentElement.style.setProperty('--sheet-h', '0px'), [])
   // Keep the chosen seat on screen, between the top bar and the sheet.
   function keepVisible() {
-    if (!place || !sheetRef.current || view !== 'map' || page !== 'overview') return
+    if (!place || !sheetRef.current || view !== 'map') return
     const marker = document.querySelector(`.phone-map .plan-svg [data-id="${place.id}"]`),
       header = document.querySelector('.phone-top')
     if (!marker) return
@@ -222,7 +208,7 @@ export default function PhoneView(p) {
   return (
     <div className={'phone' + (open ? ' has-sheet' : '')} ref={root}>
       <header className="phone-top">
-        <button className="brand-mini" onClick={() => nav('overview')}>
+        <button className="brand-mini" onClick={showOverview}>
           <img src="./mark.svg" alt="" />
           <span>
             <b>OpenSeat</b>
@@ -242,146 +228,121 @@ export default function PhoneView(p) {
         {announce}
       </p>
       <main className="phone-main">
-        {page === 'sources' ? (
-          <section className="phone-sources">
-            <button className="back-btn" onClick={() => nav('overview')}>
-              <ArrowLeft size={18} /> Back to the map
-            </button>
-            <h1>How the data works</h1>
-            <p className="lead">
-              The map uses three sources: student reports, seat sensors and Bluetooth counts.
-              Each update shows how long ago it arrived. Old information stops counting, so a
-              seat with nothing recent says “No recent info” rather than guessing.
-              {demo &&
-                ' In the demo nothing expires: seats change only when someone reports them or makes a sensor reading.'}
-            </p>
-            <h2 className="sr-only">The three sources</h2>
-            <SourceCards events={events} now={now} full />
-            <Activity events={events} now={now} />
-          </section>
-        ) : (
-          <>
-            <section className="hero" aria-labelledby="hero-title">
-              <FloorSelect onFloor={onFloor} />
-              <p className="hero-kicker">
-                {demo ? 'Example data · ' + floor.name : 'Right now on ' + floor.name}
+        <section className="hero" aria-labelledby="hero-title">
+          <FloorSelect onFloor={onFloor} />
+          <p className="hero-kicker">
+            {demo ? 'Example data · ' + floor.name : 'Right now on ' + floor.name}
+          </p>
+          {empty ? (
+            <>
+              <h1 id="hero-title">No seat updates yet</h1>
+              <p className="hero-sub">
+                Be the first: tap a seat on the map and say whether it's free.
               </p>
-              {empty ? (
-                <>
-                  <h1 id="hero-title">No seat updates yet</h1>
-                  <p className="hero-sub">
-                    Be the first: tap a seat on the map and say whether it's free.
-                  </p>
-                </>
-              ) : n.free === 0 ? (
-                // Nobody has reported a free seat. That is not the same as a full floor.
-                <>
-                  <h1 id="hero-title">{n.unknown ? 'No free seats reported' : 'Every seat is taken'}</h1>
-                  <p className="hero-sub">
-                    {n.occupied} taken · {n.unknown} no recent info
-                    {latest ? ' · updated ' + age(latest.at, now).toLowerCase() : ''}
-                  </p>
-                  {n.unknown > 0 && !choices && (
-                    <p className="hero-hint">
-                      Seats with no recent info may still be free. Seen one? Tap it on the map and
-                      choose “It's free”.
-                    </p>
-                  )}
-                </>
-              ) : (
-                <>
-                  <h1 id="hero-title">
-                    <strong>{n.free}</strong> {n.free === 1 ? 'seat' : 'seats'} free
-                  </h1>
-                  <p className="hero-sub">
-                    {n.occupied} taken · {n.unknown} no recent info
-                    {latest ? ' · updated ' + age(latest.at, now).toLowerCase() : ''}
-                  </p>
-                </>
+            </>
+          ) : n.free === 0 ? (
+            // Nobody has reported a free seat. That is not the same as a full floor.
+            <>
+              <h1 id="hero-title">{n.unknown ? 'No free seats reported' : 'Every seat is taken'}</h1>
+              <p className="hero-sub">
+                {n.occupied} taken · {n.unknown} no recent info
+                {latest ? ' · updated ' + age(latest.at, now).toLowerCase() : ''}
+              </p>
+              {n.unknown > 0 && !choices && (
+                <p className="hero-hint">
+                  Seats with no recent info may still be free. Seen one? Tap it on the map and
+                  choose “It's free”.
+                </p>
               )}
-              {findButton}
-            </section>
-            <div className="phone-controls">
-              <div className="segmented" role="group" aria-label="View">
-                <button aria-pressed={view === 'map'} onClick={() => setView('map')}>
-                  <MapIcon size={17} /> Map
-                </button>
-                <button aria-pressed={view === 'list'} onClick={() => setView('list')}>
-                  <List size={17} /> List
-                </button>
-              </div>
-              <button
-                className={'filter-pill ' + (filter === 'free' ? 'selected' : '')}
-                aria-pressed={filter === 'free'}
-                onClick={() => changeFilters(section, filter === 'free' ? 'all' : 'free')}
-              >
-                <span />
-                Free only
-              </button>
-            </div>
-            <div className="area-chips" role="group" aria-label="Area">
-              {[
-                ['all', 'Everywhere'],
-                ['tables', 'Round tables'],
-                ['individuals', 'Solo seats'],
-              ]
-                .filter(([key]) => key !== 'tables' || tables.length)
-                .map(([key, text]) => (
-                <button key={key} aria-pressed={section === key} onClick={() => changeFilters(key, filter)}>
-                  {text}
-                </button>
-              ))}
-            </div>
-            {view === 'map' ? (
-              <div className="phone-map">
-                <FloorMap
-                  {...{ model, section, filter, now, focus }}
-                  selected={place?.id}
-                  onSelect={(id) => pick(id)}
-                  onPlaced={() => requestAnimationFrame(keepVisible)}
-                  onShowList={() => setView('list')}
-                />
-                <p className="map-tip">Tap a seat to see it or report it. Pinch to zoom.</p>
-                <Legend />
-              </div>
-            ) : (
-              <div className="phone-list">
-                <label className="list-search">
-                  <Search size={17} />
-                  <input
-                    aria-label="Search seats"
-                    placeholder="Search: table 5, seat 12"
-                    value={query}
-                    onChange={(e) => changeFilters(section, filter, e.target.value)}
-                    onFocus={(e) => {
-                      // Lift the box to the top so the keyboard does not hide the results.
-                      const box = e.currentTarget.closest('.list-search')
-                      setTimeout(() => box?.scrollIntoView({ block: 'start' }), 250)
-                    }}
-                    enterKeyHint="search"
-                  />
-                </label>
-                <SeatList
-                  locations={model.locations}
-                  {...{ section, filter, query, now }}
-                  selected={place?.id}
-                  onPick={(id, s) => pick(id, s, { heading: true })}
-                  onShowAll={() => changeFilters('all', 'all')}
-                  hiddenBy={[filter === 'free' && 'Free only', section !== 'all' && (section === 'tables' ? 'Round tables' : 'Solo seats')].filter(Boolean)}
-                  onReveal={(id, s) => {
-                    changeFilters('all', 'all')
-                    pick(id, s, { heading: true })
-                  }}
-                />
-              </div>
-            )}
-            <SourcesPanel
-              model={model}
-              now={now}
-              onMore={() => nav('sources')}
+            </>
+          ) : (
+            <>
+              <h1 id="hero-title">
+                <strong>{n.free}</strong> {n.free === 1 ? 'seat' : 'seats'} free
+              </h1>
+              <p className="hero-sub">
+                {n.occupied} taken · {n.unknown} no recent info
+                {latest ? ' · updated ' + age(latest.at, now).toLowerCase() : ''}
+              </p>
+            </>
+          )}
+          {findButton}
+        </section>
+        <div className="phone-controls">
+          <div className="segmented" role="group" aria-label="View">
+            <button aria-pressed={view === 'map'} onClick={() => setView('map')}>
+              <MapIcon size={17} /> Map
+            </button>
+            <button aria-pressed={view === 'list'} onClick={() => setView('list')}>
+              <List size={17} /> List
+            </button>
+          </div>
+          <button
+            className={'filter-pill ' + (filter === 'free' ? 'selected' : '')}
+            aria-pressed={filter === 'free'}
+            onClick={() => changeFilters(section, filter === 'free' ? 'all' : 'free')}
+          >
+            <span />
+            Free only
+          </button>
+        </div>
+        <div className="area-chips" role="group" aria-label="Area">
+          {[
+            ['all', 'Everywhere'],
+            ['tables', 'Round tables'],
+            ['individuals', 'Solo seats'],
+          ]
+            .filter(([key]) => key !== 'tables' || tables.length)
+            .map(([key, text]) => (
+            <button key={key} aria-pressed={section === key} onClick={() => changeFilters(key, filter)}>
+              {text}
+            </button>
+          ))}
+        </div>
+        {view === 'map' ? (
+          <div className="phone-map">
+            <FloorMap
+              {...{ model, section, filter, now, focus }}
+              selected={place?.id}
+              onSelect={(id) => pick(id)}
+              onPlaced={() => requestAnimationFrame(keepVisible)}
+              onShowList={() => setView('list')}
             />
-          </>
+            <p className="map-tip">Tap a seat to see it or report it. Pinch to zoom.</p>
+            <Legend />
+          </div>
+        ) : (
+          <div className="phone-list">
+            <label className="list-search">
+              <Search size={17} />
+              <input
+                aria-label="Search seats"
+                placeholder="Search: table 5, seat 12"
+                value={query}
+                onChange={(e) => changeFilters(section, filter, e.target.value)}
+                onFocus={(e) => {
+                  // Lift the box to the top so the keyboard does not hide the results.
+                  const box = e.currentTarget.closest('.list-search')
+                  setTimeout(() => box?.scrollIntoView({ block: 'start' }), 250)
+                }}
+                enterKeyHint="search"
+              />
+            </label>
+            <SeatList
+              locations={model.locations}
+              {...{ section, filter, query, now }}
+              selected={place?.id}
+              onPick={(id, s) => pick(id, s, { heading: true })}
+              onShowAll={() => changeFilters('all', 'all')}
+              hiddenBy={[filter === 'free' && 'Free only', section !== 'all' && (section === 'tables' ? 'Round tables' : 'Solo seats')].filter(Boolean)}
+              onReveal={(id, s) => {
+                changeFilters('all', 'all')
+                pick(id, s, { heading: true })
+              }}
+            />
+          </div>
         )}
+        <SourcesPanel model={model} now={now} />
         <footer className="phone-foot">
           SLC {floor.name} · {seats.length} open seats · {floor.notCounted} not counted
         </footer>
@@ -416,7 +377,6 @@ export default function PhoneView(p) {
           onRoom={onRoom}
           onFloor={onFloor}
           onShare={() => setModal('share')}
-          onSources={() => nav('sources')}
         />
       )}
     </div>

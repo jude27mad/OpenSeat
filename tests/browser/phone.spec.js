@@ -200,15 +200,13 @@ test('Back closes the sheet, the menu and the list before it leaves OpenSeat', a
   expect(page.url()).toContain('#demo=')
 })
 
-test('the phone menu reaches the data page, and Back returns to the map', async ({ page }) => {
+test('the phone menu switches between live and demo from the floor overview', async ({ page }) => {
   await page.goto(demo())
-  await page.getByRole('button', { name: 'Menu' }).tap()
-  await page.getByRole('button', { name: 'How the data works' }).tap()
-  await expect(page.getByRole('heading', { name: 'How the data works' })).toBeVisible()
-  await page.goBack()
-  await expect(page.locator('.hero')).toBeVisible()
   const demoUrl = page.url()
   await page.getByRole('button', { name: 'Menu' }).tap()
+  const menu = page.getByRole('dialog', { name: 'Menu' })
+  await expect(menu).toBeVisible()
+  await expect(menu).not.toContainText(/How the data works|Data sources/)
   await page.getByRole('button', { name: 'Live floor' }).tap()
   await expect(page.getByRole('note')).toHaveCount(0)
   await expect(page.locator('.hero h1')).toHaveText(

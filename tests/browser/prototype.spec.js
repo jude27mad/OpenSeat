@@ -224,6 +224,7 @@ test('Floor inventory, a table QR code, and a report on a phone showing on the d
 test('Live floor contains no demonstration fixtures', async ({ page }) => {
   await page.goto('./#floor=8')
   await expect(page.getByLabel('Floor data mode')).toHaveValue('live')
-  await page.getByRole('button', { name: 'Data sources', exact: true }).click()
-  await expect(page.locator('.source-cards')).not.toContainText(/Simulated|Demo/)
+  const sources = page.getByRole('region', { name: 'Floor data sources' })
+  await expect(sources).toBeVisible()
+  await expect(sources).not.toContainText(/Simulated|Demo/)
 })
