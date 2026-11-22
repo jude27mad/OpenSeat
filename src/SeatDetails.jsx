@@ -504,6 +504,12 @@ export default function SeatDetails({
     </section>
   )
 
+  const nextButton = next && (
+    <Button variant="outline" className="wide next-spot" onClick={next.onNext}>
+      {next.text}
+      <ArrowRight />
+    </Button>
+  )
   return (
     <Card className={'panel inspector mode-' + mode}>
       <header className="inspector-head" {...dragHandlers}>
@@ -544,6 +550,7 @@ export default function SeatDetails({
             </button>
           )}
         </div>
+        {!phone && nextButton}
       </header>
       <div className="inspector-body">
         {locator && (
@@ -623,12 +630,7 @@ export default function SeatDetails({
         )}
         {(!peek || !isTable) && <Origin event={state.latest} now={now} />}
         {phone ? createPortal(message, document.body) : message}
-        {next && (
-          <Button variant="outline" className="wide next-spot" onClick={next.onNext}>
-            {next.text}
-            <ArrowRight />
-          </Button>
-        )}
+        {phone && nextButton}
         {peek && (
           <Button variant="outline" className="wide more" onClick={expand}>
             {isTable ? 'Report or check in' : 'More details'}

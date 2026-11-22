@@ -13,6 +13,7 @@ import {
   Menu,
   Search,
   Share2,
+  Sparkles,
   UsersRound,
   X,
 } from 'lucide-react'
@@ -40,7 +41,6 @@ import {
 
 const navigation = [
   ['overview', 'Floor overview', LayoutDashboard],
-  ['finder', 'Find a seat', Search],
   ['sources', 'Data sources', Layers],
 ]
 // Phones held sideways are short rather than narrow, so they keep the phone layout.
@@ -66,6 +66,10 @@ function replace(patch, url = location.href) {
 }
 function setUrl(room, spot, checkin = false) {
   replace({}, roomUrl(room, spot, checkin))
+}
+// Older history entries can point to the retired seat-finder page.
+function currentPage() {
+  return history.state?.openseatPage === 'sources' ? 'sources' : 'overview'
 }
 function useMedia(query) {
   const [matches, setMatches] = useState(() => matchMedia(query).matches)
@@ -110,7 +114,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
   const [theme, setTheme] = useTheme()
   const phone = useMedia(PHONE),
     drawerMode = useMedia(DRAWER)
-  const [page, setPage] = useState(() => history.state?.openseatPage || 'overview'),
+  const [page, setPage] = useState(currentPage),
     [view, setView] = useState('map'),
     [section, setSection] = useState('all'),
     [filter, setFilter] = useState('all'),
@@ -134,7 +138,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
     [announce, setAnnounce] = useState(''),
     [busyMine, setBusyMine] = useState(false),
     [mineNote, setMineNote] = useState(null)
-  const listing = page === 'finder' || view === 'list'
+  const listing = view === 'list'
   const defaultPlace = !phone && !selected
     ? [...model.locations.values()].find((p) => !isDim(p, section, filter) && (!listing || matchesQuery(p, query)))
     : null
@@ -149,6 +153,9 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
   live.current = { phone, selected }
   const mine = myCheckIns(room, model, now)
   const choices = suggestions(model.locations, now, section)
+  const choiceIds = new Set(choices.map((place) => place.id))
+  const seenChoices = seen.filter((id) => choiceIds.has(id))
+  const showingSuggestion = !!findId && findId === selected
   useEffect(() => {
     const t = setInterval(() => setNow(serverNow()), 4000)
     return () => {
@@ -167,8 +174,8 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
   useEffect(() => {
     function onPop() {
       const s = history.state || {}
-      setPage(s.openseatPage || 'overview')
-      if (!live.current.phone) setFilter(s.openseatPage === 'finder' ? 'free' : 'all')
+      setPage(currentPage())
+      if (!live.current.phone) setFilter('all')
       else {
         setMenu(!!s.openseatMenu)
         setView(s.openseatView || 'map')
@@ -208,6 +215,11 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
     return () => window.removeEventListener('keydown', onKey, true)
   })
   useEffect(() => setSeen([]), [section])
+  useEffect(() => {
+    if (!phone && showingSuggestion && page === 'overview') {
+      detail.current?.scrollIntoView({ block: 'start' })
+    }
+  }, [headingFocus, showingSuggestion, page, phone])
 
   function pick(id, specific = null, opts = {}) {
     const p = model.locations.get(id)
@@ -258,8 +270,8 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
   // `then` runs once the page has changed, after any history step settles.
   function nav(key, then) {
     setDrawer(false)
-    if (phone) setFilter(key === 'finder' ? 'free' : 'all')
-    else changeFilters(section, key === 'finder' ? 'free' : 'all')
+    if (phone) setFilter('all')
+    else changeFilters(section, 'all')
     if (key !== page) {
       if (phone && page === 'sources' && history.state?.openseatPage === 'sources') {
         afterPop.current = then || null
@@ -305,8 +317,8 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
   // Each press shows a free spot not shown yet, best first, then starts over.
   function onFind() {
     if (!choices.length) return
-    const ids = choices.map((c) => c.id)
-    let shown = seen.filter((id) => ids.includes(id))
+    const ids = [...choiceIds]
+    let shown = seenChoices
     let next = ids.find((id) => !shown.includes(id) && id !== selected)
     if (!next) {
       shown = []
@@ -314,9 +326,23 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
     }
     setSeen([...shown, next])
     setFindId(next)
+    if (!phone) setView('map')
     pick(next, null, { focus: true, heading: true, fromFind: true })
   }
-  const findCount = { at: seen.length, of: choices.length }
+  const findButton = choices.length > 0 && (
+    <Button className={phone ? 'wide big find' : 'desktop-find'} onClick={onFind}>
+      <Sparkles />
+      {seenChoices.length
+        ? `Show another free spot (${seenChoices.length} of ${choices.length})`
+        : 'Find me a free seat'}
+    </Button>
+  )
+  const nextSuggestion = showingSuggestion && choices.length > 1
+    ? {
+        text: `Not this one? Next free spot (${seenChoices.length % choices.length + 1} of ${choices.length})`,
+        onNext: onFind,
+      }
+    : null
   async function checkInAgain(target, undo = false) {
     const previous = mine.find((entry) => entry.seat === target)?.event.id ?? null
     const id = crypto.randomUUID()
@@ -433,9 +459,8 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
             mine,
             checkOutMine,
             busyMine,
-            onFind,
-            findCount,
-            fromFind: !!findId && findId === selected,
+            findButton,
+            nextSuggestion,
             choices: choices.length,
             close,
             menu,
@@ -588,20 +613,9 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
               <div className="floor-eyebrow">
                 <span /> STUDENT LEARNING CENTRE
               </div>
-              <h1>
-                {page === 'overview'
-                  ? 'Floor overview'
-                  : page === 'finder'
-                    ? 'Find a seat'
-                    : 'Data sources'}
-              </h1>
-              <p>
-                {page === 'overview'
-                  ? floor.title
-                  : page === 'finder'
-                    ? 'Places with a recent free report come first.'
-                    : 'The four inputs behind the ' + floor.name + ' map.'}
-              </p>
+              <h1>{page === 'overview' ? 'Floor overview' : 'Data sources'}</h1>
+              <p>{page === 'overview' ? floor.title : 'The four inputs behind the ' + floor.name + ' map.'}</p>
+              {page === 'overview' && findButton}
             </div>
             <div className="lead-actions">
               <select
@@ -662,40 +676,34 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
               />
             </div>
           )}
-          {page !== 'sources' && (
+          {page === 'overview' && (
             <div className="plan-grid">
               <Card className="panel floor-panel">
                 <div className="panel-heading">
                   <div>
-                    <h2>{page === 'finder' ? 'Seat finder' : 'Floor plan'}</h2>
+                    <h2>Floor plan</h2>
                     <p>
-                      {page === 'finder'
-                        ? 'Select a place to see its chairs and report them.'
-                        : (tables.length ? tables.length + ' round tables · ' : '') +
-                          individuals.length +
-                          ' individual seats'}
+                      {(tables.length ? tables.length + ' round tables · ' : '') + individuals.length + ' individual seats'}
                     </p>
                   </div>
-                  {page !== 'finder' && (
-                    <div className="map-tabs">
-                      <button
-                        onClick={() => setView('map')}
-                        aria-pressed={view === 'map'}
-                        aria-label="Map view"
-                      >
-                        <MapIcon size={15} />
-                        <span>Map</span>
-                      </button>
-                      <button
-                        onClick={() => setView('list')}
-                        aria-pressed={view === 'list'}
-                        aria-label="List view"
-                      >
-                        <List size={15} />
-                        <span>List</span>
-                      </button>
-                    </div>
-                  )}
+                  <div className="map-tabs">
+                    <button
+                      onClick={() => setView('map')}
+                      aria-pressed={view === 'map'}
+                      aria-label="Map view"
+                    >
+                      <MapIcon size={15} />
+                      <span>Map</span>
+                    </button>
+                    <button
+                      onClick={() => setView('list')}
+                      aria-pressed={view === 'list'}
+                      aria-label="List view"
+                    >
+                      <List size={15} />
+                      <span>List</span>
+                    </button>
+                  </div>
                 </div>
                 <div className="plan-toolbar">
                   <select
@@ -716,7 +724,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                     Free only
                   </button>
                 </div>
-                {page === 'finder' || view === 'list' ? (
+                {listing ? (
                   <>
                     <label className="list-search">
                       <Search size={15} />
@@ -744,18 +752,14 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                   />
                 )}
                 <Legend />
-                {page === 'overview' && (
-                  <SourcesPanel
-                    model={model}
-                    now={now}
-                    onMore={() => nav('sources')}
-                  />
-                )}
+                <SourcesPanel model={model} now={now} onMore={() => nav('sources')} />
               </Card>
               <div ref={detail} className="inspector-wrap">
                 {place && <SeatDetails
                   {...{ room, place, model, now, record }}
                   seat={shownSeat}
+                  focusKey={showingSuggestion ? headingFocus : 0}
+                  next={nextSuggestion}
                   canCheckIn={qrPlace === shownId}
                   onSeat={(id) => {
                     setSelected(place.id)
