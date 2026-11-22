@@ -71,6 +71,7 @@ test('all floors draw the same map symbols and keep seats at their rotated locat
   for (const [number, seats, tables] of [[8, 92, 40], [5, 166, 0], [7, 196, 3]]) {
     await page.getByRole('combobox', { name: 'Floor', exact: true }).selectOption(String(number))
     await expect(map).toHaveAttribute('aria-label', new RegExp('Floor ' + number + '$'))
+    await expect(page.getByRole('group', { name: 'Area', exact: true })).toHaveCount(tables ? 1 : 0)
     await expect(map.locator('image')).toHaveCount(0)
     await expect(map.locator('.plan-label').filter({ hasText: /^LIFTS$/ })).toBeVisible()
     await expect(map.locator('.room-shape[fill^="url(#"]')).not.toHaveCount(0)

@@ -286,19 +286,19 @@ export default function PhoneView(p) {
             Free only
           </button>
         </div>
-        <div className="area-chips" role="group" aria-label="Area">
-          {[
-            ['all', 'Everywhere'],
-            ['tables', 'Round tables'],
-            ['individuals', 'Solo seats'],
-          ]
-            .filter(([key]) => key !== 'tables' || tables.length)
-            .map(([key, text]) => (
-            <button key={key} aria-pressed={section === key} onClick={() => changeFilters(key, filter)}>
-              {text}
-            </button>
-          ))}
-        </div>
+        {tables.length > 0 && (
+          <div className="area-chips" role="group" aria-label="Area">
+            {[
+              ['all', 'Everywhere'],
+              ['tables', 'Round tables'],
+              ['individuals', 'Solo seats'],
+            ].map(([key, text]) => (
+              <button key={key} aria-pressed={section === key} onClick={() => changeFilters(key, filter)}>
+                {text}
+              </button>
+            ))}
+          </div>
+        )}
         {view === 'map' ? (
           <div className="phone-map">
             <FloorMap
