@@ -461,8 +461,8 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
             <Building2 size={18} />
           </div>
           <span>
-            <b>TMU Campus</b>
-            <small>Toronto Metropolitan</small>
+            <b>Sheldon &amp; Tracy Levy Student Learning Centre</b>
+            <small>Toronto Metropolitan University</small>
           </span>
         </div>
         <span className="nav-heading">Workspace</span>
