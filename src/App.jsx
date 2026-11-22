@@ -478,6 +478,27 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
   const zone = section === 'individuals' || !tables.length ? 'individuals' : 'tables',
     ble = model.ble[zone],
     n = model.counts
+  const areaFilters = (
+    <>
+      <select
+        aria-label="Map area"
+        value={section}
+        onChange={(e) => changeFilters(e.target.value, filter)}
+      >
+        <option value="all">All areas</option>
+        {tables.length > 0 && <option value="tables">Round tables</option>}
+        <option value="individuals">Individual seats</option>
+      </select>
+      <button
+        className={'filter-pill ' + (filter === 'free' ? 'selected' : '')}
+        aria-pressed={filter === 'free'}
+        onClick={() => changeFilters(section, filter === 'free' ? 'all' : 'free')}
+      >
+        <span />
+        Free only
+      </button>
+    </>
+  )
   return (
     <div className="app-shell">
       {drawer && (
@@ -705,27 +726,9 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                     </button>
                   </div>
                 </div>
-                <div className="plan-toolbar">
-                  <select
-                    aria-label="Map area"
-                    value={section}
-                    onChange={(e) => changeFilters(e.target.value, filter)}
-                  >
-                    <option value="all">All areas</option>
-                    {tables.length > 0 && <option value="tables">Round tables</option>}
-                    <option value="individuals">Individual seats</option>
-                  </select>
-                  <button
-                    className={'filter-pill ' + (filter === 'free' ? 'selected' : '')}
-                    aria-pressed={filter === 'free'}
-                    onClick={() => changeFilters(section, filter === 'free' ? 'all' : 'free')}
-                  >
-                    <span />
-                    Free only
-                  </button>
-                </div>
                 {listing ? (
                   <>
+                    <div className="plan-toolbar">{areaFilters}</div>
                     <label className="list-search">
                       <Search size={15} />
                       <input
@@ -745,6 +748,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                   </>
                 ) : (
                   <FloorMap
+                    desktopFilters={areaFilters}
                     {...{ model, section, filter, now, focus }}
                     selected={shownId}
                     onSelect={(id) => pick(id, null, { scroll: true })}

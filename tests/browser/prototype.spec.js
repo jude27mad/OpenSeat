@@ -43,6 +43,40 @@ test('Free only excludes taken map markers and clears their details', async ({ p
   await expect(panel).toHaveText('Seat ' + String(Number(id.slice(1))).padStart(2, '0'))
 })
 
+test('desktop map controls zoom and fit the selected floor', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await page.goto('./#floor=5&spot=I038')
+  const viewport = page.locator('.plan-viewport')
+  const controls = page.getByRole('group', { name: 'Map zoom' })
+  const zoomIn = controls.getByRole('button', { name: 'Zoom in' })
+  const zoomOut = controls.getByRole('button', { name: 'Zoom out' })
+  const fit = controls.getByRole('button', { name: 'Fit', exact: true })
+  const scale = () => viewport.locator('.plan-svg').evaluate((svg) => svg.getScreenCTM().a)
+
+  // The shared seat link opens zoomed in.
+  await fit.click()
+  await expect(zoomOut).toBeDisabled()
+  const fitted = await scale()
+  await zoomIn.click()
+  await expect.poll(scale).toBeGreaterThan(fitted)
+  await zoomOut.click()
+  await expect.poll(scale).toBeCloseTo(fitted)
+  for (let i = 0; i < 4; i++) await zoomIn.click()
+  await expect(zoomIn).toBeDisabled()
+  await viewport.evaluate((el) => el.scrollTo(el.scrollWidth, el.scrollHeight))
+  await fit.click()
+  await expect.poll(scale).toBeCloseTo(fitted)
+  await expect.poll(() => viewport.evaluate((el) => [el.scrollLeft, el.scrollTop])).toEqual([0, 0])
+  await expect(page.locator('.inspector-title h2')).toHaveText('Seat 38')
+
+  await page.getByRole('button', { name: 'List view' }).click()
+  await expect(controls).toHaveCount(0)
+  await page.getByRole('button', { name: 'Map view' }).click()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.locator('.phone-map .plan-svg')).toBeVisible()
+  await expect(controls).toHaveCount(0)
+})
+
 test('the desktop floor overview finds free seats directly on the map', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 })
   await page.goto(demo())
