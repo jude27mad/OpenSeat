@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 for (const width of [390, 1280]) {
-  test('overview shows all three sources with scanner setup behind How it works at width ' + width, async ({ page }) => {
+  test('overview shows all three sources without a scanner link on Data sources at width ' + width, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 })
     await page.goto('./#floor=8')
     const panel = page.getByRole('region', { name: 'Floor data sources' })
@@ -26,13 +26,8 @@ for (const width of [390, 1280]) {
     await expect(list).toBeVisible()
     await below(list)
     await panel.getByRole('button', { name: 'How it works' }).click()
-    await page.getByRole('button', { name: 'Connect scanner', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Bluetooth scanner' })
-    await expect(dialog.getByText('Table sensor', { exact: true })).toHaveCount(0)
-    await expect(dialog.getByLabel('flespi read token')).toBeVisible()
-    await expect(dialog.getByLabel('Scanner MQTT topic')).toBeVisible()
-    await expect(dialog.getByLabel('OpenSeat operator key')).toBeVisible()
-    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
-    await expect(dialog).toBeHidden()
+    const bluetooth = page.locator('.source-card').filter({ has: page.getByRole('heading', { name: 'Bluetooth', exact: true }) })
+    await expect(bluetooth).toBeVisible()
+    await expect(bluetooth).not.toContainText('Connect scanner')
   })
 }
