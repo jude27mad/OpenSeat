@@ -748,7 +748,6 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                   <SourcesPanel
                     model={model}
                     now={now}
-                    onScanner={() => setModal('scanner')}
                     onMore={() => nav('sources')}
                   />
                 )}
@@ -778,7 +777,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                   )}
                 </div>
               </div>
-              <SourceCards events={events} now={now} full />
+              <SourceCards events={events} now={now} full onScanner={() => setModal('scanner')} />
             </section>
           )}
           {page === 'sources' && <Activity events={events} now={now} />}
