@@ -2811,6 +2811,16 @@ h3 {
 .page-lead h1 {
   margin: 10px 0 4px;
 }
+.page-lead .desktop-find {
+  margin-top: 12px;
+  min-height: 44px;
+  padding-inline: 20px;
+}
+.mode-panel .next-spot {
+  white-space: normal;
+  height: auto;
+  min-height: 40px;
+}
 .page-lead p,
 .panel-heading p,
 .inspector-head p,

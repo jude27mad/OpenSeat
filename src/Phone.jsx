@@ -11,10 +11,8 @@ import {
   RotateCcw,
   Search,
   Share2,
-  Sparkles,
   X,
 } from 'lucide-react'
-import { Button } from './components/ui/button'
 import { FLOORS, floor, floorNumbers, label, seats, tables } from './floor.js'
 import { age, fresh } from './model.js'
 import { themeChoices, useTheme } from './theme.js'
@@ -159,9 +157,8 @@ export default function PhoneView(p) {
     checkOutMine,
     checkInAgain,
     busyMine,
-    onFind,
-    findCount,
-    fromFind,
+    findButton,
+    nextSuggestion,
     choices,
     close,
     menu,
@@ -320,14 +317,7 @@ export default function PhoneView(p) {
                   </p>
                 </>
               )}
-              {!empty && choices > 0 && (
-                <Button className="wide big find" onClick={onFind}>
-                  <Sparkles />
-                  {findCount.at
-                      ? 'Show another free spot (' + findCount.at + ' of ' + choices + ')'
-                      : 'Find me a free seat'}
-                </Button>
-              )}
+              {findButton}
             </section>
             <div className="phone-controls">
               <div className="segmented" role="group" aria-label="View">
@@ -425,19 +415,7 @@ export default function PhoneView(p) {
             {...{ room, place, seat, model, now, record }}
             mode={sheet}
             focusKey={headingFocus}
-            next={
-              fromFind && choices > 1
-                ? {
-                    text:
-                      'Not this one? Next free spot (' +
-                      Math.min(findCount.at + 1, choices) +
-                      ' of ' +
-                      choices +
-                      ')',
-                    onNext: onFind,
-                  }
-                : null
-            }
+            next={nextSuggestion}
             canCheckIn={qrPlace === place.id}
             locator={view === 'list'}
             section={section}

@@ -43,7 +43,39 @@ test('Free only excludes taken map markers and clears their details', async ({ p
   await expect(panel).toHaveText('Seat ' + String(Number(id.slice(1))).padStart(2, '0'))
 })
 
-test('Floor inventory, filter and independent mobile QR session use all four sources', async ({
+test('the desktop floor overview finds free seats directly on the map', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await page.goto(demo())
+  const home = page.getByRole('navigation', { name: 'Workspace' })
+    .getByRole('button', { name: 'Floor overview' })
+  await expect(home).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('button', { name: 'Find a seat', exact: true })).toHaveCount(0)
+  const find = page.getByRole('button', { name: 'Find me a free seat', exact: true })
+  await expect(find).toBeInViewport()
+  await page.getByRole('combobox', { name: 'Map area' }).selectOption('individuals')
+  await page.getByRole('button', { name: 'List view' }).click()
+  await find.click()
+
+  const title = page.locator('.inspector-title h2')
+  const status = page.locator('.inspector-title .status')
+  const marker = page.locator('.floor-panel .map-marker.active')
+  await expect(page.getByRole('button', { name: 'Map view' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(title).toHaveText(/^Seat \d+$/)
+  await expect(status).toHaveText('Free')
+  await expect(marker).toHaveAttribute('data-id', /^I\d+$/)
+  await expect(marker).toBeInViewport()
+  await expect(title).toBeFocused()
+  const first = await title.textContent()
+  await expect(page.getByRole('button', { name: /Show another free spot \(1 of \d+\)/ })).toBeVisible()
+  await page.locator('.inspector').getByRole('button', { name: /Next free spot \(2 of \d+\)/ }).click()
+  await expect(title).not.toHaveText(first)
+  await expect(title).toHaveText(/^Seat \d+$/)
+  await expect(status).toHaveText('Free')
+  await expect(marker).toHaveAccessibleName(new RegExp('^' + (await title.textContent()) + ','))
+  await expect(home).toHaveAttribute('aria-current', 'page')
+})
+
+test('Floor inventory and independent mobile QR session use all four sources', async ({
   page,
   playwright,
   baseURL,
@@ -64,13 +96,6 @@ test('Floor inventory, filter and independent mobile QR session use all four sou
   await expect(page.getByText('40 round tables · 92 individual seats')).toBeVisible()
   await expect(page.getByRole('button', { name: /^Seat 91,/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Seat 92,/ })).toBeVisible()
-  await page.getByRole('button', { name: 'Find a seat' }).click()
-  await expect(page.locator('.list-location').first()).toContainText(
-    /chairs? free|^Free/i,
-  )
-  await page.locator('.list-location').first().click()
-  await expect(page.locator('.seat-reading .status')).toHaveText('Free')
-  await page.getByRole('button', { name: 'Floor overview' }).click()
   await page.getByRole('button', { name: /^Table 17,/ }).click()
   await page.getByRole('button', { name: 'Show table QR code' }).click()
   const img = page.getByRole('img', { name: 'QR code for Table 17' })
