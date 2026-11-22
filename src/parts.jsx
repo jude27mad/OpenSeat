@@ -153,7 +153,7 @@ export function DemoBanner({ onLive }) {
   )
 }
 
-export function SourceCards({ events, now, full, onScanner }) {
+export function SourceCards({ events, now, full }) {
   return (
     <div className={'source-cards ' + (full ? 'full' : '')}>
       {['ble', 'report', 'sensor'].map((s) => {
@@ -175,11 +175,6 @@ export function SourceCards({ events, now, full, onScanner }) {
                   : 'No readings yet'}
                 {latest?.simulated && <DemoTag />}
               </div>
-              {s === 'ble' && (
-                <button className="text-btn" onClick={onScanner}>
-                  Connect scanner <ArrowRight size={14} />
-                </button>
-              )}
             </div>
           </Card>
         )

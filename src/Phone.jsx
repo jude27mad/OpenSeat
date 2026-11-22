@@ -256,7 +256,7 @@ export default function PhoneView(p) {
                 ' In the demo nothing expires: seats change only when someone reports them or makes a sensor reading.'}
             </p>
             <h2 className="sr-only">The three sources</h2>
-            <SourceCards events={events} now={now} full onScanner={() => setModal('scanner')} />
+            <SourceCards events={events} now={now} full />
             <Activity events={events} now={now} />
           </section>
         ) : (

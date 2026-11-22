@@ -701,7 +701,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
                   )}
                 </div>
               </div>
-              <SourceCards events={events} now={now} full onScanner={() => setModal('scanner')} />
+              <SourceCards events={events} now={now} full />
             </section>
           )}
           {page === 'sources' && <Activity events={events} now={now} />}
