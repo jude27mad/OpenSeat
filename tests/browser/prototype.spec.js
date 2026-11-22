@@ -46,6 +46,8 @@ test('Free only excludes taken map markers and clears their details', async ({ p
 test('desktop map controls zoom and fit the selected floor', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 })
   await page.goto('./#floor=5&spot=I038')
+  await expect(page.getByRole('combobox', { name: 'Map area' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Free only' })).toBeVisible()
   const viewport = page.locator('.plan-viewport')
   const controls = page.getByRole('group', { name: 'Map zoom' })
   const zoomIn = controls.getByRole('button', { name: 'Zoom in' })

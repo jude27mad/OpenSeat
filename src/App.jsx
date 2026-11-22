@@ -403,20 +403,21 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
       </>
     )
 
-  const zone = section === 'individuals' || !tables.length ? 'individuals' : 'tables',
-    ble = model.ble[zone],
-    n = model.counts
+  const latestScan = Object.values(model.ble).filter(Boolean).sort((a, b) => b.at - a.at)[0]
+  const n = model.counts
   const areaFilters = (
     <>
-      <select
-        aria-label="Map area"
-        value={section}
-        onChange={(e) => changeFilters(e.target.value, filter)}
-      >
-        <option value="all">All areas</option>
-        {tables.length > 0 && <option value="tables">Round tables</option>}
-        <option value="individuals">Individual seats</option>
-      </select>
+      {tables.length > 0 && (
+        <select
+          aria-label="Map area"
+          value={section}
+          onChange={(e) => changeFilters(e.target.value, filter)}
+        >
+          <option value="all">All areas</option>
+          <option value="tables">Round tables</option>
+          <option value="individuals">Individual seats</option>
+        </select>
+      )}
       <button
         className={'filter-pill ' + (filter === 'free' ? 'selected' : '')}
         aria-pressed={filter === 'free'}
@@ -603,12 +604,8 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
               />
               <Stat
                 name="Nearby devices"
-                value={fresh(ble, now) ? ble.value : '—'}
-                detail={
-                  (zone === 'tables' ? 'Round-table area' : 'Individual-seat area') +
-                  ' · ' +
-                  (ble ? age(ble.at, now) : 'No scan')
-                }
+                value={fresh(latestScan, now) ? latestScan.value : '—'}
+                detail={latestScan ? 'Last scan · ' + age(latestScan.at, now) : 'No scan'}
                 icon={Bluetooth}
                 tone="blue"
               />
