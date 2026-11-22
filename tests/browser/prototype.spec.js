@@ -109,7 +109,7 @@ test('the desktop floor overview finds free seats directly on the map', async ({
   await expect(home).toHaveAttribute('aria-current', 'page')
 })
 
-test('Floor inventory and independent mobile QR session use all four sources', async ({
+test('Floor inventory, a table QR code, and a report on a phone showing on the desktop', async ({
   page,
   playwright,
   baseURL,
@@ -132,6 +132,9 @@ test('Floor inventory and independent mobile QR session use all four sources', a
   await expect(page.getByRole('button', { name: /^Seat 92,/ })).toBeVisible()
   await page.getByRole('button', { name: /^Table 17,/ }).click()
   await page.getByRole('button', { name: 'Show table QR code' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Table 17 QR code' })
+  await expect(dialog).toContainText('Scanning it opens this table on OpenSeat.')
+  await expect(dialog).not.toContainText(/check/i)
   const img = page.getByRole('img', { name: 'QR code for Table 17' })
   await expect(img).toBeVisible()
   const png = PNG.sync.read(
@@ -139,7 +142,7 @@ test('Floor inventory and independent mobile QR session use all four sources', a
   )
   const decoded = jsQR(new Uint8ClampedArray(png.data), png.width, png.height)
   expect(decoded.data).toContain('spot=T17')
-  expect(decoded.data).toContain('checkin=1')
+  expect(decoded.data).not.toContain('checkin')
   const mobileBrowser = await playwright[phoneEngine].launch()
   const mobile = await mobileBrowser.newContext({
     ...devices['iPhone 13'],
@@ -147,12 +150,16 @@ test('Floor inventory and independent mobile QR session use all four sources', a
   })
   const phone = await mobile.newPage()
   observeService(phone, 'mobile')
+  // Scanning the code opens the table, ready to report a chair.
   await phone.goto(decoded.data)
-  await phone.getByRole('button', { name: /^Chair B,/ }).click()
-  await expect(
-    phone.getByRole('button', { name: 'Check in to Chair B', exact: true }),
-  ).toBeInViewport()
-  await page.getByRole('button', { name: 'Close', exact: true }).click()
+  const sheet = phone.locator('.sheet')
+  await expect(sheet.getByRole('heading', { name: 'Table 17' })).toBeVisible()
+  await sheet.getByRole('button', { name: /^Chair B,/ }).click()
+  await expect(sheet.getByText('Is Chair B free?')).toBeVisible()
+  await expect(sheet.getByRole('button', { name: "It's taken", exact: true })).toBeInViewport()
+  await expect(sheet.getByRole('button', { name: "It's free", exact: true })).toBeInViewport()
+  await expect(phone.getByRole('button', { name: /check in|check out/i })).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: /^Chair B,/ }).click()
   await expect(page.locator('.sync')).toHaveText('Connected', {
     timeout: 25000,
@@ -161,35 +168,19 @@ test('Floor inventory and independent mobile QR session use all four sources', a
     timeout: 25000,
   })
   const t = Date.now()
-  await phone.getByRole('button', { name: 'Check in to Chair B', exact: true }).click()
-  // The live check-in, not the demo's example reading for the same chair.
+  await sheet.getByRole('button', { name: "It's taken", exact: true }).click()
+  // The phone's report, not the demo's example reading for the same chair.
   await expect(page.locator('.inspector .origin').first()).toHaveText(
-    /^QR check-in · (Just now|\d+s ago)$/,
+    /^Student report · (Just now|\d+s ago)$/,
     { timeout: 10000 },
   )
   await expect(page.locator('.seat-reading .status')).toHaveText('Taken')
-  console.log(
-    'QR check-in propagated to independent browser in ' +
-      (Date.now() - t) +
-      ' ms',
-  )
+  const ms = Date.now() - t
+  console.log('Report on the phone showed on the desktop in ' + ms + ' ms')
+  expect(ms).toBeLessThan(10000)
+  // And back the other way: the desktop marks the chair free.
   await page.getByRole('button', { name: "It's free", exact: true }).click()
-  await page.getByRole('button', { name: "Yes, it's empty" }).click()
-  // A confirmed free report clears the check-in for everyone else; the
-  // student who checked in is told and can keep the chair or check out.
   await expect(phone.locator('.seat-reading .status')).toHaveText('Free', { timeout: 10000 })
-  await expect(phone.locator('.sheet')).toContainText('Someone marked your chair free')
-  await expect(phone.locator('.mine-banner')).toContainText(
-    "You're checked in at Table 17 · Chair B",
-  )
-  await phone
-    .locator('.sheet')
-    .getByRole('button', { name: 'Check out', exact: true })
-    .click()
-  await expect(phone.locator('.mine-banner')).toHaveCount(0)
-  await expect(page.locator('.seat-reading .status')).toHaveText('Free', {
-    timeout: 10000,
-  })
   await expect(phone.locator('body')).toBeVisible()
   expect(
     await phone.evaluate(
@@ -221,17 +212,12 @@ test('Floor inventory and independent mobile QR session use all four sources', a
   await expect(panelStatus).toHaveText(
     'Thanks! Seat 92 marked free.',
   )
+  // A QR code printed before check-in was removed still opens its seat.
   await page.goto(roomUrl + '&spot=I091&checkin=1')
   await expect(page.getByRole('heading', { name: 'Seat 91' })).toBeVisible()
-  await page
-    .getByRole('button', { name: 'Check in to this seat', exact: true })
-    .click()
-  await expect(panelStatus).toContainText('Checked in at Seat 91. Held until')
-  await page
-    .locator('.inspector')
-    .getByRole('button', { name: 'Check out', exact: true })
-    .click()
-  await expect(panelStatus).toContainText('Checked out of Seat 91.')
+  await expect(page.getByRole('button', { name: /check in|check out/i })).toHaveCount(0)
+  await page.getByRole('button', { name: "It's taken", exact: true }).click()
+  await expect(panelStatus).toHaveText('Thanks! Seat 91 marked taken.')
   await mobile.close()
   await mobileBrowser.close()
 })

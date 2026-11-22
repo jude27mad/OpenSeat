@@ -147,83 +147,38 @@ test('reporting a seat or a whole table takes one tap from the sheet', async ({ 
   await sheet(page).getByRole('button', { name: 'Close' }).tap()
   await page.getByLabel('Search seats').fill('table 6')
   await page.locator('.list-location').tap()
-  await sheet(page).getByRole('button', { name: 'Report or check in' }).tap()
+  await sheet(page).getByRole('button', { name: 'Report this table' }).tap()
   await sheet(page).getByRole('button', { name: 'All free' }).tap()
   await expect(toast(page)).toContainText('Table 06: 4 chairs marked free.')
   await expect(toast(page)).toBeInViewport()
   await expect(sheet(page).locator('.inspector-head .status')).toHaveText('4 of 4 chairs free')
 })
 
-test('an abandoned check-in can be cleared, and the student sitting there can check in', async ({
-  page,
-  browser,
-}) => {
-  const room = demo()
-  await page.goto(room + '&spot=T17&checkin=1')
-  const first = page.getByRole('button', { name: /^Check in to Chair [A-D]$/ })
-  const chair = (await first.textContent()).slice(-1)
-  await first.tap()
-  await expect(page.locator('.mine-banner')).toContainText('Table 17 · Chair ' + chair)
-  // A second student scans the same table: they start on a chair nobody holds.
-  const other = await browser.newContext({ ...iPhone })
-  const phone = await other.newPage()
-  await phone.goto(room + '&spot=T17-' + chair + '&checkin=1')
-  await expect(sheet(phone).getByRole('button', { name: 'Chair ' + chair + ' is taken' })).toBeVisible()
-  await sheet(phone).getByRole('button', { name: "It's free" }).tap()
-  const confirm = sheet(phone).getByRole('alertdialog')
-  await expect(confirm).toBeInViewport()
-  await confirm.getByRole('button', { name: "Yes, it's empty" }).tap()
-  await expect(toast(phone)).toContainText('Anyone sitting there can now check in.')
-  await expect(toast(phone)).toBeInViewport()
-  const checkIn = sheet(phone).getByRole('button', { name: 'Check in to Chair ' + chair })
-  await expect(checkIn).toBeVisible()
-  await checkIn.tap()
-  await expect(phone.locator('.mine-banner')).toContainText('Table 17 · Chair ' + chair)
-  // The first student's hold is gone once someone else checks in.
-  await expect(page.locator('.mine-banner')).toHaveCount(0, { timeout: 10000 })
-  await other.close()
-})
-
-test('a second student scanning a table starts on a chair nobody holds', async ({ page, browser }) => {
-  const room = demo()
-  await page.goto(room + '&spot=T05&checkin=1')
-  const first = page.getByRole('button', { name: /^Check in to Chair [A-D]$/ })
-  const chair = (await first.textContent()).slice(-1)
-  await first.tap()
-  await expect(page.locator('.mine-banner')).toBeVisible()
-  const other = await browser.newContext({ ...iPhone })
-  const phone = await other.newPage()
-  await phone.goto(room + '&spot=T05&checkin=1')
-  await expect(phone.locator('.sync')).toHaveText('Connected', { timeout: 25000 })
-  const next = phone.getByRole('button', { name: /^Check in to Chair [A-D]$/ })
-  await expect(next).toBeVisible()
-  await expect(next).not.toHaveText('Check in to Chair ' + chair)
-  await other.close()
-})
-
-test('a table QR opens straight to check-in, says how long it lasts, and checks out from anywhere', async ({
+test('a table or seat QR link opens that spot with its report buttons, old check-in links too', async ({
   page,
 }, testInfo) => {
   const room = demo()
-  await page.goto(room + '&spot=T17&checkin=1')
-  const checkIn = page.getByRole('button', { name: /^Check in to Chair [A-D]$/ })
-  await expect(checkIn).toBeInViewport()
-  await expect(sheet(page)).toContainText('hold it until you check out')
-  await page.screenshot({ path: testInfo.outputPath('phone-qr.png') })
-  await checkIn.tap()
-  await expect(toast(page)).toContainText('Held until')
-  await expect(toast(page)).toBeInViewport()
-  await expect(page.locator('.mine-banner')).toContainText("You're checked in at Table 17")
-  // Your own chair offers Check out, not a report that would end it by accident.
-  await expect(sheet(page).getByRole('button', { name: 'Check out' })).toBeVisible()
-  await expect(sheet(page).getByRole('button', { name: "It's free" })).toHaveCount(0)
-  await page.goto(room)
-  await expect(page.locator('.mine-banner')).toContainText('Held until you check out')
-  await page.locator('.mine-banner').getByRole('button', { name: /^Check out/ }).tap()
-  await expect(page.locator('.mine-banner')).toHaveCount(0)
-  await expect(page.locator('.floating-note')).toContainText('Checked out of Table 17')
-  await page.locator('.floating-note').getByRole('button', { name: 'Undo' }).tap()
-  await expect(page.locator('.mine-banner')).toContainText("You're checked in at Table 17")
+  const spots = [
+    ['T17', 'Table 17', 'Is Chair [A-D] free\\?'],
+    ['I020', 'Seat 20', 'Is this seat free\\?'],
+    // QR codes printed before check-in was removed carry checkin=1. They still open the spot.
+    ['T05-C&checkin=1', 'Table 05', 'Is Chair C free\\?'],
+    ['I012&checkin=1', 'Seat 12', 'Is this seat free\\?'],
+  ]
+  for (const [spot, name, question] of spots) {
+    await page.goto(room + '&spot=' + spot)
+    await expect(sheet(page).getByRole('heading', { level: 2 })).toHaveText(name)
+    await expect(sheet(page).locator('.inspector-head .status')).toBeVisible()
+    await expect(sheet(page).getByText(new RegExp('^' + question + '$'))).toBeVisible()
+    await expect(sheet(page).getByRole('button', { name: "It's free" })).toBeInViewport()
+    await expect(sheet(page).getByRole('button', { name: "It's taken" })).toBeInViewport()
+    await expect(page.getByRole('button', { name: /check in|check out|keep it/i })).toHaveCount(0)
+    await expect(page.locator('body')).not.toContainText(/check(ed)? in/i)
+    if (spot === 'T17') await page.screenshot({ path: testInfo.outputPath('phone-qr.png') })
+  }
+  await sheet(page).getByRole('button', { name: "It's taken" }).tap()
+  await expect(toast(page)).toHaveText('Thanks! Seat 12 marked taken.')
+  expect(page.url()).not.toContain('checkin')
 })
 
 test('Back closes the sheet, the menu and the list before it leaves OpenSeat', async ({ page }) => {
@@ -274,6 +229,6 @@ test('the phone layout fits a 320 px screen', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 })
   await page.goto(demo())
   await page.getByRole('button', { name: 'Find me a free seat' }).tap()
-  await sheet(page).getByRole('button', { name: /Report or check in|More details/ }).tap()
+  await sheet(page).getByRole('button', { name: /Report this table|More details/ }).tap()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })

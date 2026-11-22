@@ -40,18 +40,13 @@ async function saveReport(request, path, event) {
   throw new Error('Another report just changed this seat. Please try again.')
 }
 
-export async function postObservation({ request, room, uid, input, previousTicket }) {
+export async function postObservation({ request, room, input }) {
   const { source, target, value, measuredAt, simulated = false, id = crypto.randomUUID() } = input
   const isDevice = source === 'sensor' || source === 'ble'
   const event = { id, value, simulated, at: isDevice && !simulated ? measuredAt : { '.sv': 'timestamp' } }
   const eventPath = 'events/' + source + '/' + target
   const roomPath = '/rooms/' + room
   const patch = { [eventPath]: event }
-  if (source === 'qr') {
-    const claim = { uid, id }
-    if (previousTicket) claim.previous = await digest(previousTicket)
-    patch['owners/' + target] = claim
-  }
   const result = source === 'report'
     ? await saveReport(request, roomPath + '/' + eventPath, event)
     : await request(roomPath, { method: 'PATCH', body: JSON.stringify(patch) })
@@ -67,7 +62,6 @@ export async function postObservation({ request, room, uid, input, previousTicke
     const prior = response.ok ? await response.json() : null
     if (prior?.id === id && prior.value === value && prior.simulated === simulated &&
         (!isDevice || simulated || prior.at === measuredAt)) return { ...prior, source, target }
-    if (source === 'qr') throw new Error('This check-in belongs to another browser or has already ended.')
     if (isDevice) throw new Error('Reading declined. Check the station authorization, target and measurement time.')
     throw new Error('The shared map declined this observation.')
   }

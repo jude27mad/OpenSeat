@@ -4,54 +4,41 @@ import {
   ArrowRight,
   Bluetooth,
   ChevronRight,
-  Clock3,
   FlaskConical,
   MessageSquare,
-  QrCode,
   Radio,
   Search,
 } from 'lucide-react'
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
-import { floor, label, tables } from './floor.js'
+import { floor, label } from './floor.js'
 import { age, fresh, matchesQuery, looksFree, placeDescription, sources } from './model.js'
-import { endingSoon, holdText, remaining } from './checkin.js'
 import { DemoTag, Origin } from './SeatDetails.jsx'
 
 export const plural = (count, noun) => count + ' ' + noun + (count === 1 ? '' : 's')
 export const sourceIcons = {
   ble: Bluetooth,
-  qr: QrCode,
   report: MessageSquare,
   sensor: Radio,
 }
 export const sourceText = {
   ble: 'Counts phones nearby in each area',
-  qr: 'Students check in by scanning the table code',
   report: 'Students tap “It’s free” or “It’s taken”',
   sensor: 'Detects whether a seat is in use',
 }
 
-// What each of the four sources currently knows, alongside the floor overview.
-// These are readouts, not choices: the map already combines all four.
+// What each of the three sources currently knows, alongside the floor overview.
+// These are readouts, not choices: the map already combines all three.
 export function SourcesPanel({ model, now, onMore }) {
-  let checkIns = 0,
-    reports = 0,
+  let reports = 0,
     lastReport = 0,
-    lastCheckIn = 0
-  const demo = { qr: false, report: false }
+    demoReport = false
   for (const state of model.states.values()) {
-    const qr = state.evidence.find((e) => e.source === 'qr'),
-      report = state.evidence.find((e) => e.source === 'report')
-    if (qr && qr.value === 'occupied' && fresh(qr, now)) {
-      checkIns++
-      lastCheckIn = Math.max(lastCheckIn, qr.at)
-      demo.qr ||= !!qr.simulated
-    }
+    const report = state.evidence.find((e) => e.source === 'report')
     if (report && fresh(report, now)) {
       reports++
       lastReport = Math.max(lastReport, report.at)
-      demo.report ||= !!report.simulated
+      demoReport ||= !!report.simulated
     }
   }
   const sensors = [...model.states.values()]
@@ -75,24 +62,12 @@ export function SourcesPanel({ model, now, onMore }) {
       </div>
       <ul>
         <li>
-          <span className="source-icon qr">
-            <QrCode size={17} />
-          </span>
-          <div>
-            <p className="live-name">
-              QR check-in {demo.qr && <DemoTag />}
-            </p>
-            <p className="live-value">{plural(checkIns, tables.length ? 'chair' : 'seat')} checked in{lastCheckIn > 0 && ' · ' + ago(lastCheckIn)}</p>
-            <small>Select a {tables.length ? 'table' : 'seat'} for its QR code.</small>
-          </div>
-        </li>
-        <li>
           <span className="source-icon report">
             <MessageSquare size={17} />
           </span>
           <div>
             <p className="live-name">
-              Student reports {demo.report && <DemoTag />}
+              Student reports {demoReport && <DemoTag />}
             </p>
             <p className="live-value">{plural(reports, 'seat')} reported{lastReport > 0 && ' · ' + ago(lastReport)}</p>
             <small>Tap a seat to report it.</small>
@@ -178,46 +153,10 @@ export function DemoBanner({ onLive }) {
   )
 }
 
-// Not a live region: its countdown changes every minute.
-export function CheckInBanner({ checkIns, now, onShow, onCheckOut, onKeep, busy }) {
-  if (!checkIns.length) return null
-  const { seat, event } = checkIns[0],
-    soon = endingSoon(event, now)
-  return (
-    <section className={'mine-banner' + (soon ? ' soon' : '')} aria-label="Your check-in">
-      <Clock3 size={17} />
-      <p>
-        <b>You're checked in at {label(seat)}</b>
-        <small>
-          {soon ? 'Ending soon: ' + remaining(event, now) : holdText(event, now)}
-          {checkIns.length > 1 ? ' · and ' + plural(checkIns.length - 1, 'other seat') : ''}
-        </small>
-      </p>
-      {soon && onKeep ? (
-        <button aria-disabled={busy || undefined} onClick={() => !busy && onKeep(seat)}>
-          Keep it
-        </button>
-      ) : (
-        <button aria-label={'Show ' + label(seat)} onClick={() => onShow(seat)}>
-          Show
-        </button>
-      )}
-      <button
-        className="solid"
-        aria-label={'Check out of ' + label(seat)}
-        aria-disabled={busy || undefined}
-        onClick={() => !busy && onCheckOut(seat)}
-      >
-        Check out
-      </button>
-    </section>
-  )
-}
-
 export function SourceCards({ events, now, full, onScanner }) {
   return (
     <div className={'source-cards ' + (full ? 'full' : '')}>
-      {['ble', 'qr', 'report', 'sensor'].map((s) => {
+      {['ble', 'report', 'sensor'].map((s) => {
         const Icon = sourceIcons[s],
           rows = events.filter((e) => e.source === s).sort((a, b) => b.at - a.at),
           latest = rows[0]

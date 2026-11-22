@@ -15,7 +15,8 @@ test('demo rooms idle for over a day are deleted; recent rooms and the live floo
     body: {
       [idle]: { events: { report: { I001: event(now - 30 * HOUR) } } },
       // An old report does not count against a room someone used a minute ago.
-      [recent]: { events: { report: { I001: event(now - 30 * HOUR) }, qr: { I002: event(now - 60000) } } },
+      [recent]: { events: { report: { I001: event(now - 30 * HOUR) }, sensor: { I002: event(now - 60000) } } },
+      // A room with no readings at all, like an old room that only kept check-in owners.
       [empty]: { owners: { I003: { uid: 'someone', id: randomUUID() } } },
     },
   })

@@ -23,7 +23,6 @@ import { FLOORS, floor, floorNumbers, individuals, label, seats, setFloor, table
 import { age, derive, fresh, matchesQuery, parseSpot, placeDescription, suggestions } from './model.js'
 import { chosenRoom, isLive, roomUrl, serverNow, useFloor } from './session.js'
 import { startScanner } from './ble.js'
-import { activeCheckIn, friendly, myCheckIns, remember, uncertain } from './checkin.js'
 import { themeChoices, useTheme } from './theme.js'
 import FloorMap, { isDim } from './FloorMap.jsx'
 import { ScannerControls, QRDialog } from './Controls.jsx'
@@ -31,7 +30,6 @@ import SeatDetails from './SeatDetails.jsx'
 import PhoneView from './Phone.jsx'
 import {
   Activity,
-  CheckInBanner,
   DemoBanner,
   Legend,
   SeatList,
@@ -64,8 +62,8 @@ function push(patch, url = location.href) {
 function replace(patch, url = location.href) {
   history.replaceState({ ...history.state, openseat: true, ...patch }, '', url)
 }
-function setUrl(room, spot, checkin = false) {
-  replace({}, roomUrl(room, spot, checkin))
+function setUrl(room, spot) {
+  replace({}, roomUrl(room, spot))
 }
 // Older history entries can point to the retired seat-finder page.
 function currentPage() {
@@ -82,13 +80,9 @@ function useMedia(query) {
   }, [query])
   return matches
 }
-// The chair to show first: a free one, then one nobody has checked in to.
-function firstChair(place, model, now) {
-  return (
-    place.ids.find((s) => model.states.get(s).status === 'free') ||
-    place.ids.find((s) => !activeCheckIn(model.states.get(s), now)) ||
-    place.ids[0]
-  )
+// The chair to show first: a free one if there is one.
+function firstChair(place, model) {
+  return place.ids.find((s) => model.states.get(s).status === 'free') || place.ids[0]
 }
 function Stat({ name, value, detail, icon: Icon, tone, percent }) {
   return (
@@ -109,7 +103,7 @@ function Stat({ name, value, detail, icon: Icon, tone, percent }) {
     </Card>
   )
 }
-function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
+function Dashboard({ room, onRoom, onFloor, startSpot }) {
   const demo = !isLive(room)
   const [theme, setTheme] = useTheme()
   const phone = useMedia(PHONE),
@@ -129,29 +123,27 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
     // The chair the student picked. Until they pick one, the best chair is
     // worked out again from the latest data on every update.
     [seat, setSeat] = useState(startSpot?.seat || null),
-    [sheet, setSheet] = useState(startSpot ? (qrPlace ? 'full' : 'peek') : 'closed'),
+    // A seat's link or QR code opens its details in full, with the report buttons.
+    [sheet, setSheet] = useState(startSpot ? 'full' : 'closed'),
     [focus, setFocus] = useState(startSpot ? 1 : 0),
     [headingFocus, setHeadingFocus] = useState(startSpot ? 1 : 0),
     [seen, setSeen] = useState([]),
     [findId, setFindId] = useState(null),
     [menu, setMenu] = useState(!!history.state?.openseatMenu),
-    [announce, setAnnounce] = useState(''),
-    [busyMine, setBusyMine] = useState(false),
-    [mineNote, setMineNote] = useState(null)
+    [announce, setAnnounce] = useState('')
   const listing = view === 'list'
   const defaultPlace = !phone && !selected
     ? [...model.locations.values()].find((p) => !isDim(p, section, filter) && (!listing || matchesQuery(p, query)))
     : null
   const place = selected ? model.locations.get(selected) : defaultPlace,
     shownId = place?.id,
-    shownSeat = place && seat?.split('-')[0] === place.id ? seat : place && firstChair(place, model, now)
+    shownSeat = place && seat?.split('-')[0] === place.id ? seat : place && firstChair(place, model)
   const bridgeStop = useRef(null),
     detail = useRef(null),
     afterPop = useRef(null),
     opener = useRef(null),
     live = useRef({})
   live.current = { phone, selected }
-  const mine = myCheckIns(room, model, now)
   const choices = suggestions(model.locations, now, section)
   const choiceIds = new Set(choices.map((place) => place.id))
   const seenChoices = seen.filter((id) => choiceIds.has(id))
@@ -168,7 +160,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
   useEffect(() => {
     if (phone && startSpot && !history.state?.openseatSheet) {
       replace({ openseatSheet: undefined }, roomUrl(room))
-      push({ openseatSheet: startSpot.id }, roomUrl(room, startSpot.seat || startSpot.id, !!qrPlace))
+      push({ openseatSheet: startSpot.id }, roomUrl(room, startSpot.seat || startSpot.id))
     } else replace({})
   }, [])
   useEffect(() => {
@@ -199,14 +191,9 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
   useEffect(() => {
-    if (!mineNote) return
-    const t = setTimeout(() => setMineNote(null), mineNote.undo ? 8000 : 5000)
-    return () => clearTimeout(t)
-  }, [mineNote])
-  useEffect(() => {
     // Runs before dialogs handle the key, so Escape closes only the top layer.
     function onKey(e) {
-      if (e.key !== 'Escape' || document.querySelector('[role="dialog"], .sheet .confirm'))
+      if (e.key !== 'Escape' || document.querySelector('[role="dialog"]'))
         return
       if (drawer) setDrawer(false)
       else if (phone && sheet !== 'closed') close()
@@ -226,13 +213,13 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
     setSelected(id)
     setSeat(specific || null)
     if (!opts.fromFind) setFindId(null)
-    const url = roomUrl(room, specific || id, qrPlace === id)
+    const url = roomUrl(room, specific || id)
     if (phone) {
       if (sheet === 'closed' || !history.state?.openseatSheet) {
         opener.current = document.activeElement
         push({ openseatSheet: id }, url)
       } else replace({ openseatSheet: id }, url)
-      setSheet(opts.full || qrPlace === id ? 'full' : 'peek')
+      setSheet(opts.full ? 'full' : 'peek')
     } else replace({}, url)
     if (opts.focus) setFocus((f) => f + 1)
     if (opts.heading) setHeadingFocus((f) => f + 1)
@@ -343,41 +330,6 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
         onNext: onFind,
       }
     : null
-  async function checkInAgain(target, undo = false) {
-    const previous = mine.find((entry) => entry.seat === target)?.event.id ?? null
-    const id = crypto.randomUUID()
-    remember(room, target, id, previous)
-    setBusyMine(true)
-    try {
-      await record({ source: 'qr', target, value: 'occupied', id })
-      remember(room, target, id)
-      setMineNote({
-        text: undo
-          ? "You're checked in at " + label(target) + ' again.'
-          : 'You have ' + label(target) + ' for another 60 minutes.',
-      })
-    } catch (e) {
-      if (!uncertain(e)) remember(room, target, previous)
-      setMineNote({ text: friendly(e) })
-    } finally {
-      setBusyMine(false)
-    }
-  }
-  async function checkOutMine(target) {
-    setBusyMine(true)
-    try {
-      await record({ source: 'qr', target, value: 'free' })
-      remember(room, target, null)
-      setMineNote({
-        text: 'Checked out of ' + label(target) + '. Thanks for freeing it up.',
-        undo: target,
-      })
-    } catch (e) {
-      setMineNote({ text: friendly(e) })
-    } finally {
-      setBusyMine(false)
-    }
-  }
   async function onBridge(options) {
     bridgeStop.current?.()
     bridgeStop.current = await startScanner(options, record, (text) => setBridge(text))
@@ -400,25 +352,6 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
           bridge={bridge}
         />
       )}
-      <div className="floating-note-region" role="status" aria-live="polite">
-        {mineNote && (
-          <p className="floating-note">
-            <span>{mineNote.text}</span>
-            {mineNote.undo && (
-              <button
-                className="toast-undo"
-                onClick={() => {
-                  const target = mineNote.undo
-                  setMineNote(null)
-                  checkInAgain(target, true)
-                }}
-              >
-                Undo
-              </button>
-            )}
-          </p>
-        )}
-      </div>
     </>
   )
 
@@ -439,10 +372,9 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
             seat: shownSeat,
             setSeat: (id) => {
               setSeat(id)
-              replace({}, roomUrl(room, id, qrPlace === place?.id))
+              replace({}, roomUrl(room, id))
             },
             pick,
-            qrPlace,
             record,
             sheet,
             setSheet,
@@ -456,9 +388,6 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
             page,
             nav,
             setModal,
-            mine,
-            checkOutMine,
-            busyMine,
             findButton,
             nextSuggestion,
             choices: choices.length,
@@ -468,7 +397,6 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
             closeMenu,
             announce,
             headingFocus,
-            checkInAgain,
           }}
         />
         {dialogs}
@@ -617,17 +545,6 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
           </span>
         </header>
         {demo && <DemoBanner onLive={() => onRoom(true)} />}
-        <CheckInBanner
-          checkIns={mine}
-          now={now}
-          busy={busyMine}
-          onShow={(s) => {
-            nav('overview')
-            pick(s.split('-')[0], s)
-          }}
-          onCheckOut={checkOutMine}
-          onKeep={checkInAgain}
-        />
         <main>
           <div className="page-lead">
             <div>
@@ -635,7 +552,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                 <span /> STUDENT LEARNING CENTRE
               </div>
               <h1>{page === 'overview' ? 'Floor overview' : 'Data sources'}</h1>
-              <p>{page === 'overview' ? floor.title : 'The four inputs behind the ' + floor.name + ' map.'}</p>
+              <p>{page === 'overview' ? floor.title : 'The three inputs behind the ' + floor.name + ' map.'}</p>
               {page === 'overview' && findButton}
             </div>
             <div className="lead-actions">
@@ -671,7 +588,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
               <Stat
                 name="Taken seats"
                 value={n.occupied}
-                detail="Checked in, reported or sensed taken"
+                detail="Reported or sensed taken"
                 icon={UsersRound}
                 tone="orange"
                 percent={(n.occupied * 100) / seats.length}
@@ -679,7 +596,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
               <Stat
                 name="No recent info"
                 value={n.unknown}
-                detail="Waiting for a check-in or report"
+                detail="Waiting for a report"
                 icon={Clock3}
                 tone="stone"
                 percent={(n.unknown * 100) / seats.length}
@@ -764,11 +681,10 @@ function Dashboard({ room, onRoom, onFloor, startSpot, qrPlace }) {
                   seat={shownSeat}
                   focusKey={showingSuggestion ? headingFocus : 0}
                   next={nextSuggestion}
-                  canCheckIn={qrPlace === shownId}
                   onSeat={(id) => {
                     setSelected(place.id)
                     setSeat(id)
-                    setUrl(room, id, qrPlace === place.id)
+                    setUrl(room, id)
                   }}
                   openQR={() => setModal('qr')}
                 />}
@@ -808,12 +724,8 @@ function readEntry() {
   const room = initial()
   // The floor decides which seat names exist, so set it before reading the spot.
   setFloor(room.floor)
-  const spot = parseSpot(hash().get('spot'))
-  return {
-    room,
-    spot,
-    qrPlace: hash().get('checkin') === '1' ? spot?.id : null,
-  }
+  // QR codes printed earlier also carry checkin=1. It is no longer used, so it is ignored.
+  return { room, spot: parseSpot(hash().get('spot')) }
 }
 export default function App() {
   const [entry, setEntry] = useState(readEntry),
@@ -838,7 +750,7 @@ export default function App() {
     const next = chosenRoom(live, newSession, number)
     setFloor(number)
     history.pushState({ openseat: true }, '', roomUrl(next))
-    setEntry({ room: next, spot: null, qrPlace: null })
+    setEntry({ room: next, spot: null })
   }
   // Another floor, keeping live or demo as it is.
   const changeFloor = (number) =>
@@ -846,10 +758,9 @@ export default function App() {
   setFloor(entry.room.floor)
   return (
     <Dashboard
-      key={[entry.room.id, entry.room.floor, entry.spot?.seat || entry.spot?.id, entry.qrPlace].join('/')}
+      key={[entry.room.id, entry.room.floor, entry.spot?.seat || entry.spot?.id].join('/')}
       room={entry.room}
       startSpot={entry.spot}
-      qrPlace={entry.qrPlace}
       onRoom={changeRoom}
       onFloor={changeFloor}
     />

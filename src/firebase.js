@@ -15,7 +15,7 @@ if (emulator) {
 }
 
 // How far this phone's clock is from the server's, so a slow clock does not
-// make a fresh check-in look out of date.
+// make a fresh report look out of date.
 let offset = 0
 onValue(ref(db, '.info/serverTimeOffset'), (snapshot) => {
   offset = Number(snapshot.val()) || 0
@@ -56,12 +56,12 @@ export function watchFloor(room, receive, connection) {
 }
 
 const pairStation = stationPairing()
-export async function sendObservation(room, input, previousTicket) {
+export async function sendObservation(room, input) {
   const user = await visitor()
   const token = await user.getIdToken()
   const request = (path, options) => databaseRequest(settings, emulator, path, token, options)
   if (room.startsWith('floor') && ['ble', 'sensor'].includes(input.source)) {
     await pairStation(request, user.uid, input.feedKey)
   }
-  return postObservation({ request, room, uid: user.uid, input, previousTicket })
+  return postObservation({ request, room, input })
 }

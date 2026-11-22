@@ -41,7 +41,7 @@ export const emulatorClient = () =>
     headers: { Authorization: 'Bearer owner' },
   })
 
-// The time of the newest reading, report or check-in in a room, or 0 if it has none.
+// The time of the newest reading or report in a room, or 0 if it has none.
 export function lastActivity(events) {
   let latest = 0
   for (const targets of Object.values(events || {}))

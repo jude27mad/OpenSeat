@@ -17,10 +17,10 @@ import {
   parseSpot,
   scanCount,
   seedDemo,
+  sources,
   suggestions,
   ttl,
 } from '../src/model.js'
-import { activeCheckIn, ownCheckIn, remember } from '../src/checkin.js'
 import { observation } from '../src/ble.js'
 const now = 1700000000000
 const event = (source, target, value, offset = 0) => ({
@@ -84,73 +84,53 @@ test('A table is free if any chair is, partly in use if some are taken, taken if
   const all = derive(['A', 'B', 'C', 'D'].map((c) => event('report', 'T08-' + c, 'occupied')), now)
   assert.equal(all.locations.get('T08').status, 'occupied')
 })
-test('The newer of a report and a check-in wins, and both stay as evidence', () => {
-  const released = derive(
-    [event('qr', 'I020', 'occupied', 60000), event('report', 'I020', 'free', 100)],
-    now,
-  )
-  assert.equal(released.states.get('I020').status, 'free')
-  assert.equal(released.states.get('I020').evidence.length, 2)
-  assert.equal(released.counts.free, 1)
-  const seated = derive(
-    [event('report', 'I020', 'free', 60000), event('qr', 'I020', 'occupied', 100)],
-    now,
-  )
-  assert.equal(seated.states.get('I020').status, 'occupied')
+test('There are three sources, and old QR check-ins in the database are ignored', () => {
+  assert.deepEqual(Object.keys(sources).sort(), ['ble', 'report', 'sensor'])
+  assert.equal('qr' in ttl, false)
+  // A check-in saved before check-in was removed neither counts nor shows as evidence.
+  const old = event('qr', 'I020', 'occupied')
+  assert.equal(fresh(old, now), false)
+  const alone = derive([old], now)
+  assert.equal(alone.states.get('I020').status, 'unknown')
+  assert.deepEqual(alone.states.get('I020').evidence, [])
+  assert.equal(alone.locations.get('I020').latest, undefined)
+  assert.deepEqual(alone.counts, { unknown: 252, free: 0, occupied: 0 })
+  // A report still decides the seat, even if an old check-in is newer.
+  const reported = derive([event('report', 'I020', 'free', 60000), old], now)
+  assert.equal(reported.states.get('I020').status, 'free')
+  assert.equal(reported.states.get('I020').evidence.length, 1)
+  assert.equal(reported.counts.free, 1)
+  // Even in the demo, where nothing expires, an old check-in does not count.
+  assert.equal(derive([{ ...old, lasting: true }], now).states.get('I020').status, 'unknown')
 })
-test('An expired free confirmation cannot revive a cleared live check-in', () => {
-  const qr = event('qr', 'I020', 'occupied', 60000)
-  const release = event('report', 'I020', 'free')
-  for (const elapsed of [ttl.report - 1, ttl.report, ttl.qr - 60001]) {
-    const at = now + elapsed
-    const model = derive([qr, release], at)
-    const state = model.states.get('I020')
-    assert.equal(state.status, elapsed < ttl.report ? 'free' : 'unknown')
-    assert.equal(activeCheckIn(state, at), null)
-    assert.equal(state.latest, release)
-    assert.equal(model.locations.get('I020').latest, release)
-  }
-  const nextReport = { ...release, value: 'occupied', at: now + 1000, lastFreeAt: now }
-  const after = nextReport.at + ttl.report
-  const state = derive([qr, nextReport], after).states.get('I020')
-  assert.equal(state.status, 'unknown')
-  assert.equal(activeCheckIn(state, after), null)
-  // A new check-in after the confirmation is valid even when the old report is retained.
-  const nextQr = { ...qr, id: 'new', at: now + 500 }
-  assert.equal(activeCheckIn(derive([nextQr, nextReport], after).states.get('I020'), after), nextQr)
-})
-test('A check-in and free report timestamp tie resolve consistently in either order', () => {
-  const qr = event('qr', 'I020', 'occupied')
-  const report = event('report', 'I020', 'free')
-  for (const rows of [[qr, report], [report, qr]]) {
-    const state = derive(rows, now).states.get('I020')
-    assert.equal(state.status, 'occupied')
-    assert.equal(activeCheckIn(state, now), qr)
-  }
-})
-test('A current seat sensor decides the seat, over any report or check-in', () => {
-  // The sensor wins even when a report or check-in is newer.
+test('A current seat sensor decides the seat, over a newer report', () => {
+  // The sensor wins even when a report is newer.
   const reported = derive([event('sensor', 'T08-A', 'occupied', 60000), event('report', 'T08-A', 'free', 100)], now)
   assert.equal(reported.states.get('T08-A').status, 'occupied')
   assert.equal(looksFree(reported.locations.get('T08')), false)
   assert.deepEqual(suggestions(reported.locations, now), [])
-  const held = derive([event('qr', 'I020', 'occupied', 100), event('sensor', 'I020', 'free', 60000)], now)
-  assert.equal(held.states.get('I020').status, 'free')
-  // A free sensor also ends the hold, so someone else may check in.
-  assert.equal(activeCheckIn(held.states.get('I020'), now), null)
-  // Once the sensor reading is old, the newest report or check-in decides again.
+  const empty = derive([event('report', 'I020', 'occupied', 100), event('sensor', 'I020', 'free', 60000)], now)
+  assert.equal(empty.states.get('I020').status, 'free')
+  assert.equal(empty.states.get('I020').evidence.length, 2)
+  // Once the sensor reading is old, the newest report decides again.
   const old = derive([event('sensor', 'I020', 'free', ttl.sensor), event('report', 'I020', 'occupied', 100)], now)
   assert.equal(old.states.get('I020').status, 'occupied')
   // There is no Mixed state any more.
   assert.equal('mixed' in derive([], now).counts, false)
 })
-test('Evidence expires at the specified boundary and retains its source and age', () => {
+test('Reports expire after 15 minutes and sensor readings after 5, keeping their source and age', () => {
+  assert.equal(ttl.report, 15 * 60000)
+  assert.equal(ttl.sensor, 5 * 60000)
+  const recent = event('report', 'I020', 'free', ttl.report - 1)
+  assert.equal(derive([recent], now).states.get('I020').status, 'free')
   const stale = event('report', 'I020', 'free', ttl.report)
   const m = derive([stale], now)
   assert.equal(m.states.get('I020').status, 'unknown')
   assert.equal(m.states.get('I020').latest.source, 'report')
   assert.equal(age(stale.at, now), '15m ago')
-  assert.equal(fresh(event('qr', 'I020', 'free', 300000), now), false)
+  assert.equal(fresh(event('sensor', 'I020', 'free', ttl.sensor - 1), now), true)
+  assert.equal(fresh(event('sensor', 'I020', 'free', ttl.sensor), now), false)
+  assert.equal(derive([event('sensor', 'I020', 'occupied', ttl.sensor)], now).states.get('I020').status, 'unknown')
 })
 test('Replays keep the newer event and duplicate packets keep one result', () => {
   const a = event('sensor', 'I090', 'free'),
@@ -168,8 +148,11 @@ test('QR deep links validate table, chair and exact seat', () => {
 })
 test('Demo fixtures are labelled and actual input supersedes a fixture at its location', () => {
   const fixture = seedDemo(now),
-    r = event('qr', 'T01-A', 'occupied')
+    r = event('report', 'T01-A', 'occupied')
   assert.ok(fixture.every((e) => e.simulated))
+  // The example floor is made of student reports only.
+  assert.ok(fixture.every((e) => e.source === 'report'))
+  assert.ok(fixture.some((e) => e.value === 'free') && fixture.some((e) => e.value === 'occupied'))
   const m = derive(merge(fixture, [r]), now)
   assert.equal(m.states.get('T01-A').status, 'occupied')
   assert.equal(
@@ -260,14 +243,12 @@ test('A tap between two round tables zooms in instead of guessing', async () => 
   // A tap on the table itself still opens it at once.
   assert.equal(resolveTap({ at: [ax + 2, ay], pxPerUnit: 0.48, zoom: 1, touch: true }).id, 'T13')
 })
-test('Demo readings never expire: only a new report or check-in changes a seat', async () => {
-  const { holdsUntil } = await import('../src/model.js')
-  const { endingSoon, holdText } = await import('../src/checkin.js')
+test('Demo readings never expire: only a new report or sensor reading changes a seat', () => {
   const lasting = (e) => ({ ...e, lasting: true })
   const later = now + 10 * 3600000
   const m = derive(
     [
-      lasting(event('qr', 'I020', 'free', 5 * 60000)),
+      lasting(event('report', 'I020', 'free', 5 * 60000)),
       lasting(event('report', 'I021', 'occupied')),
       lasting(event('sensor', 'T08-A', 'occupied')),
     ],
@@ -276,10 +257,6 @@ test('Demo readings never expire: only a new report or check-in changes a seat',
   assert.equal(m.states.get('I020').status, 'free')
   assert.equal(m.states.get('I021').status, 'occupied')
   assert.equal(m.states.get('T08-A').status, 'occupied')
-  const hold = lasting(event('qr', 'I022', 'occupied'))
-  assert.equal(holdsUntil(hold), Infinity)
-  assert.equal(endingSoon(hold, later), false)
-  assert.equal(holdText(hold, later), 'Held until you check out')
   // Live readings still expire.
   assert.equal(derive([event('report', 'I021', 'occupied')], later).states.get('I021').status, 'unknown')
 })
@@ -369,21 +346,14 @@ test('Floor 7 counts 196 individual seats and the three grad-space tables, not t
   }
 })
 
-test('a renewal waiting for confirmation recognizes either owned check-in', () => {
-  const room = { id: 'renewal-test' }
-  const old = event('qr', 'S01', 'occupied', 5000)
-  const renewal = event('qr', 'S01', 'occupied')
-  remember(room, 'S01', renewal.id, old.id)
-  for (const qr of [old, renewal]) {
-    assert.equal(ownCheckIn(room, 'S01', { evidence: [qr] }, now), qr)
-  }
-  remember(room, 'S01', old.id)
-  assert.equal(ownCheckIn(room, 'S01', { evidence: [old] }, now), old)
-  assert.equal(ownCheckIn(room, 'S01', { evidence: [renewal] }, now), null)
-  remember(room, 'S01', null)
-})
 test('Readings at the same time settle the same way everywhere', () => {
   const a = event('report', 'I030', 'free', 1000),
-    b = event('qr', 'I030', 'occupied', 1000)
-  assert.equal(derive([a, b], now).states.get('I030').status, derive([b, a], now).states.get('I030').status)
+    b = event('sensor', 'I030', 'occupied', 1000)
+  for (const at of [now, now + ttl.report]) {
+    const one = derive([a, b], at).states.get('I030'),
+      other = derive([b, a], at).states.get('I030')
+    assert.equal(one.status, other.status)
+    assert.equal(one.latest, other.latest)
+    assert.deepEqual(one.evidence, other.evidence)
+  }
 })
