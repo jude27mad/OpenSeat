@@ -34,7 +34,7 @@ export const sourceText = {
 
 // What each of the four sources currently knows, alongside the floor overview.
 // These are readouts, not choices: the map already combines all four.
-export function SourcesPanel({ model, now, onScanner, onMore }) {
+export function SourcesPanel({ model, now, onMore }) {
   let checkIns = 0,
     reports = 0,
     lastReport = 0,
@@ -114,11 +114,6 @@ export function SourcesPanel({ model, now, onScanner, onMore }) {
               ))
             ) : (
               <p className="live-value">No recent scan</p>
-            )}
-            {onScanner && (
-              <button className="live-action" onClick={onScanner}>
-                Connect scanner <ArrowRight size={14} />
-              </button>
             )}
           </div>
         </li>
@@ -219,7 +214,7 @@ export function CheckInBanner({ checkIns, now, onShow, onCheckOut, onKeep, busy 
   )
 }
 
-export function SourceCards({ events, now, full }) {
+export function SourceCards({ events, now, full, onScanner }) {
   return (
     <div className={'source-cards ' + (full ? 'full' : '')}>
       {['ble', 'qr', 'report', 'sensor'].map((s) => {
@@ -241,6 +236,11 @@ export function SourceCards({ events, now, full }) {
                   : 'No readings yet'}
                 {latest?.simulated && <DemoTag />}
               </div>
+              {s === 'ble' && (
+                <button className="text-btn" onClick={onScanner}>
+                  Connect scanner <ArrowRight size={14} />
+                </button>
+              )}
             </div>
           </Card>
         )
