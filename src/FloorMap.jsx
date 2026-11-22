@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { Minus, Plus } from 'lucide-react'
 import { MapFurniture } from './MapFurniture.jsx'
 import { PlanArchitecture } from './PlanArchitecture.jsx'
 import { planLabels } from './planLabels.js'
@@ -172,7 +173,7 @@ export function PlanDrawing({
  * apart; a tap on a crowded area zooms in there first. Zoom keeps the spot
  * you are looking at in place, and two fingers pinch to zoom.
  */
-export default function FloorMap({ onSelect, focus, onPlaced, onShowList, ...props }) {
+export default function FloorMap({ onSelect, focus, onPlaced, onShowList, desktopFilters, ...props }) {
   const [zoom, setZoom] = useState(1),
     [ppu, setPpu] = useState(1),
     [hint, setHint] = useState(''),
@@ -319,32 +320,67 @@ export default function FloorMap({ onSelect, focus, onPlaced, onShowList, ...pro
     }
   }
   return (
-    <div className="map-canvas">
-      {onShowList && (
-        <button className="sr-only skip-map" onClick={onShowList}>
-          Browse seats as a list instead of the map
-        </button>
+    <>
+      {desktopFilters && (
+        <div className="plan-toolbar">
+          {desktopFilters}
+          <div className="map-zoom" role="group" aria-label="Map zoom">
+            <button
+              type="button"
+              aria-label="Zoom in"
+              title="Zoom in"
+              disabled={zoom >= MAX_ZOOM}
+              onClick={() => zoomAt(zoom * 1.5, ...viewCenter())}
+            >
+              <Plus size={16} />
+            </button>
+            <button
+              type="button"
+              aria-label="Zoom out"
+              title="Zoom out"
+              disabled={zoom <= 1}
+              onClick={() => zoomAt(zoom / 1.5, ...viewCenter())}
+            >
+              <Minus size={16} />
+            </button>
+            <button
+              type="button"
+              title="Fit the whole floor plan"
+              disabled={zoom <= 1}
+              onClick={() => zoomAt(1, ...viewCenter())}
+            >
+              Fit
+            </button>
+          </div>
+        </div>
       )}
-      <div
-        className={'plan-viewport' + (zoom > 1 ? ' zoomed' : '')}
-        ref={viewport}
-        tabIndex={zoom > 1 ? 0 : undefined}
-        role={zoom > 1 ? 'region' : undefined}
-        aria-label={zoom > 1 ? 'Zoomed floor map. Use the arrow keys to move around.' : undefined}
-        onPointerDown={(e) => {
-          pointer.current = e.pointerType || 'mouse'
-        }}
-      >
+      <div className="map-canvas">
+        {onShowList && (
+          <button className="sr-only skip-map" onClick={onShowList}>
+            Browse seats as a list instead of the map
+          </button>
+        )}
         <div
-          className="plan-inner"
-          style={{ width: zoom * 100 + '%', height: zoom * 100 + '%' }}
+          className={'plan-viewport' + (zoom > 1 ? ' zoomed' : '')}
+          ref={viewport}
+          tabIndex={zoom > 1 ? 0 : undefined}
+          role={zoom > 1 ? 'region' : undefined}
+          aria-label={zoom > 1 ? 'Zoomed floor map. Use the arrow keys to move around.' : undefined}
+          onPointerDown={(e) => {
+            pointer.current = e.pointerType || 'mouse'
+          }}
         >
-          <PlanDrawing {...props} pxPerUnit={ppu} onTap={onTap} svgRef={svg} />
+          <div
+            className="plan-inner"
+            style={{ width: zoom * 100 + '%', height: zoom * 100 + '%' }}
+          >
+            <PlanDrawing {...props} pxPerUnit={ppu} onTap={onTap} svgRef={svg} />
+          </div>
+        </div>
+        <div className="map-hint-region" role="status" aria-live="polite">
+          {hint && <div className="map-hint">{hint}</div>}
         </div>
       </div>
-      <div className="map-hint-region" role="status" aria-live="polite">
-        {hint && <div className="map-hint">{hint}</div>}
-      </div>
-    </div>
+    </>
   )
 }

@@ -2985,6 +2985,32 @@ h3 {
   border-color: var(--soft-primary);
 }
 
+.map-zoom {
+  display: flex;
+  margin-inline-start: auto;
+  padding: 2px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--pill);
+  background: var(--soft-glass-strong);
+  color: var(--soft-ink);
+}
+.map-zoom button {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  min-height: 32px;
+  padding-inline: 8px;
+  border-radius: var(--pill);
+  font-size: 12px;
+  font-weight: 650;
+}
+.map-zoom button:hover:enabled {
+  background: var(--soft-mint-100);
+}
+.map-zoom button:disabled {
+  opacity: 0.4;
+}
+
 /* Map container (the floor plan drawing itself is unchanged) */
 .map-canvas {
   background-color: #e8f4ec;
