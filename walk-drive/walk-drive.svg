@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 508" width="960" height="508" role="img" aria-labelledby="title description">
+  <title id="title">Walk and drive</title>
+  <desc id="description">Two views of the same cities at night. A man walks the upper road while a car drives the lower road and arrives first.</desc>
+  <style>
+    :root {background:#101320}
+    .walker-trip {animation: walk-trip 16s linear infinite}
+    .car-trip {animation: car-trip 16s linear infinite}
+    .wheel-spokes {animation: turn 16s linear infinite; transform-origin: 0 0}
+    .traveller {animation: reset 16s linear infinite}
+    .striding {animation: stride-show 16s linear infinite}
+    .standing {animation: rest-show 16s linear infinite}
+    .paused * {animation-play-state: paused !important}
+    @keyframes walk-trip {
+      0%,3.125% {transform:translateX(0)}
+      90.625%,100% {transform:translateX(570px)}
+    }
+    @keyframes car-trip {
+      0%,3.125% {transform:translateX(0); animation-timing-function:cubic-bezier(.24,.04,.34,1)}
+      40.625%,100% {transform:translateX(570px)}
+    }
+    @keyframes turn {
+      0%,3.125% {transform:rotate(0deg); animation-timing-function:cubic-bezier(.24,.04,.34,1)}
+      40.625%,100% {transform:rotate(3266deg)}
+    }
+    @keyframes reset {0% {opacity:0} 2%,96% {opacity:1} 99%,100% {opacity:0}}
+    @keyframes stride-show {0%,2.9%,91.1%,100% {opacity:0} 3.6%,90.3% {opacity:1}}
+    @keyframes rest-show {0%,2.9%,91.1%,100% {opacity:1} 3.6%,90.3% {opacity:0}}
+    @media (prefers-reduced-motion: reduce) {
+      .walker-trip, .car-trip, .wheel-spokes, .traveller, .striding, .standing {animation:none}
+      .walker-trip {transform:translateX(194px)}
+      .car-trip {transform:translateX(433px)}
+      .striding {display:none}
+      .standing {opacity:1}
+    }
+  </style>
+  <defs>
+    <linearGradient id="sky" x2=".82" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#10192a"/><stop offset=".48" stop-color="#171b32"/><stop offset="1" stop-color="#3c3241"/>
+    </linearGradient>
+    <radialGradient id="haze" cx=".67" cy="1" r=".77" gradientTransform="translate(0 .36) scale(1 .64)">
+      <stop stop-color="#c68470" stop-opacity=".47"/><stop offset=".52" stop-color="#a37e87" stop-opacity=".17"/><stop offset="1" stop-color="#8398b5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="city" x2=".3" y2="1"><stop stop-color="#20283c"/><stop offset=".68" stop-color="#192337"/><stop offset="1" stop-color="#111d2e"/></linearGradient>
+    <linearGradient id="outline" x2=".4" y2="1"><stop stop-color="#ffefcf"/><stop offset=".65" stop-color="#dfc9ac"/><stop offset="1" stop-color="#9b9aa2"/></linearGradient>
+    <linearGradient id="ground" x2="0" y2="1"><stop stop-color="#182335"/><stop offset="1" stop-color="#0f1725"/></linearGradient>
+    <linearGradient id="glass" x2=".7" y2="1"><stop stop-color="#59647a"/><stop offset=".82" stop-color="#283449"/></linearGradient>
+    <linearGradient id="headlight" x2="1" y2=".5"><stop stop-color="#e1e9fb" stop-opacity=".52"/><stop offset=".64" stop-color="#cbdcfa" stop-opacity=".14"/><stop offset="1" stop-color="#cbdcfa" stop-opacity="0"/></linearGradient>
+    <linearGradient id="line" gradientUnits="userSpaceOnUse" x1="0" x2="960" y1="208" y2="208"><stop stop-color="#9f9392"/><stop offset=".23" stop-color="#f1d4a4"/><stop offset=".72" stop-color="#ffecc3"/><stop offset="1" stop-color="#a69ba1"/></linearGradient>
+    <filter id="soft-glow" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="2.5" result="blur"/><feFlood flood-color="#ffe0ab" flood-opacity=".24"/><feComposite in2="blur" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <radialGradient id="beacon"><stop stop-color="#ffc7a0" stop-opacity=".85"/><stop offset=".4" stop-color="#ff9379" stop-opacity=".27"/><stop offset="1" stop-color="#f57e7f" stop-opacity="0"/></radialGradient>
+    <clipPath id="panel"><rect width="960" height="244" rx="11"/></clipPath>
+    <g id="window-bank" fill="none" stroke-width="4.4" stroke-linecap="square">
+      <path d="M0 0v3 M12 0v3 M0 16v3 M24 16v3 M12 32v3 M0 48v3 M24 48v3 M12 64v3" stroke="#efd7aa" opacity=".8"/>
+      <path d="M24 0v3 M12 16v3 M0 32v3 M24 32v3 M12 48v3 M0 64v3 M24 64v3" stroke="#7f8291" opacity=".53"/>
+    </g>
+    <g id="scene">
+      <rect width="960" height="244" fill="url(#sky)"/>
+      <rect width="960" height="220" fill="url(#haze)"/>
+      <!-- Clouds and distant hills sit behind both cities. -->
+      <g fill="none" stroke-linecap="round">
+        <path d="M146 51q40-7 75-2t80 1 M190 54q43-5 68-2 M676 102q37-6 69-2t62-1" stroke="#a6a2b4" opacity=".11"/>
+        <path d="M318 90q49-8 97-2t84 1 M379 94q40-4 73-2 M706 37q34-4 68-1" stroke="#a4a2b6" opacity=".13"/>
+      </g>
+      <g fill="#e1ddcf">
+        <circle cx="152" cy="30" r=".9" opacity=".6"/><circle cx="212" cy="69" r="1.2" opacity=".5"/>
+        <circle cx="258" cy="24" r=".7" opacity=".65"/><circle cx="285" cy="75" r=".8" opacity=".45"/>
+        <circle cx="334" cy="52" r="1.25" opacity=".65"/><circle cx="356" cy="32" r=".65" opacity=".55"/>
+        <circle cx="419" cy="67" r="1" opacity=".67"/><circle cx="471" cy="36" r=".8" opacity=".56"/>
+        <circle cx="530" cy="72" r="1" opacity=".55"/><circle cx="552" cy="29" r=".85" opacity=".52"/>
+        <circle cx="600" cy="55" r="1.1" opacity=".75"/><circle cx="632" cy="33" r=".7" opacity=".54"/>
+        <circle cx="698" cy="75" r=".7" opacity=".5"/><circle cx="744" cy="56" r="1.25" opacity=".7"/>
+        <circle cx="790" cy="22" r=".9" opacity=".48"/><circle cx="807" cy="86" r="1" opacity=".6"/>
+      </g>
+      <path d="M661 37a8.4 8.4 0 0 1-10.4 11.3 9.1 9.1 0 0 0 10.4-11.3Z" fill="#edd6b2" opacity=".7"/>
+      <path d="M0 157q76-17 145-9 63 9 109-3 56-16 108-8t109 3q61-19 120-9t101 2q68-13 112-5t156-7v88H0Z" fill="#596077" opacity=".29"/>
+      <path d="M0 163q88-18 163-1 56 9 102 0t114 0q51 9 111 0t124-9q64 14 114 2t121-6q64 9 111-9v70H0Z" fill="#41495f" opacity=".67"/>
+      <path d="M0 178h95v-8h10v-12h20v9h21v-5h11v16h13v-25h5v-9h4v9h12v22h18v-14h15v18h17v-9h24v6h18v-18h13v5h10v13h17v-7h15v11h14v-6h27v4h24v-8h17v8h20v-10h15v9h36v-5h16v4h30v-12h13v10h23v-4h24v6h18v-13h16v10h20v-20h5v-6h5v6h8v19h18v-11h19v8h13v-17h27v7h16v-20h15v18h25v-7h19v-13h16v12h11v-23h16v10h20v-6h31v8h28v42H0Z" fill="#31394d"/>
+      <g fill="#d9ba92" opacity=".36"><path d="M116 169h2v2h-2z M179 162h2v2h-2z M184 162h2v2h-2z M219 167h2v2h-2z M291 168h2v2h-2z M465 175h2v1h-2z M563 169h2v2h-2z M674 161h2v2h-2z M678 161h2v2h-2z M755 157h2v2h-2z M776 163h2v2h-2z M813 157h2v2h-2z"/></g>
+      <path d="M0 185q57-8 112-3t115 4q68-5 126-3t129 6q103-9 157-6t132-2q79-7 189-3v33H0Z" fill="#222f42"/>
+      <path d="M0 192q79-4 155 0t142 1 125 3q89-7 168-3t163-1q107-7 207-4v22H0Z" fill="#1b283a"/>
+      <!-- Architectural line work: the mast marks the origin, the peaked tower the destination. -->
+      <g fill="#283348" stroke="#8f8991" stroke-width="1" stroke-linejoin="round">
+        <path d="M0 108h17V83h23v15h11v110H0Z M87 208v-93h20v-8h20v101Z M132 208v-66h11v-15h12v15h11v66Z"/>
+        <path d="M798 208v-68h13v-14h5v14h13v68Z M841 208v-96h22V91h19v117Z M921 208V91h14V72h22v136Z"/>
+      </g>
+      <g fill="url(#city)" stroke="url(#outline)" filter="url(#soft-glow)" stroke-width="2.1" stroke-linejoin="round">
+        <path d="M-5 207V82h27v125Z"/>
+        <path d="M36 207V64h50v143Z"/>
+        <path d="M1 207v-90h44v90Z"/>
+        <path d="M85 207v-66h49v66Z"/>
+        <path d="M827 207v-76h47v76Z"/>
+        <path d="M871 207V77l24-44 24 44v130Z"/>
+        <path d="M919 207V97h46v110Z"/>
+      </g>
+      <g stroke="#a3a0a5" opacity=".35" stroke-width="1">
+        <path d="M40 67h42 M89 145h41 M832 135h38 M875 82h40 M924 102h34"/>
+        <path d="M82 68v137 M130 146v59 M875 84v121 M914 82v123 M41 121v84"/>
+      </g>
+      <g>
+        <use href="#window-bank" x="49" y="82"/><use href="#window-bank" x="10" y="135"/>
+        <use href="#window-bank" transform="translate(96 156) scale(1 .63)"/>
+        <use href="#window-bank" transform="translate(838 147) scale(.98 .76)"/>
+        <use href="#window-bank" x="883" y="99"/><use href="#window-bank" x="932" y="121"/>
+      </g>
+      <g stroke="#dfc5a4" stroke-width="1.5" fill="none"><path d="M61 63V33 M895 32v-5"/></g>
+      <circle cx="61" cy="32" r="9" fill="url(#beacon)"/><circle cx="61" cy="32" r="1.7" fill="#ffbc9b"/>
+      <rect y="208" width="960" height="36" fill="url(#ground)"/>
+      <path d="M0 208H960" fill="none" stroke="#f1ba7f" stroke-width="5" opacity=".1"/>
+      <path d="M0 208H960" fill="none" stroke="url(#line)" stroke-width="1.6"/>
+      <path d="M36 216h25m4 0h14m45 6h21m21-8h39m105 16h49m88-13h24m38 5h52m104-8h37m39 14h19m69-12h31" stroke="#8691a4" opacity=".15"/>
+      <path d="M58 211h9m29 3h14m714-2h37m23 3h24m34-4h16" stroke="#c3a78a" opacity=".29"/>
+    </g>
+    <g id="torso" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M-2-69q4-1 7 1l-1 8 4 4-7 5-7-7 4-4Z" fill="#384252" stroke="#dcc8a8" stroke-width="1.6"/>
+      <path d="M-3-83q3-5 9-3l5 3-1 4 2 4-2 1q0 7-6 7l-5-4-2-6Z" fill="#343d4c" stroke="#fff0d2" stroke-width="2.25"/>
+      <path d="M-3-62q2-4 6-3 5 1 5 9l-1 8 1 8q-7 3-16 0l4-15Z" fill="#333e50" stroke="#fff0d2" stroke-width="2.6"/>
+      <path d="m-1-62 3 6 3-6m-2 7-2 11m-6 2 11 1" fill="none" stroke="#b9ada1" stroke-width="1.1"/>
+      <path d="M-8-85q2-1 4-7 1-4 7-3l5 1q4 1 5 9l4 2-1 2q-11-2-24-2Z" fill="#2f3647" stroke="#fff0d2" stroke-width="2.2"/>
+      <path d="m-3-87 14 1" stroke="#d9b686" stroke-width="1.3"/>
+    </g>
+    <g id="car">
+      <path d="M46-16 174-38v43L46-12Z" fill="url(#headlight)"/>
+      <ellipse cx="1" cy="1" rx="52" ry="2.3" fill="#090f1c" opacity=".55"/>
+      <g stroke-linejoin="round" stroke-linecap="round">
+        <path d="M-48-12q1-8 6-10l13-3 10-13q4-5 13-5h11q9 0 14 6l11 13 13 4q8 2 9 9v5l-7 2h-6q-1-12-12-12-10 0-12 12h-30q-2-12-12-12-10 0-12 12h-6l-5-3Z" fill="#28354a" stroke="#ffedc9" stroke-width="2.7"/>
+        <path d="m-22-26 8-10q3-3 8-3h6l1 13Zm27-13q6 0 10 4l8 9H6Z" fill="url(#glass)" stroke="#e5d5b7" stroke-width="1.5"/>
+        <path d="m4-23 1 16m-15-14h5m21-1h5 M-41-18l10-2m65-.2 7 1.5" fill="none" stroke="#a7a8ad" stroke-width="1.1"/>
+        <path d="M42-18q6 0 7 4h-7Z" fill="#fcf0ce" stroke="#ffedca"/><path d="m-44-18 5-1" stroke="#e99687" stroke-width="2.6"/>
+      </g>
+    </g>
+    <g id="tire"><circle r="9.8" fill="#141e2f" stroke="#ffedc9" stroke-width="2"/><circle r="6" fill="#354153" stroke="#a9a9a7" stroke-width="1.2"/></g>
+    <path id="spoke" d="M0-4v2m3.5 4-1.8-1m-5.2 1 1.8-1" fill="none" stroke="#f0d9b2" stroke-width="1.15" stroke-linecap="round"/>
+  </defs>
+  <rect width="960" height="508" fill="#101320"/>
+  <g clip-path="url(#panel)">
+    <use href="#scene"/>
+    <g transform="translate(190 207)">
+      <g class="walker-trip"><g class="traveller" filter="url(#soft-glow)">
+        <ellipse cx="0" cy="1.2" rx="19" ry="1.6" fill="#101926" opacity=".55"/>
+        <g class="striding">
+          <g>
+            <animateTransform attributeName="transform" type="translate" values="0 0;0 1;0 0;0 -1;0 0;0 1;0 0;0 -1;0 0" dur="1s" repeatCount="indefinite"/>
+            <path d="M2-60 L4 -48 L9 -41" fill="none" stroke="#baaf9e" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M2-60 L4 -48 L9 -41;M2-60 L8 -49 L15 -45;M2-60 L7 -49 L13 -43;M2-60 L0 -49 L0 -39;M2-60 L-9 -48 L-14 -40;M2-60 L-8 -47 L-11 -38;M2-60 L-5 -47 L-5 -37;M2-60 L-1 -47 L1 -38;M2-60 L4 -48 L9 -41"/>
+            </path>
+            <path d="M2-60 L4 -48 L9 -41" fill="none" stroke="#394355" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M2-60 L4 -48 L9 -41;M2-60 L8 -49 L15 -45;M2-60 L7 -49 L13 -43;M2-60 L0 -49 L0 -39;M2-60 L-9 -48 L-14 -40;M2-60 L-8 -47 L-11 -38;M2-60 L-5 -47 L-5 -37;M2-60 L-1 -47 L1 -38;M2-60 L4 -48 L9 -41"/>
+            </path>
+            <path d="M-2-40 L-1 -21 L-7 -3 L1 -2" fill="none" stroke="#baaf9e" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M-2-40 L-1 -21 L-7 -3 L1 -2;M-2-40 L-4 -23 L-13 -8 L-6 -3;M-2-40 L1 -28 L-12 -13 L-4 -10;M-2-40 L10 -27 L2 -10 L10 -8;M-2-40 L9 -24 L15 -4 L23 -5;M-2-40 L8 -24 L9 -2 L17 -2;M-2-40 L6 -23 L4 -2 L12 -2;M-2-40 L3 -22 L-1 -2 L7 -2;M-2-40 L-1 -21 L-7 -3 L1 -2"/>
+            </path>
+            <path d="M-2-40 L-1 -21 L-7 -3 L1 -2" fill="none" stroke="#394355" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M-2-40 L-1 -21 L-7 -3 L1 -2;M-2-40 L-4 -23 L-13 -8 L-6 -3;M-2-40 L1 -28 L-12 -13 L-4 -10;M-2-40 L10 -27 L2 -10 L10 -8;M-2-40 L9 -24 L15 -4 L23 -5;M-2-40 L8 -24 L9 -2 L17 -2;M-2-40 L6 -23 L4 -2 L12 -2;M-2-40 L3 -22 L-1 -2 L7 -2;M-2-40 L-1 -21 L-7 -3 L1 -2"/>
+            </path>
+            <path d="M-2-40 L9 -24 L15 -4 L23 -5" fill="none" stroke="#ffedcc" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M-2-40 L9 -24 L15 -4 L23 -5;M-2-40 L8 -24 L9 -2 L17 -2;M-2-40 L6 -23 L4 -2 L12 -2;M-2-40 L3 -22 L-1 -2 L7 -2;M-2-40 L-1 -21 L-7 -3 L1 -2;M-2-40 L-4 -23 L-13 -8 L-6 -3;M-2-40 L1 -28 L-12 -13 L-4 -10;M-2-40 L10 -27 L2 -10 L10 -8;M-2-40 L9 -24 L15 -4 L23 -5"/>
+            </path>
+            <path d="M-2-40 L9 -24 L15 -4 L23 -5" fill="none" stroke="#303a4a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M-2-40 L9 -24 L15 -4 L23 -5;M-2-40 L8 -24 L9 -2 L17 -2;M-2-40 L6 -23 L4 -2 L12 -2;M-2-40 L3 -22 L-1 -2 L7 -2;M-2-40 L-1 -21 L-7 -3 L1 -2;M-2-40 L-4 -23 L-13 -8 L-6 -3;M-2-40 L1 -28 L-12 -13 L-4 -10;M-2-40 L10 -27 L2 -10 L10 -8;M-2-40 L9 -24 L15 -4 L23 -5"/>
+            </path>
+            <use href="#torso"/>
+            <path d="M2-60 L-9 -48 L-14 -40" fill="none" stroke="#ffedcc" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M2-60 L-9 -48 L-14 -40;M2-60 L-8 -47 L-11 -38;M2-60 L-5 -47 L-5 -37;M2-60 L-1 -47 L1 -38;M2-60 L4 -48 L9 -41;M2-60 L8 -49 L15 -45;M2-60 L7 -49 L13 -43;M2-60 L0 -49 L0 -39;M2-60 L-9 -48 L-14 -40"/>
+            </path>
+            <path d="M2-60 L-9 -48 L-14 -40" fill="none" stroke="#303a4a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M2-60 L-9 -48 L-14 -40;M2-60 L-8 -47 L-11 -38;M2-60 L-5 -47 L-5 -37;M2-60 L-1 -47 L1 -38;M2-60 L4 -48 L9 -41;M2-60 L8 -49 L15 -45;M2-60 L7 -49 L13 -43;M2-60 L0 -49 L0 -39;M2-60 L-9 -48 L-14 -40"/>
+            </path>
+          </g>
+        </g>
+        <g class="standing">
+            <path d="M2-60 L-5 -47 L-5 -37" fill="none" stroke="#baaf9e" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2-60 L-5 -47 L-5 -37" fill="none" stroke="#394355" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-2-40 L-5 -22 L-9 -2 L-1 -2" fill="none" stroke="#baaf9e" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-2-40 L-5 -22 L-9 -2 L-1 -2" fill="none" stroke="#394355" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-2-40 L5 -22 L7 -2 L15 -2" fill="none" stroke="#ffedcc" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-2-40 L5 -22 L7 -2 L15 -2" fill="none" stroke="#303a4a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <use href="#torso"/>
+            <path d="M2-60 L5 -48 L9 -40" fill="none" stroke="#ffedcc" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2-60 L5 -48 L9 -40" fill="none" stroke="#303a4a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+      </g></g>
+    </g>
+    <rect x=".5" y=".5" width="959" height="243" rx="10.5" fill="none" stroke="#a8b2c3" stroke-opacity=".16"/>
+  </g>
+  <g transform="translate(0 264)">
+    <g clip-path="url(#panel)">
+      <use href="#scene"/>
+      <g transform="translate(190 207)">
+        <g class="car-trip"><g class="traveller" filter="url(#soft-glow)">
+          <use href="#car"/>
+          <g transform="translate(-27 -9)"><use href="#tire"/><g class="wheel-spokes"><use href="#spoke"/></g></g>
+          <g transform="translate(27 -9)"><use href="#tire"/><g class="wheel-spokes"><use href="#spoke"/></g></g>
+        </g></g>
+      </g>
+      <rect x=".5" y=".5" width="959" height="243" rx="10.5" fill="none" stroke="#a8b2c3" stroke-opacity=".16"/>
+    </g>
+  </g>
+</svg>

@@ -475,6 +475,9 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
           <div>
             <b>OpenSeat</b>
             <small>
+              <a href="./walk-drive/">Walk &amp; Drive</a>
+            </small>
+            <small>
               <a href="./evidence/">Prototype evidence</a>
             </small>
           </div>
