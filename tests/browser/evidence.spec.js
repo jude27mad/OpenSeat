@@ -4,7 +4,12 @@ test('the evidence page keeps desktop tables and stacks long rows on iPhone', as
   page, playwright, baseURL,
 }, testInfo) => {
   await page.goto('./')
+  const headerLogo = page.locator('.sidebar-top .brand img')
+  await expect(headerLogo).toBeVisible()
+  const logoUrl = await headerLogo.evaluate((img) => img.src)
+  await expect(page.locator('.brand-bottom img')).toHaveJSProperty('src', logoUrl)
   await page.getByRole('link', { name: 'Prototype evidence' }).click()
+  await expect(page.locator('header .brand img')).toHaveJSProperty('src', logoUrl)
   await expect(page.getByRole('heading', { name: 'OpenSeat · CEN100 prototype record' })).toBeVisible()
   const images = page.locator('#process-evidence img')
   await expect(images).toHaveCount(6)
