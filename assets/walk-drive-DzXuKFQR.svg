@@ -1,0 +1,315 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 508" width="100%" height="100%" role="img" aria-labelledby="title description">
+  <title id="title">Walk and drive</title>
+  <desc id="description">Two views of the same cities. A man walks the upper road while a car drives the lower road and arrives first.</desc>
+  <style>
+    :root {
+      --gutter:#fff;
+      --day-display:inline;
+      --night-display:none;
+      --travel:570px;
+      --rotation:3266deg;
+      --walker-static:194px;
+      --car-static:433px;
+      --sky-top:#d9ebe0;
+      --sky-mid:#f1f4e4;
+      --sky-horizon:#f7ecd6;
+      --sunlight:#ffe2a4;
+      --cloud:#52785e;
+      --celestial:#e2b469;
+      --far-hill:#88ac99;
+      --near-hill:#a7c5ae;
+      --distant-city:#98b8a4;
+      --city-fringe:#b0ccb5;
+      --verge:#b9d3bd;
+      --rear-building:#c4dbc8;
+      --rear-outline:#6d947c;
+      --facade-top:#e6efde;
+      --facade-mid:#d5e6cf;
+      --facade-base:#c1dac3;
+      --architecture:#295e49;
+      --architecture-mid:#39715a;
+      --architecture-base:#517b65;
+      --window:#437b5f;
+      --window-muted:#8bab96;
+      --ground-top:#dae8d9;
+      --ground-base:#e9f1e6;
+      --road:#448263;
+      --road-center:#245b41;
+      --road-glint:#568264;
+      --beacon:#cf8d57;
+      --glow:#eff9e9;
+      --ink:#123e2b;
+      --ink-muted:#426e55;
+      --shirt:#4c9870;
+      --face:#f2ddbe;
+      --hat:#245f43;
+      --detail:#d6ecd7;
+      --car-body:#41885f;
+      --glass-top:#f2f8e5;
+      --glass-base:#b3d4bf;
+      --car-trim:#c3e4c7;
+      --lamp:#fff2c4;
+      --rubber:#1e4130;
+      --hub:#6f9680;
+      --shadow:#518065;
+      --frame:#527f63;
+    }
+    :root[data-theme='dark'] {
+      --gutter:#14211b;
+      --day-display:none;
+      --night-display:inline;
+      --sky-top:#10251e;
+      --sky-mid:#19362c;
+      --sky-horizon:#36473a;
+      --sunlight:#7d9b6f;
+      --cloud:#c2dac4;
+      --celestial:#e9f5df;
+      --far-hill:#788e79;
+      --near-hill:#3c594b;
+      --distant-city:#304e41;
+      --city-fringe:#243e32;
+      --verge:#20372b;
+      --rear-building:#294637;
+      --rear-outline:#708d76;
+      --facade-top:#294c38;
+      --facade-mid:#213f30;
+      --facade-base:#152b21;
+      --architecture:#c5e8c7;
+      --architecture-mid:#9bd8ac;
+      --architecture-base:#759984;
+      --window:#e4d99e;
+      --window-muted:#668971;
+      --ground-top:#172d22;
+      --ground-base:#14221c;
+      --road:#8ebd9a;
+      --road-center:#c5e5b8;
+      --road-glint:#92b99c;
+      --beacon:#ffc69b;
+      --glow:#a3e6bf;
+      --ink:#d2f4d8;
+      --ink-muted:#94c4a3;
+      --shirt:#407b54;
+      --face:#a3c2a5;
+      --hat:#345e45;
+      --detail:#c4dfb6;
+      --car-body:#2f6847;
+      --glass-top:#b7d7b8;
+      --glass-base:#5c8e77;
+      --car-trim:#95c1a0;
+      --lamp:#fff3bf;
+      --rubber:#193926;
+      --hub:#5b8a6b;
+      --shadow:#0c1d14;
+      --frame:#8dcda2;
+    }
+    .sky-disc {transform-origin:655px 42px; transform:scaleX(var(--disc-scale,1))}
+    .day {display:var(--day-display)}
+    .night {display:var(--night-display)}
+    :root[data-compact] {
+      --disc-scale:1.4117647;
+      --travel:400px;
+      --rotation:2292deg;
+      --walker-static:136px;
+      --car-static:304px;
+    }
+    :root[data-compact] .landscape {transform:scaleX(.7083333333)}
+    :root[data-compact] .origin {transform:translate(135px,207px)}
+    :root[data-compact] .panel-bounds {width:680px}
+    :root[data-compact] .panel-border {width:679px}
+    .walker-trip {animation: walk-trip 16s linear infinite}
+    .car-trip {animation: car-trip 16s linear infinite}
+    .wheel-spokes {animation: turn 16s linear infinite; transform-origin: 0 0}
+    .traveller {animation: reset 16s linear infinite}
+    .striding {animation: stride-show 16s linear infinite}
+    .standing {animation: rest-show 16s linear infinite}
+    .paused * {animation-play-state: paused !important}
+    @keyframes walk-trip {
+      0%,3.125% {transform:translateX(0)}
+      90.625%,100% {transform:translateX(var(--travel))}
+    }
+    @keyframes car-trip {
+      0%,3.125% {transform:translateX(0); animation-timing-function:cubic-bezier(.24,.04,.34,1)}
+      21.875%,100% {transform:translateX(var(--travel))}
+    }
+    @keyframes turn {
+      0%,3.125% {transform:rotate(0deg); animation-timing-function:cubic-bezier(.24,.04,.34,1)}
+      21.875%,100% {transform:rotate(var(--rotation))}
+    }
+    @keyframes reset {0% {opacity:0} 2%,96% {opacity:1} 99%,100% {opacity:0}}
+    @keyframes stride-show {0%,2.9%,91.1%,100% {opacity:0} 3.6%,90.3% {opacity:1}}
+    @keyframes rest-show {0%,2.9%,91.1%,100% {opacity:1} 3.6%,90.3% {opacity:0}}
+    @media (prefers-reduced-motion: reduce) {
+      .walker-trip, .car-trip, .wheel-spokes, .traveller, .striding, .standing {animation:none}
+      .walker-trip {transform:translateX(var(--walker-static))}
+      .car-trip {transform:translateX(var(--car-static))}
+      .striding {display:none}
+      .standing {opacity:1}
+    }
+  </style>
+  <defs>
+    <linearGradient id="sky" x2=".82" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="var(--sky-top)"/><stop offset=".48" stop-color="var(--sky-mid)"/><stop offset="1" stop-color="var(--sky-horizon)"/>
+    </linearGradient>
+    <radialGradient id="haze" cx=".67" cy="1" r=".77" gradientTransform="translate(0 .36) scale(1 .64)">
+      <stop stop-color="var(--sunlight)" stop-opacity=".47"/><stop offset=".52" stop-color="var(--sunlight)" stop-opacity=".17"/><stop offset="1" stop-color="var(--sunlight)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="city" x2=".3" y2="1"><stop stop-color="var(--facade-top)"/><stop offset=".68" stop-color="var(--facade-mid)"/><stop offset="1" stop-color="var(--facade-base)"/></linearGradient>
+    <linearGradient id="outline" x2=".4" y2="1"><stop stop-color="var(--architecture)"/><stop offset=".65" stop-color="var(--architecture-mid)"/><stop offset="1" stop-color="var(--architecture-base)"/></linearGradient>
+    <linearGradient id="ground" x2="0" y2="1"><stop stop-color="var(--ground-top)"/><stop offset="1" stop-color="var(--ground-base)"/></linearGradient>
+    <linearGradient id="glass" x2=".7" y2="1"><stop stop-color="var(--glass-top)"/><stop offset=".82" stop-color="var(--glass-base)"/></linearGradient>
+    <linearGradient id="headlight" x2="1" y2=".5"><stop stop-color="var(--lamp)" stop-opacity=".52"/><stop offset=".64" stop-color="var(--lamp)" stop-opacity=".14"/><stop offset="1" stop-color="var(--lamp)" stop-opacity="0"/></linearGradient>
+    <linearGradient id="line" gradientUnits="userSpaceOnUse" x1="0" x2="960" y1="208" y2="208"><stop stop-color="var(--road)"/><stop offset=".23" stop-color="var(--road-center)"/><stop offset=".72" stop-color="var(--road-center)"/><stop offset="1" stop-color="var(--road)"/></linearGradient>
+    <filter id="soft-glow" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="2.5" result="blur"/><feFlood flood-color="var(--glow)" flood-opacity=".24"/><feComposite in2="blur" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <radialGradient id="beacon"><stop stop-color="var(--beacon)" stop-opacity=".85"/><stop offset=".4" stop-color="var(--beacon)" stop-opacity=".27"/><stop offset="1" stop-color="var(--beacon)" stop-opacity="0"/></radialGradient>
+    <clipPath id="panel"><rect class="panel-bounds" width="960" height="244" rx="11"/></clipPath>
+    <g id="window-bank" fill="none" stroke-width="4.4" stroke-linecap="square">
+      <path d="M0 0v3 M12 0v3 M0 16v3 M24 16v3 M12 32v3 M0 48v3 M24 48v3 M12 64v3" stroke="var(--window)" opacity=".8"/>
+      <path d="M24 0v3 M12 16v3 M0 32v3 M24 32v3 M12 48v3 M0 64v3 M24 64v3" stroke="var(--window-muted)" opacity=".53"/>
+    </g>
+    <g id="scene">
+      <rect width="960" height="244" fill="url(#sky)"/>
+      <rect width="960" height="220" fill="url(#haze)"/>
+      <!-- Clouds and distant hills sit behind both cities. -->
+      <g fill="none" stroke-linecap="round">
+        <path d="M146 51q40-7 75-2t80 1 M190 54q43-5 68-2 M676 102q37-6 69-2t62-1" stroke="var(--cloud)" opacity=".11"/>
+        <path d="M318 90q49-8 97-2t84 1 M379 94q40-4 73-2 M706 37q34-4 68-1" stroke="var(--cloud)" opacity=".13"/>
+      </g>
+      <g class="night" fill="var(--celestial)">
+        <circle cx="152" cy="30" r=".9" opacity=".6"/><circle cx="212" cy="69" r="1.2" opacity=".5"/>
+        <circle cx="258" cy="24" r=".7" opacity=".65"/><circle cx="285" cy="75" r=".8" opacity=".45"/>
+        <circle cx="334" cy="52" r="1.25" opacity=".65"/><circle cx="356" cy="32" r=".65" opacity=".55"/>
+        <circle cx="419" cy="67" r="1" opacity=".67"/><circle cx="471" cy="36" r=".8" opacity=".56"/>
+        <circle cx="530" cy="72" r="1" opacity=".55"/><circle cx="552" cy="29" r=".85" opacity=".52"/>
+        <circle cx="600" cy="55" r="1.1" opacity=".75"/><circle cx="632" cy="33" r=".7" opacity=".54"/>
+        <circle cx="698" cy="75" r=".7" opacity=".5"/><circle cx="744" cy="56" r="1.25" opacity=".7"/>
+        <circle cx="790" cy="22" r=".9" opacity=".48"/><circle cx="807" cy="86" r="1" opacity=".6"/>
+      </g>
+      <g class="day sky-disc">
+        <circle cx="655" cy="42" r="17" fill="var(--celestial)" opacity=".14"/>
+        <circle cx="655" cy="42" r="10" fill="var(--sunlight)" stroke="var(--celestial)" stroke-width="1.5"/>
+      </g>
+      <path class="night sky-disc" d="M659 33a9.8 9.8 0 0 1-11 14.2A10.1 10.1 0 0 0 659 33Z" fill="var(--celestial)" opacity=".85"/>
+      <path d="M0 157q76-17 145-9 63 9 109-3 56-16 108-8t109 3q61-19 120-9t101 2q68-13 112-5t156-7v88H0Z" fill="var(--far-hill)" opacity=".29"/>
+      <path d="M0 163q88-18 163-1 56 9 102 0t114 0q51 9 111 0t124-9q64 14 114 2t121-6q64 9 111-9v70H0Z" fill="var(--near-hill)" opacity=".67"/>
+      <path d="M0 178h95v-8h10v-12h20v9h21v-5h11v16h13v-25h5v-9h4v9h12v22h18v-14h15v18h17v-9h24v6h18v-18h13v5h10v13h17v-7h15v11h14v-6h27v4h24v-8h17v8h20v-10h15v9h36v-5h16v4h30v-12h13v10h23v-4h24v6h18v-13h16v10h20v-20h5v-6h5v6h8v19h18v-11h19v8h13v-17h27v7h16v-20h15v18h25v-7h19v-13h16v12h11v-23h16v10h20v-6h31v8h28v42H0Z" fill="var(--distant-city)"/>
+      <g fill="var(--window)" opacity=".36"><path d="M116 169h2v2h-2z M179 162h2v2h-2z M184 162h2v2h-2z M219 167h2v2h-2z M291 168h2v2h-2z M465 175h2v1h-2z M563 169h2v2h-2z M674 161h2v2h-2z M678 161h2v2h-2z M755 157h2v2h-2z M776 163h2v2h-2z M813 157h2v2h-2z"/></g>
+      <path d="M0 185q57-8 112-3t115 4q68-5 126-3t129 6q103-9 157-6t132-2q79-7 189-3v33H0Z" fill="var(--city-fringe)"/>
+      <path d="M0 192q79-4 155 0t142 1 125 3q89-7 168-3t163-1q107-7 207-4v22H0Z" fill="var(--verge)"/>
+      <!-- Architectural line work: the mast marks the origin, the peaked tower the destination. -->
+      <g fill="var(--rear-building)" stroke="var(--rear-outline)" stroke-width="1" stroke-linejoin="round">
+        <path d="M0 108h17V83h23v15h11v110H0Z M87 208v-93h20v-8h20v101Z M132 208v-66h11v-15h12v15h11v66Z"/>
+        <path d="M798 208v-68h13v-14h5v14h13v68Z M841 208v-96h22V91h19v117Z M921 208V91h14V72h22v136Z"/>
+      </g>
+      <g fill="url(#city)" stroke="url(#outline)" filter="url(#soft-glow)" stroke-width="2.1" stroke-linejoin="round">
+        <path d="M-5 207V82h27v125Z"/>
+        <path d="M36 207V64h50v143Z"/>
+        <path d="M1 207v-90h44v90Z"/>
+        <path d="M85 207v-66h49v66Z"/>
+        <path d="M827 207v-76h47v76Z"/>
+        <path d="M871 207V77l24-44 24 44v130Z"/>
+        <path d="M919 207V97h46v110Z"/>
+      </g>
+      <g stroke="var(--rear-outline)" opacity=".35" stroke-width="1">
+        <path d="M40 67h42 M89 145h41 M832 135h38 M875 82h40 M924 102h34"/>
+        <path d="M82 68v137 M130 146v59 M875 84v121 M914 82v123 M41 121v84"/>
+      </g>
+      <g>
+        <use href="#window-bank" x="49" y="82"/><use href="#window-bank" x="10" y="135"/>
+        <use href="#window-bank" transform="translate(96 156) scale(1 .63)"/>
+        <use href="#window-bank" transform="translate(838 147) scale(.98 .76)"/>
+        <use href="#window-bank" x="883" y="99"/><use href="#window-bank" x="932" y="121"/>
+      </g>
+      <g stroke="var(--architecture)" stroke-width="1.5" fill="none"><path d="M61 63V33 M895 32v-5"/></g>
+      <circle cx="61" cy="32" r="9" fill="url(#beacon)"/><circle cx="61" cy="32" r="1.7" fill="var(--beacon)"/>
+      <rect y="208" width="960" height="36" fill="url(#ground)"/>
+      <path d="M0 208H960" fill="none" stroke="var(--road)" stroke-width="5" opacity=".1"/>
+      <path d="M0 208H960" fill="none" stroke="url(#line)" stroke-width="1.6"/>
+      <path d="M36 216h25m4 0h14m45 6h21m21-8h39m105 16h49m88-13h24m38 5h52m104-8h37m39 14h19m69-12h31" stroke="var(--road-glint)" opacity=".15"/>
+      <path d="M58 211h9m29 3h14m714-2h37m23 3h24m34-4h16" stroke="var(--road-glint)" opacity=".29"/>
+    </g>
+    <g id="torso" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M-2-69q4-1 7 1l-1 8 4 4-7 5-7-7 4-4Z" fill="var(--face)" stroke="var(--ink-muted)" stroke-width="1.6"/>
+      <path d="M-3-83q3-5 9-3l5 3-1 4 2 4-2 1q0 7-6 7l-5-4-2-6Z" fill="var(--face)" stroke="var(--ink)" stroke-width="2.25"/>
+      <path d="M-3-62q2-4 6-3 5 1 5 9l-1 8 1 8q-7 3-16 0l4-15Z" fill="var(--shirt)" stroke="var(--ink)" stroke-width="2.6"/>
+      <path d="m-1-62 3 6 3-6m-2 7-2 11m-6 2 11 1" fill="none" stroke="var(--detail)" stroke-width="1.1"/>
+      <path d="M-8-85q2-1 4-7 1-4 7-3l5 1q4 1 5 9l4 2-1 2q-11-2-24-2Z" fill="var(--hat)" stroke="var(--ink)" stroke-width="2.2"/>
+      <path d="m-3-87 14 1" stroke="var(--detail)" stroke-width="1.3"/>
+    </g>
+    <g id="car">
+      <path d="M46-16 174-38v43L46-12Z" fill="url(#headlight)"/>
+      <ellipse cx="1" cy="1" rx="52" ry="2.3" fill="var(--shadow)" opacity=".55"/>
+      <g stroke-linejoin="round" stroke-linecap="round">
+        <path d="M-48-12q1-8 6-10l13-3 10-13q4-5 13-5h11q9 0 14 6l11 13 13 4q8 2 9 9v5l-7 2h-6q-1-12-12-12-10 0-12 12h-30q-2-12-12-12-10 0-12 12h-6l-5-3Z" fill="var(--car-body)" stroke="var(--ink)" stroke-width="2.7"/>
+        <path d="m-22-26 8-10q3-3 8-3h6l1 13Zm27-13q6 0 10 4l8 9H6Z" fill="url(#glass)" stroke="var(--detail)" stroke-width="1.5"/>
+        <path d="m4-23 1 16m-15-14h5m21-1h5 M-41-18l10-2m65-.2 7 1.5" fill="none" stroke="var(--car-trim)" stroke-width="1.1"/>
+        <path d="M42-18q6 0 7 4h-7Z" fill="var(--lamp)" stroke="var(--lamp)"/><path d="m-44-18 5-1" stroke="var(--beacon)" stroke-width="2.6"/>
+      </g>
+    </g>
+    <g id="tire"><circle r="9.8" fill="var(--rubber)" stroke="var(--ink)" stroke-width="2"/><circle r="6" fill="var(--hub)" stroke="var(--car-trim)" stroke-width="1.2"/></g>
+    <path id="spoke" d="M0-4v2m3.5 4-1.8-1m-5.2 1 1.8-1" fill="none" stroke="var(--detail)" stroke-width="1.15" stroke-linecap="round"/>
+  </defs>
+  <rect width="100%" height="100%" fill="var(--gutter)"/>
+  <g clip-path="url(#panel)">
+    <use class="landscape" href="#scene"/>
+    <g class="origin" transform="translate(190 207)">
+      <g class="walker-trip"><g class="traveller" filter="url(#soft-glow)">
+        <ellipse cx="0" cy="1.2" rx="19" ry="1.6" fill="var(--shadow)" opacity=".55"/>
+        <g class="striding">
+          <g>
+            <animateTransform attributeName="transform" type="translate" values="0 0;0 1;0 0;0 -1;0 0;0 1;0 0;0 -1;0 0" dur="1s" repeatCount="indefinite"/>
+            <path d="M2-60 L4 -48 L9 -41" fill="none" stroke="var(--ink-muted)" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M2-60 L4 -48 L9 -41;M2-60 L8 -49 L15 -45;M2-60 L7 -49 L13 -43;M2-60 L0 -49 L0 -39;M2-60 L-9 -48 L-14 -40;M2-60 L-8 -47 L-11 -38;M2-60 L-5 -47 L-5 -37;M2-60 L-1 -47 L1 -38;M2-60 L4 -48 L9 -41"/>
+            </path>
+            <path d="M2-60 L4 -48 L9 -41" fill="none" stroke="var(--shirt)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M2-60 L4 -48 L9 -41;M2-60 L8 -49 L15 -45;M2-60 L7 -49 L13 -43;M2-60 L0 -49 L0 -39;M2-60 L-9 -48 L-14 -40;M2-60 L-8 -47 L-11 -38;M2-60 L-5 -47 L-5 -37;M2-60 L-1 -47 L1 -38;M2-60 L4 -48 L9 -41"/>
+            </path>
+            <path d="M-2-40 L-1 -21 L-7 -3 L1 -2" fill="none" stroke="var(--ink-muted)" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M-2-40 L-1 -21 L-7 -3 L1 -2;M-2-40 L-4 -23 L-13 -8 L-6 -3;M-2-40 L1 -28 L-12 -13 L-4 -10;M-2-40 L10 -27 L2 -10 L10 -8;M-2-40 L9 -24 L15 -4 L23 -5;M-2-40 L8 -24 L9 -2 L17 -2;M-2-40 L6 -23 L4 -2 L12 -2;M-2-40 L3 -22 L-1 -2 L7 -2;M-2-40 L-1 -21 L-7 -3 L1 -2"/>
+            </path>
+            <path d="M-2-40 L-1 -21 L-7 -3 L1 -2" fill="none" stroke="var(--shirt)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M-2-40 L-1 -21 L-7 -3 L1 -2;M-2-40 L-4 -23 L-13 -8 L-6 -3;M-2-40 L1 -28 L-12 -13 L-4 -10;M-2-40 L10 -27 L2 -10 L10 -8;M-2-40 L9 -24 L15 -4 L23 -5;M-2-40 L8 -24 L9 -2 L17 -2;M-2-40 L6 -23 L4 -2 L12 -2;M-2-40 L3 -22 L-1 -2 L7 -2;M-2-40 L-1 -21 L-7 -3 L1 -2"/>
+            </path>
+            <path d="M-2-40 L9 -24 L15 -4 L23 -5" fill="none" stroke="var(--ink)" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M-2-40 L9 -24 L15 -4 L23 -5;M-2-40 L8 -24 L9 -2 L17 -2;M-2-40 L6 -23 L4 -2 L12 -2;M-2-40 L3 -22 L-1 -2 L7 -2;M-2-40 L-1 -21 L-7 -3 L1 -2;M-2-40 L-4 -23 L-13 -8 L-6 -3;M-2-40 L1 -28 L-12 -13 L-4 -10;M-2-40 L10 -27 L2 -10 L10 -8;M-2-40 L9 -24 L15 -4 L23 -5"/>
+            </path>
+            <path d="M-2-40 L9 -24 L15 -4 L23 -5" fill="none" stroke="var(--shirt)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M-2-40 L9 -24 L15 -4 L23 -5;M-2-40 L8 -24 L9 -2 L17 -2;M-2-40 L6 -23 L4 -2 L12 -2;M-2-40 L3 -22 L-1 -2 L7 -2;M-2-40 L-1 -21 L-7 -3 L1 -2;M-2-40 L-4 -23 L-13 -8 L-6 -3;M-2-40 L1 -28 L-12 -13 L-4 -10;M-2-40 L10 -27 L2 -10 L10 -8;M-2-40 L9 -24 L15 -4 L23 -5"/>
+            </path>
+            <use href="#torso"/>
+            <path d="M2-60 L-9 -48 L-14 -40" fill="none" stroke="var(--ink)" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M2-60 L-9 -48 L-14 -40;M2-60 L-8 -47 L-11 -38;M2-60 L-5 -47 L-5 -37;M2-60 L-1 -47 L1 -38;M2-60 L4 -48 L9 -41;M2-60 L8 -49 L15 -45;M2-60 L7 -49 L13 -43;M2-60 L0 -49 L0 -39;M2-60 L-9 -48 L-14 -40"/>
+            </path>
+            <path d="M2-60 L-9 -48 L-14 -40" fill="none" stroke="var(--shirt)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="d" dur="1s" repeatCount="indefinite" values="M2-60 L-9 -48 L-14 -40;M2-60 L-8 -47 L-11 -38;M2-60 L-5 -47 L-5 -37;M2-60 L-1 -47 L1 -38;M2-60 L4 -48 L9 -41;M2-60 L8 -49 L15 -45;M2-60 L7 -49 L13 -43;M2-60 L0 -49 L0 -39;M2-60 L-9 -48 L-14 -40"/>
+            </path>
+          </g>
+        </g>
+        <g class="standing">
+            <path d="M2-60 L-5 -47 L-5 -37" fill="none" stroke="var(--ink-muted)" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2-60 L-5 -47 L-5 -37" fill="none" stroke="var(--shirt)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-2-40 L-5 -22 L-9 -2 L-1 -2" fill="none" stroke="var(--ink-muted)" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-2-40 L-5 -22 L-9 -2 L-1 -2" fill="none" stroke="var(--shirt)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-2-40 L5 -22 L7 -2 L15 -2" fill="none" stroke="var(--ink)" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-2-40 L5 -22 L7 -2 L15 -2" fill="none" stroke="var(--shirt)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <use href="#torso"/>
+            <path d="M2-60 L5 -48 L9 -40" fill="none" stroke="var(--ink)" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2-60 L5 -48 L9 -40" fill="none" stroke="var(--shirt)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+      </g></g>
+    </g>
+    <rect class="panel-border" x=".5" y=".5" width="959" height="243" rx="10.5" fill="none" stroke="var(--frame)" stroke-opacity=".16"/>
+  </g>
+  <g transform="translate(0 264)">
+    <g clip-path="url(#panel)">
+      <use class="landscape" href="#scene"/>
+      <g class="origin" transform="translate(190 207)">
+        <g class="car-trip"><g class="traveller" filter="url(#soft-glow)">
+          <use href="#car"/>
+          <g transform="translate(-27 -9)"><use href="#tire"/><g class="wheel-spokes"><use href="#spoke"/></g></g>
+          <g transform="translate(27 -9)"><use href="#tire"/><g class="wheel-spokes"><use href="#spoke"/></g></g>
+        </g></g>
+      </g>
+      <rect class="panel-border" x=".5" y=".5" width="959" height="243" rx="10.5" fill="none" stroke="var(--frame)" stroke-opacity=".16"/>
+    </g>
+  </g>
+</svg>
