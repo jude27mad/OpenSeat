@@ -2,9 +2,7 @@
 
 A study-seat map for Toronto Metropolitan University's Student Learning Centre (SLC).
 
-[Try OpenSeat](https://jude27mad.github.io/OpenSeat/) · [Build photos and tests](docs/prototype-evidence.md) · [Technical setup](docs/DEVELOPMENT.md)
-
-![OpenSeat prototype showing available and occupied study seats](docs/evidence/stage3-demo-find.jpg)
+[Try OpenSeat](https://jude27mad.github.io/OpenSeat/)
 
 I kept running into the same problem at TMU: finding somewhere to study meant walking around and hoping a table was free. Our CEN100 group wanted students to know where to go *before* making the trip.
 
@@ -23,5 +21,3 @@ I worked on the Bluetooth experiments, mapping, design choices, website directio
 **Did we solve the original problem? Not yet.** Automated tests show the website can quickly find a *reported* free seat and share updates across devices. We haven't established that those seats are physically empty during busy periods, or that students actually save time. False reports and unreliable measurements are still real weaknesses.
 
 That's what we'd need to test next.
-
-[See how the prototype was built and tested](docs/prototype-evidence.md) · [Developer instructions and system details](docs/DEVELOPMENT.md)
