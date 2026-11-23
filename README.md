@@ -7,7 +7,7 @@ OpenSeat shows which study seats are free in TMU's Student Learning Centre (SLC)
 ## What it does
 
 - Shows a map of the floor. Each seat is green (free), orange (taken) or white (no recent info).
-- **Find me a free seat** takes you to a free spot, starting with the most free chairs and the newest reports. **Next free spot** shows another one.
+- **Find me a free seat** takes you to a free spot, starting with the chair most recently confirmed free. More open chairs break a tie. The result includes a direction from the elevators. **Next free spot** shows another option. When the current floor has no reported openings, the map offers the nearest mapped floor with a confirmed opening in the same live or demo mode.
 - Tap a seat or table to report it: **It's free** or **It's taken**.
 - Each table and seat has its own QR code. Scanning it opens that table or seat on OpenSeat, ready to report.
 - Pick the floor from the dropdown at the top.
@@ -47,6 +47,12 @@ Simple rules:
 - **Bluetooth** is never simulated. It only shows real readings from the scanner. See **Floor data sources** below the map for the latest floor readings.
 - **Share map** shows a QR code and a link. Open either on another device to join the same demo. A demo nobody uses for 24 hours is deleted, and its link then opens an empty demo.
 - **Restart demo** starts a fresh one.
+
+## Floor controls for the owner
+
+Open the [admin page](https://jude27mad.github.io/OpenSeat/admin/) in the browser you want to use. Copy its browser ID. In [Approve an OpenSeat admin browser](https://github.com/jude27mad/OpenSeat/actions/workflows/admin-device.yml), choose **Run workflow**, paste the ID, leave **Approve** selected and run it. The page unlocks as soon as Firebase confirms access. Only the repository owner's GitHub account can approve or revoke a browser.
+
+Pick the floor and the demo or live map, then choose a bulk action and confirm the target. Newer seat readings and reports can change individual chairs again. To remove a browser's access, run the same workflow with its ID and select **Revoke**. Clearing site data gives the browser a new ID that needs its own approval.
 
 ## For developers
 

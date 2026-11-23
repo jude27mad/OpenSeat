@@ -168,3 +168,34 @@ test('live hardware needs station authorization, retains original sample time an
   await seed('/private/feedDigest', await digest(randomUUID()))
   await assert.rejects(record(a, { ...sensor, id: randomUUID() }, 'floor8'))
 })
+
+test('only approved owner devices can set floor-wide state, and revocation is immediate', async () => {
+  const roomId = randomUUID(), marker = '/rooms/' + roomId + '/events/floorAdmin/status'
+  const approvals = '/private/adminDevices'
+  const write = (client, path, value) =>
+    client.request(path, { method: 'PUT', body: JSON.stringify(value) }).then((r) => r.status)
+  const deny = (status) => assert.ok([401, 403].includes(status), 'Expected permission denial, got ' + status)
+  const action = (value) => ({ id: randomUUID(), at: { '.sv': 'timestamp' }, value, simulated: true })
+  for (const visitor of [a, b]) {
+    deny(await write(visitor, marker, action('free')))
+    deny(await write(visitor, approvals + '/' + visitor.uid, true))
+    deny((await visitor.request(approvals)).status)
+  }
+  deny((await b.request(approvals + '/' + a.uid)).status)
+  assert.equal((await seed(approvals + '/' + a.uid, true)).status, 200)
+  assert.equal(await (await a.request(approvals + '/' + a.uid)).json(), true)
+  deny(await write(b, marker, action('unknown')))
+  for (const value of ['free', 'occupied', 'unknown']) assert.equal(await write(a, marker, action(value)), 200)
+  assert.equal((await (await read(marker)).json()).value, 'unknown')
+  deny(await write(a, marker, action('invalid')))
+  deny(await write(a, marker.replace('/status', '/I001'), action('free')))
+  deny(await write(a, marker.replace(roomId, 'invalid-room'), action('free')))
+  deny(await write(a, marker, { ...action('free'), at: Date.now() - 10000 }))
+  deny((await a.request(marker, { method: 'DELETE' })).status)
+  assert.equal(await write(a, marker.replace(roomId, 'floor7'), { ...action('free'), simulated: false }), 200)
+  deny(await write(a, marker.replace(roomId, 'floor5'), action('free')))
+  assert.equal((await seed(approvals + '/' + a.uid, null)).status, 200)
+  deny(await write(a, marker, action('free')))
+  // Ordinary reports still work on the same map after revocation.
+  assert.equal((await record(a, report('I001', 'occupied'), roomId)).value, 'occupied')
+})

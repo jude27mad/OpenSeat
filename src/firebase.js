@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { connectAuthEmulator, getAuth, signInAnonymously } from 'firebase/auth'
+import { connectAuthEmulator, getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth'
 import { connectDatabaseEmulator, getDatabase, onValue, ref } from 'firebase/database'
 import { databaseRequest, postObservation, stationPairing } from '../backend/firebase/observations.js'
 import { localSettings, readSettings } from '../backend/firebase/settings.js'
@@ -64,4 +64,37 @@ export async function sendObservation(room, input) {
     await pairStation(request, user.uid, input.feedKey)
   }
   return postObservation({ request, room, input })
+}
+
+// Each browser can read its own approval. Only the repository owner's
+// privileged workflow can grant or revoke it, including while this page is open.
+export function watchAdmin(callback, onError = () => {}) {
+  let cancelled = false, stopApproval = () => {}
+  const stopIdentity = onAuthStateChanged(auth, (user) => {
+    stopApproval()
+    if (!user) {
+      callback({ uid: null, approved: false })
+      visitor().catch((error) => { if (!cancelled) onError(error) })
+      return
+    }
+    callback({ uid: user.uid, approved: false })
+    stopApproval = onValue(ref(db, 'private/adminDevices/' + user.uid),
+      (snapshot) => callback({ uid: user.uid, approved: snapshot.val() === true }),
+      onError)
+  }, onError)
+  return () => { cancelled = true; stopIdentity(); stopApproval() }
+}
+
+export async function setFloorStatus(room, value) {
+  const user = auth.currentUser
+  if (!user?.isAnonymous) throw new Error('Open the floor admin page on your approved browser.')
+  if (!['free', 'unknown', 'occupied'].includes(value)) throw new Error('Unknown floor action.')
+  const event = {
+    id: crypto.randomUUID(), at: { '.sv': 'timestamp' }, value, simulated: !room.id.startsWith('floor'),
+  }
+  const result = await databaseRequest(settings, emulator, '/rooms/' + room.id + '/events/floorAdmin/status',
+    await user.getIdToken(), { method: 'PUT', body: JSON.stringify(event) })
+  if (!result.ok) throw new Error('The shared floor declined this admin update.')
+  const ack = await result.json()
+  if (ack?.id !== event.id || !Number.isFinite(ack.at)) throw new Error('The shared floor did not confirm the update.')
 }

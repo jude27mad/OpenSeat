@@ -3,6 +3,7 @@ export const sources = {
   report: 'Student report',
   sensor: 'Seat sensor',
   ble: 'Bluetooth',
+  admin: 'Floor admin',
 }
 // The database may still hold updates from sources OpenSeat no longer uses,
 // such as old QR check-ins. Those are left out everywhere.
@@ -10,6 +11,7 @@ export const known = (event) => !!event && Object.hasOwn(sources, event.source)
 export const cutoff = -75
 export const ttl = {
   report: 15 * 60000,
+  admin: 15 * 60000,
   sensor: 5 * 60000,
   ble: 2 * 60000,
 }
@@ -46,7 +48,7 @@ export function merge(latest, updates) {
   }
   return [...next.values()]
 }
-export function seedDemo(anchor) {
+export function seedDemo(anchor, floorSeats = seats) {
   const rows = []
   const put = (source, target, value, minutes) =>
     rows.push({
@@ -58,7 +60,7 @@ export function seedDemo(anchor) {
       fixture: true,
       id: 'example-' + source + '-' + target,
     })
-  seats.forEach((seat, i) => {
+  floorSeats.forEach((seat, i) => {
     const n = (i * 43 + 7) % 101
     if (n >= 80) return
     put('report', seat, n < 34 ? 'free' : 'occupied', 1 + (i % 10))
@@ -71,7 +73,7 @@ export function seedDemo(anchor) {
 // 3. Old updates stop counting, and the seat shows No recent info.
 export function resolveSeat(events, now) {
   // Equal times settle the same way on every device: report, then sensor, then id.
-  const rank = { report: 2, sensor: 1 }
+  const rank = { report: 2, sensor: 1, admin: 0 }
   const ordered = events
     .filter(known)
     .sort((a, b) =>
@@ -80,7 +82,7 @@ export function resolveSeat(events, now) {
       String(b.id).localeCompare(String(a.id)))
   const active = ordered.filter((e) => fresh(e, now))
   const sensor = active.find((e) => e.source === 'sensor')
-  const decides = sensor || active.find((e) => e.source === 'report')
+  const decides = sensor || active.find((e) => e.source === 'report' || e.source === 'admin')
   if (!decides)
     return {
       status: 'unknown',
@@ -96,7 +98,7 @@ export function resolveSeat(events, now) {
     sensor,
   }
 }
-export function derive(events, now) {
+export function derive(events, now, floorPlaces = places) {
   const bucket = new Map()
   for (const event of events.filter(known)) {
     const group = bucket.get(event.target) || []
@@ -110,12 +112,12 @@ export function derive(events, now) {
       : group
   }
   const states = new Map(
-    seats.map((id) => [id, resolveSeat(forTarget(id), now)]),
+    floorPlaces.flatMap(chairs).map((id) => [id, resolveSeat(forTarget(id), now)]),
   )
   const counts = { free: 0, occupied: 0, unknown: 0 }
   for (const item of states.values()) counts[item.status]++
   const locations = new Map()
-  for (const p of places) {
+  for (const p of floorPlaces) {
     const ids = chairs(p),
       member = ids.map((id) => states.get(id)),
       tally = { free: 0, occupied: 0, unknown: 0 }
@@ -134,6 +136,10 @@ export function derive(events, now) {
       ids,
       tally,
       status,
+      latestFree: member.reduce((newest, chair) => {
+        if (chair.status !== 'free' || (newest && newest.at >= chair.latest.at)) return newest
+        return chair.latest
+      }, undefined),
       latest:
         member
           .filter((s) => !s.stale && s.latest)
@@ -189,15 +195,15 @@ export function placeDescription(p) {
 }
 // A place worth suggesting: at least one free chair or seat.
 export const looksFree = (p) => p.status === 'free'
-// Best suggestions first: most free chairs, then the freshest evidence.
+// Rank by the deciding reading for an open chair. A newly occupied chair at
+// the same table tells us nothing about how recently its other chairs were free.
 export function suggestions(locations, now, section = 'all') {
   return [...locations.values()]
-    .filter((p) => looksFree(p) && (section === 'all' || p.section === section))
+    .filter((p) => fresh(p.latestFree, now) && (section === 'all' || p.section === section))
     .sort(
       (a, b) =>
+        b.latestFree.at - a.latestFree.at ||
         b.tally.free - a.tally.free ||
-        (fresh(b.latest, now) ? b.latest.at : 0) -
-          (fresh(a.latest, now) ? a.latest.at : 0) ||
         a.id.localeCompare(b.id),
     )
 }

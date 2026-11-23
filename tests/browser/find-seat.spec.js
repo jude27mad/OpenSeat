@@ -18,6 +18,7 @@ test('a student finds a free seat within 10 s on a desktop', async ({ page }) =>
   await expect(title).toHaveText(/^(Table|Seat) \d+$/)
   await expect(title).toBeFocused()
   await expect(panel.locator('.inspector-head .status')).toContainText(/free/i)
+  await expect(panel.getByText(/^From the elevators,/)).toBeVisible()
   const ms = Date.now() - start
   console.log('Desktop: opened the site and found a free seat in ' + ms + ' ms')
   expect(ms).toBeLessThan(limit)
@@ -36,6 +37,7 @@ test.describe('on a phone', () => {
     const sheet = page.locator('.sheet')
     await expect(sheet.getByRole('heading', { level: 2 })).toHaveText(/^(Table|Seat) \d+$/)
     await expect(sheet.locator('.inspector-head .status')).toContainText(/free/i)
+    await expect(sheet.getByText(/^From the elevators,/)).toBeVisible()
     const ms = Date.now() - start
     console.log('Phone: opened the site and found a free seat in ' + ms + ' ms')
     expect(ms).toBeLessThan(limit)

@@ -139,6 +139,7 @@ export default function PhoneView(p) {
     setModal,
     findButton,
     nextSuggestion,
+    showingSuggestion,
     choices,
     close,
     menu,
@@ -357,6 +358,7 @@ export default function PhoneView(p) {
           <SeatDetails
             {...{ room, place, seat, model, now, record }}
             mode={sheet}
+            isRecommendation={showingSuggestion}
             focusKey={headingFocus}
             next={nextSuggestion}
             locator={view === 'list'}
