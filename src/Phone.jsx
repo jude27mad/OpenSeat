@@ -218,7 +218,7 @@ export default function PhoneView(p) {
     <div className={'phone' + (open ? ' has-sheet' : '')} ref={root}>
       <header className="phone-top">
         <button className="brand-mini" onClick={showOverview}>
-          <img src="./mark.svg" alt="" />
+          <img src="./mark.svg?v=cutout" alt="" />
           <span>
             <b>OpenSeat</b>
             <small>SLC {floor.name}</small>

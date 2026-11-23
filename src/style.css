@@ -103,7 +103,6 @@ button {
 .brand img {
   height: 34px;
   width: 34px;
-  border-radius: 9px;
 }
 .campus {
   margin: 31px 3px 30px;
@@ -1394,7 +1393,6 @@ footer button {
 .brand-mini img {
   width: 34px;
   height: 34px;
-  border-radius: 9px;
 }
 .brand-mini {
   min-width: 0;
@@ -2373,11 +2371,6 @@ summary:focus-visible {
   font-weight: 760;
   letter-spacing: -1.1px;
   color: var(--soft-ink);
-}
-.brand img,
-.brand-mini img {
-  border-radius: 11px;
-  box-shadow: 0 4px 12px -4px rgba(21, 78, 54, 0.45);
 }
 .campus {
   border-radius: 16px;
@@ -3636,10 +3629,6 @@ details[open] > :not(summary) {
 :root[data-theme='dark'] .sidebar {
   background: rgba(16, 28, 22, 0.62);
   border-right-color: var(--soft-line);
-}
-:root[data-theme='dark'] .brand img,
-:root[data-theme='dark'] .brand-mini img {
-  box-shadow: 0 0 0 1px rgba(150, 215, 180, 0.16), 0 4px 12px -4px rgba(0, 0, 0, 0.6);
 }
 :root[data-theme='dark'] .campus > div {
   background: var(--soft-mint-100);

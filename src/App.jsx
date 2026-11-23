@@ -414,7 +414,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
       >
         <div className="sidebar-top">
           <button className="brand" onClick={showOverview}>
-            <img src="./mark.svg" alt="" />
+            <img src="./mark.svg?v=cutout" alt="" />
             <span>OpenSeat</span>
           </button>
           {drawerMode && (
@@ -471,7 +471,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
           ))}
         </select>
         <div className="brand-bottom">
-          <img src="./mark.svg" width="32" height="32" alt="" />
+          <img src="./mark.svg?v=cutout" width="32" height="32" alt="" />
           <div>
             <b>OpenSeat</b>
             <small>
