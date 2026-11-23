@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Button } from './components/ui/button'
 import { FLOORS, floorNumbers, chairs } from './floor.js'
-import { setFloorStatus, watchAdmin } from './firebase.js'
+import { lockAdmin, setAllLiveFloorStatus, setFloorStatus, unlockAdmin, watchAdmin } from './firebase.js'
 import { chosenRoom, isLive, roomUrl } from './session.js'
 import { applyTheme } from './theme.js'
 import './style.css'
@@ -14,37 +14,34 @@ const actions = [
   { value: 'unknown', label: 'Clear all statuses', status: 'No recent info' },
 ]
 
-const approvalUrl = 'https://github.com/jude27mad/OpenSeat/actions/workflows/admin-device.yml'
+function PinForm() {
+  const [pin, setPin] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
 
-function DeviceApproval({ uid, approved = false }) {
-  const [copied, setCopied] = useState(false)
-  const [copyFailed, setCopyFailed] = useState(false)
-  async function copyId() {
+  async function submit(event) {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
     try {
-      await navigator.clipboard.writeText(uid)
-      setCopied(true)
-      setCopyFailed(false)
-    } catch {
-      setCopyFailed(true)
+      await unlockAdmin(pin)
+      setPin('')
+    } catch (err) {
+      setError(err.message || 'Could not unlock floor controls. Try again.')
+    } finally {
+      setBusy(false)
     }
   }
+
   return (
-    <>
-      {!approved && <p>Approve this browser with your GitHub owner account.</p>}
-      <label className="admin-device">Device ID
-        <input value={uid} readOnly spellCheck={false} onFocus={(event) => event.target.select()} />
-      </label>
-      <div className="admin-actions">
-        <Button variant="outline" onClick={copyId}>{copied ? 'Copied' : 'Copy device ID'}</Button>
-        <Button asChild>
-          <a href={approvalUrl} target="_blank" rel="noreferrer">{approved ? 'Manage on GitHub' : 'Approve this browser on GitHub'}</a>
-        </Button>
-      </div>
-      {copyFailed && <p role="status">Select and copy the device ID above.</p>}
-      {approved
-        ? <p>To remove access, choose <strong>Run workflow</strong>, paste the ID, select <strong>Revoke</strong> and run it.</p>
-        : <p>On GitHub, choose <strong>Run workflow</strong>, paste the device ID, and run it. These controls unlock here once approved.</p>}
-    </>
+    <form className="admin-pin" onSubmit={submit}>
+      <label htmlFor="admin-pin">Admin PIN</label>
+      <input id="admin-pin" name="pin" type="password" inputMode="numeric" autoComplete="current-password"
+        pattern="[0-9]{12}" title="Enter your 12-digit PIN" maxLength={12} required
+        value={pin} onChange={(event) => setPin(event.target.value)} disabled={busy} />
+      {error && <p role="alert" className="error">{error}</p>}
+      <Button type="submit" disabled={busy}>{busy ? 'Unlocking…' : 'Unlock'}</Button>
+    </form>
   )
 }
 
@@ -53,16 +50,18 @@ function FloorControls() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [room, setRoom] = useState(() => chosenRoom(false, false, 8))
+  const [allFloors, setAllFloors] = useState(false)
   const live = isLive(room)
-  const floor = FLOORS[room.floor]
-  const count = [...floor.tables, ...floor.individuals].flatMap(chairs).length
-  const target = floor.name + (live ? ' · live map' : ' · demo')
+  const numbers = allFloors ? floorNumbers : [room.floor]
+  const count = numbers.flatMap((n) => [...FLOORS[n].tables, ...FLOORS[n].individuals]).flatMap(chairs).length
+  const target = allFloors ? 'live Floors 5, 7 and 8' : FLOORS[room.floor].name + (live ? ' · live map' : ' · demo')
   const map = '../' + new URL(roomUrl(room)).hash
 
   function choose(nextLive, nextFloor) {
     setMessage('')
     setError('')
-    setRoom(chosenRoom(nextLive, false, nextFloor))
+    setAllFloors(nextLive && nextFloor === 'all')
+    if (nextFloor !== 'all') setRoom(chosenRoom(nextLive, false, Number(nextFloor)))
   }
   async function apply(action) {
     const question = 'Set all ' + count + ' seats on ' + target + ' to “' + action.status + '”?'
@@ -71,11 +70,23 @@ function FloorControls() {
     setError('')
     setMessage('Updating ' + target + '…')
     try {
-      await setFloorStatus(room, action.value)
+      if (allFloors) await setAllLiveFloorStatus(action.value)
+      else await setFloorStatus(room, action.value)
       setMessage(target + ' updated. All ' + count + ' seats set to “' + action.status + '”.')
     } catch (err) {
       setMessage('')
       setError(err.message || 'The update failed. Try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function lock() {
+    setBusy(true)
+    setError('')
+    try {
+      await lockAdmin()
+    } catch (err) {
+      setError(err.message || 'Could not lock this browser. Try again.')
     } finally {
       setBusy(false)
     }
@@ -92,7 +103,8 @@ function FloorControls() {
         </div>
         <div>
           <label htmlFor="admin-floor">Floor</label>
-          <select id="admin-floor" value={room.floor} disabled={busy} onChange={(e) => choose(live, Number(e.target.value))}>
+          <select id="admin-floor" value={allFloors ? 'all' : room.floor} disabled={busy} onChange={(e) => choose(live, e.target.value)}>
+            {live && <option value="all">All three floors</option>}
             {floorNumbers.map((n) => <option key={n} value={n}>{FLOORS[n].title}</option>)}
           </select>
         </div>
@@ -105,7 +117,10 @@ function FloorControls() {
       </div>
       {error && <p role="alert" className="error">{error}</p>}
       {message && <p role="status" className="feedback">{message}</p>}
-      <a className="admin-map-link" href={map}>Open this {live ? 'live map' : 'demo'}</a>
+      <div className="admin-footer">
+        <a className="admin-map-link" href={map}>{allFloors ? 'Open live map' : live ? 'Open this live map' : 'Open this demo'}</a>
+        <Button variant="outline" onClick={lock} disabled={busy}>Lock this browser</Button>
+      </div>
     </>
   )
 }
@@ -119,7 +134,7 @@ function Admin() {
     setError('')
   }, (err) => {
     setDevice(null)
-    setError(err.message || 'Could not check device approval. Reload to try again.')
+    setError(err.message || 'Could not load floor controls. Reload to try again.')
   }), [])
 
   return (
@@ -127,15 +142,9 @@ function Admin() {
       <a className="brand" href="../"><img src="../mark.svg" alt="" />OpenSeat</a>
       <section className="admin-panel">
         <h1>Floor controls</h1>
-        {!device?.uid && !error && <p role="status">Checking device approval…</p>}
-        {device?.uid && !device.approved && <DeviceApproval uid={device.uid} />}
-        {device?.approved && <>
-          <FloorControls />
-          <details>
-            <summary>Manage browser access</summary>
-            <div className="admin-access"><DeviceApproval uid={device.uid} approved /></div>
-          </details>
-        </>}
+        {!device?.uid && !error && <p role="status">Loading floor controls…</p>}
+        {device?.uid && !device.approved && <PinForm />}
+        {device?.approved && <FloorControls />}
         {error && <p role="alert" className="error">{error}</p>}
       </section>
     </main>

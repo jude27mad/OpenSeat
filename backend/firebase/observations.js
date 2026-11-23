@@ -4,6 +4,8 @@ export async function digest(text) {
   return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+export const adminPinProof = (pin) => digest('OpenSeat admin PIN v1:' + pin)
+
 export function databaseRequest(settings, emulator, path, token, options = {}) {
   const url = emulator
     ? new URL(path + '.json', 'http://127.0.0.1:9000')

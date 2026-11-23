@@ -13,8 +13,12 @@ for (const width of [390, 1280]) {
     const map = page.locator(phone ? '.phone-map' : '.floor-panel .legend')
     await expect(map).toBeVisible()
     const below = async (target) => {
-      const bounds = await target.boundingBox()
-      expect((await panel.boundingBox()).y).toBeGreaterThanOrEqual(bounds.y + bounds.height - 1)
+      // A live count can reflow the page between two Playwright calls.
+      // Measure both edges in the same layout pass.
+      await expect.poll(() => target.evaluate((element) => {
+        const sources = document.querySelector('[aria-labelledby="sources-live-title"]')
+        return sources.getBoundingClientRect().top - element.getBoundingClientRect().bottom
+      })).toBeGreaterThanOrEqual(-1)
     }
     await below(map)
     await panel.scrollIntoViewIfNeeded()

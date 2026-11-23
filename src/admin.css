@@ -19,6 +19,7 @@
   border-radius: var(--soft-r-card);
   box-shadow: var(--soft-shadow);
 }
+.admin-footer,
 .admin-actions,
 .admin-target {
   display: flex;
@@ -29,15 +30,14 @@
 .admin-panel h1 { font-size: 25px; line-height: 1.2; font-weight: 700; }
 .admin-panel p { margin: 0; }
 .admin-map-link { justify-self: start; }
-.admin-target > div,
-.admin-device {
+.admin-target > div {
   flex: 1 1 160px;
   display: grid;
   gap: 6px;
   font-weight: 600;
 }
 .admin-target select,
-.admin-device input {
+.admin-pin input {
   width: 100%;
   border: 1px solid var(--soft-line-strong);
   border-radius: 8px;
@@ -47,4 +47,8 @@
 }
 .admin-map-link { color: var(--soft-primary-deep); text-decoration: underline; }
 
-.admin-access { display: grid; gap: 14px; padding-top: 14px; }
+.admin-pin { display: grid; gap: 10px; }
+.admin-pin label { font-weight: 600; }
+.admin-pin input { font-size: 16px; }
+.admin-pin button { justify-self: start; }
+.admin-footer { justify-content: space-between; }

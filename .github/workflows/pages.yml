@@ -92,6 +92,7 @@ jobs:
           fi
           if [[ -n "$FIREBASE_SERVICE_ACCOUNT" ]]; then
             node ../source/backend/firebase/publish-rules.mjs
+            node ../source/backend/firebase/provision-admin-pin.mjs
           else
             echo '::warning::Firebase rules could not be synchronized because FIREBASE_SERVICE_ACCOUNT is missing. Check the published two-student handoff test.'
           fi
