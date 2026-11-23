@@ -469,9 +469,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
           ))}
         </select>
         <div className="brand-bottom">
-          <span>
-            <Armchair size={15} />
-          </span>
+          <img src="./mark.svg" width="32" height="32" alt="" />
           <div>
             <b>OpenSeat</b>
             <small>
