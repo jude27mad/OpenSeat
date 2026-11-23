@@ -40,6 +40,7 @@
         }
       },
       "adminPinAttempts": {
+        ".write": "auth !== null && auth.token.firebase.sign_in_provider === 'anonymous' && !newData.exists() && newData.parent().child('adminPin/proof').isString() && newData.parent().child('adminPin/proof').val() !== root.child('private/adminPin/proof').val()",
         "$uid": {
           ".write": "auth !== null && auth.uid === $uid && auth.token.firebase.sign_in_provider === 'anonymous' && ((newData.hasChildren(['proof','at']) && newData.child('at').val() === now && (!data.exists() || now >= data.child('at').val() + 5000)) || (data.child('proof').exists() && !newData.child('proof').exists() && newData.child('at').val() === data.child('at').val()))",
           "at": {
@@ -54,9 +55,23 @@
         }
       },
       "adminPinSessions": {
+        ".write": "auth !== null && auth.token.firebase.sign_in_provider === 'anonymous' && !newData.exists() && newData.parent().child('adminPin/proof').isString() && newData.parent().child('adminPin/proof').val() !== root.child('private/adminPin/proof').val()",
         "$uid": {
           ".read": "auth !== null && auth.uid === $uid && auth.token.firebase.sign_in_provider === 'anonymous'",
           ".write": "auth !== null && auth.uid === $uid && auth.token.firebase.sign_in_provider === 'anonymous' && (!newData.exists() || (newData.val() === true && root.child('private/adminPin/proof').isString() && root.child('private/adminPinAttempts').child($uid).child('proof').val() === root.child('private/adminPin/proof').val() && root.child('private/adminPinAttempts').child($uid).child('at').val() >= now - 60000 && !newData.parent().parent().child('adminPinAttempts').child($uid).child('proof').exists()))"
+        }
+      },
+      "adminPin": {
+        ".write": "auth !== null && auth.token.firebase.sign_in_provider === 'anonymous' && data.child('proof').isString() && newData.exists() && newData.child('proof').val() !== data.child('proof').val() && root.child('private/adminPinAttempts').child(auth.uid).child('proof').val() === data.child('proof').val() && root.child('private/adminPinAttempts').child(auth.uid).child('at').val() >= now - 60000 && !newData.parent().child('adminPinAttempts').exists() && !newData.parent().child('adminPinSessions').exists()",
+        ".validate": "newData.hasChildren(['proof','rotated'])",
+        "proof": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9a-f]{64}$/)"
+        },
+        "rotated": {
+          ".validate": "newData.val() === true"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     }

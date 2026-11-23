@@ -85,7 +85,7 @@ export function watchAdmin(callback, onError = () => {}) {
 }
 
 export async function unlockAdmin(pin) {
-  if (!/^[0-9]{12}$/.test(pin)) throw new Error('Enter the 12-digit PIN.')
+  if (!/^[0-9]{6}$/.test(pin)) throw new Error('Enter the 6-digit PIN.')
   const user = await visitor()
   const token = await user.getIdToken()
   const uid = user.uid

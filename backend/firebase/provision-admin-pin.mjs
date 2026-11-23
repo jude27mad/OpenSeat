@@ -16,7 +16,7 @@ export async function provisionPin({ url, authorization, publicKey, revision }) 
   }
   let record = await read()
   if (!record) {
-    const pin = String(randomInt(1_000_000_000_000)).padStart(12, '0')
+    const pin = String(randomInt(1_000_000)).padStart(6, '0')
     const initial = {
       proof: await adminPinProof(pin),
       encryptedPin: publicEncrypt({ key: publicKey, oaepHash: 'sha256' }, Buffer.from(pin)).toString('base64'),
@@ -34,8 +34,11 @@ export async function provisionPin({ url, authorization, publicKey, revision }) 
       throw new Error('Could not initialize the PIN (' + response.status + ').')
     record = await read()
   }
-  if (typeof record?.proof !== 'string' || !/^[a-f0-9]{64}$/.test(record.proof)
-      || typeof record.encryptedPin !== 'string' || !/^[A-Za-z0-9+/]{200,1024}={0,2}$/.test(record.encryptedPin))
+  if (typeof record?.proof !== 'string' || !/^[a-f0-9]{64}$/.test(record.proof))
+    throw new Error('The stored admin PIN verifier is invalid.')
+  // An owner-chosen PIN supersedes the original delivery envelope.
+  if (record.rotated === true) return { rotated: true }
+  if (typeof record.encryptedPin !== 'string' || !/^[A-Za-z0-9+/]{200,1024}={0,2}$/.test(record.encryptedPin))
     throw new Error('The stored admin PIN setup is incomplete.')
   return { encryptedPin: record.encryptedPin, revision: record.revision }
 }

@@ -50,7 +50,7 @@ Simple rules:
 
 ## Floor controls for the owner
 
-Open the [admin page](https://jude27mad.github.io/OpenSeat/admin/) on any device, enter your private 12-digit PIN and choose **Unlock**. Choose **Lock this browser** to end its admin session.
+Open the [admin page](https://jude27mad.github.io/OpenSeat/admin/) on any device, enter your private 6-digit PIN and choose **Unlock**. Choose **Lock this browser** to end its admin session.
 
 Pick a demo floor or the shared live map. On the live map, choose one floor or **All three floors**. Confirm **Mark all free**, **Mark all taken**, or **Clear all statuses**. Clearing makes every seat show **No recent info**. On the live map, bulk free and taken statuses expire after 15 minutes. Demo statuses persist until updated. A newer seat reading or report can change an individual chair sooner.
 
