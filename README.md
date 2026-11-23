@@ -50,9 +50,9 @@ Simple rules:
 
 ## Floor controls for the owner
 
-Open the [admin page](https://jude27mad.github.io/OpenSeat/admin/) in the browser you want to use. Copy its browser ID. In [Approve an OpenSeat admin browser](https://github.com/jude27mad/OpenSeat/actions/workflows/admin-device.yml), choose **Run workflow**, paste the ID, leave **Approve** selected and run it. The page unlocks as soon as Firebase confirms access. Only the repository owner's GitHub account can approve or revoke a browser.
+Open the [admin page](https://jude27mad.github.io/OpenSeat/admin/) on any device, enter your private 12-digit PIN and choose **Unlock**. Choose **Lock this browser** to end its admin session.
 
-Pick the floor and the demo or live map, then confirm **Mark all free**, **Mark all taken**, or **Clear all statuses**. Clearing makes every seat show **No recent info**. On a live floor, bulk free and taken statuses expire after 15 minutes. Demo statuses persist until updated. Newer seat readings and reports can change individual chairs again. To remove a browser's access, run the same workflow with its ID and select **Revoke**. Clearing site data gives the browser a new ID that needs its own approval.
+Pick a demo floor or the shared live map. On the live map, choose one floor or **All three floors**. Confirm **Mark all free**, **Mark all taken**, or **Clear all statuses**. Clearing makes every seat show **No recent info**. On the live map, bulk free and taken statuses expire after 15 minutes. Demo statuses persist until updated. A newer seat reading or report can change an individual chair sooner.
 
 ## For developers
 
@@ -99,6 +99,12 @@ Every push to the `main` branch runs all of these tests on GitHub before the sit
    ```
 
    PROJECT_ID is the ID shown in Firebase **Project settings**. Once the `FIREBASE_SERVICE_ACCOUNT` secret is added (next section), every push to `main` publishes the rules for you.
+
+### Provisioning or rotating the admin PIN
+
+The production deployment creates the PIN once at `/private/adminPin`. The record holds its verifier and an RSA-OAEP-SHA256 delivery envelope encrypted to `backend/firebase/admin-pin-recipient.pem`. The initial deployment log prints the envelope as `OPENSEAT_PIN_ENVELOPE`. Rerunning that revision recovers the same envelope. The corresponding private key stays with the recipient.
+
+To rotate a lost PIN, use a new recipient public key whose private key you control. With project-admin access, clear `private/adminPin`, `private/adminPinSessions` and `private/adminPinAttempts` together in a single Realtime Database multi-location update, then deploy. The new PIN is available from the new envelope.
 
 ### Deleting old demo rooms
 

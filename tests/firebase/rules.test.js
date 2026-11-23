@@ -1,7 +1,7 @@
 import { before, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { databaseRequest, digest, postObservation } from '../../backend/firebase/observations.js'
+import { adminPinProof, databaseRequest, digest, postObservation } from '../../backend/firebase/observations.js'
 import { localSettings } from '../../backend/firebase/settings.js'
 
 const room = randomUUID()
@@ -169,9 +169,16 @@ test('live hardware needs station authorization, retains original sample time an
   await assert.rejects(record(a, { ...sensor, id: randomUUID() }, 'floor8'))
 })
 
-test('only approved owner devices can set floor-wide state, and revocation is immediate', async () => {
+test('only browsers with a PIN session can set floor-wide state, and locking is immediate', async () => {
   const roomId = randomUUID(), marker = '/rooms/' + roomId + '/events/floorAdmin/status'
-  const approvals = '/private/adminDevices'
+  const approvals = '/private/adminPinSessions'
+  const attempts = '/private/adminPinAttempts'
+  const proof = await adminPinProof('617904283501')
+  await seed('/private/adminPin', { proof })
+  const attempt = (proof) => ({ proof, at: { '.sv': 'timestamp' } })
+  const enter = (client) => client.request('/private', { method: 'PATCH', body: JSON.stringify({
+    ['adminPinSessions/' + client.uid]: true, ['adminPinAttempts/' + client.uid + '/proof']: null,
+  }) }).then((r) => r.status)
   const write = (client, path, value) =>
     client.request(path, { method: 'PUT', body: JSON.stringify(value) }).then((r) => r.status)
   const deny = (status) => assert.ok([401, 403].includes(status), 'Expected permission denial, got ' + status)
@@ -182,7 +189,22 @@ test('only approved owner devices can set floor-wide state, and revocation is im
     deny((await visitor.request(approvals)).status)
   }
   deny((await b.request(approvals + '/' + a.uid)).status)
-  assert.equal((await seed(approvals + '/' + a.uid, true)).status, 200)
+  // A former GitHub-approved browser needs the PIN as well.
+  await seed('/private/adminDevices/' + b.uid, true)
+  deny(await write(b, marker, action('free')))
+  for (const path of ['/private/adminPin', '/private/adminPin/proof', attempts + '/' + a.uid])
+    deny((await a.request(path)).status)
+  deny(await write(a, '/private/adminPin/proof', proof))
+  deny(await write(b, attempts + '/' + a.uid, attempt(proof)))
+  // A rejected PIN still uses the five-second window for this identity.
+  assert.equal(await write(b, attempts + '/' + b.uid, attempt(await digest('wrong pin'))), 200)
+  deny(await enter(b))
+  deny(await write(b, attempts + '/' + b.uid, attempt(proof)))
+  deny((await b.request(attempts + '/' + b.uid, { method: 'DELETE' })).status)
+  assert.equal(await write(a, attempts + '/' + a.uid, attempt(proof)), 200)
+  assert.equal(await enter(a), 200)
+  deny(await write(b, approvals + '/' + a.uid, null))
+  // The successful proof was consumed and the session reveals only a boolean.
   assert.equal(await (await a.request(approvals + '/' + a.uid)).json(), true)
   deny(await write(b, marker, action('unknown')))
   for (const value of ['free', 'occupied', 'unknown']) assert.equal(await write(a, marker, action(value)), 200)
@@ -194,7 +216,22 @@ test('only approved owner devices can set floor-wide state, and revocation is im
   deny((await a.request(marker, { method: 'DELETE' })).status)
   assert.equal(await write(a, marker.replace(roomId, 'floor7'), { ...action('free'), simulated: false }), 200)
   deny(await write(a, marker.replace(roomId, 'floor5'), action('free')))
-  assert.equal((await seed(approvals + '/' + a.uid, null)).status, 200)
+  const updates = Object.fromEntries(['floor5', 'floor7', 'floor8'].map((id) => [
+    id + '/events/floorAdmin/status', { ...action('occupied'), simulated: false },
+  ]))
+  const body = JSON.stringify(updates)
+  deny((await b.request('/rooms', { method: 'PATCH', body })).status)
+  assert.equal((await a.request('/rooms', { method: 'PATCH', body })).status, 200)
+  const times = new Set()
+  for (const [path, update] of Object.entries(updates)) {
+    const saved = await (await read('/rooms/' + path)).json()
+    assert.equal(saved.id, update.id)
+    assert.equal(saved.value, 'occupied')
+    times.add(saved.at)
+  }
+  assert.equal(times.size, 1)
+  assert.equal((await a.request(approvals + '/' + a.uid, { method: 'DELETE' })).status, 200)
+  deny(await enter(a))
   deny(await write(a, marker, action('free')))
   // Ordinary reports still work on the same map after revocation.
   assert.equal((await record(a, report('I001', 'occupied'), roomId)).value, 'occupied')
