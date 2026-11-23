@@ -7,6 +7,7 @@ import {
   Clock3,
   LayoutDashboard,
   List,
+  LockKeyhole,
   Map as MapIcon,
   MapPin,
   Menu,
@@ -479,6 +480,9 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
             </small>
           </div>
         </div>
+        <nav aria-label="Administration">
+          <a href="./admin/"><LockKeyhole size={17} /> Admin</a>
+        </nav>
       </aside>
       <div className="workspace">
         <header className="topbar">

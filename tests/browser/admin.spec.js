@@ -3,14 +3,28 @@ import { createHash, randomInt } from 'node:crypto'
 import { databaseRequest } from '../../backend/firebase/observations.js'
 import { localSettings } from '../../backend/firebase/settings.js'
 
-test('floor controls open with a PIN prompt', async ({ page }) => {
-  await page.goto('./admin/')
-  await expect(page.getByRole('heading', { name: 'Floor controls' })).toBeVisible()
-  await expect(page.getByLabel('Admin PIN')).toHaveAttribute('type', 'password')
-  await expect(page.getByRole('button', { name: 'Unlock', exact: true })).toBeVisible()
-  await expect(page.getByRole('combobox')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Mark all taken' })).toHaveCount(0)
-})
+for (const width of [390, 820, 1280]) {
+  test('the last menu item opens the locked admin page at width ' + width, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto('./')
+    let menu = page.locator('.sidebar')
+    if (width === 390) {
+      await page.getByRole('button', { name: 'Menu', exact: true }).click()
+      menu = page.getByRole('dialog', { name: 'Menu' })
+    } else if (width === 820) {
+      await page.getByRole('button', { name: 'Open navigation' }).click()
+    }
+    const lastItem = menu.locator('a, button, select').last()
+    await expect(lastItem).toHaveAccessibleName('Admin')
+    await lastItem.click()
+    await expect(page).toHaveURL(/\/admin\/$/)
+    await expect(page.getByRole('heading', { name: 'Floor controls' })).toBeVisible()
+    await expect(page.getByLabel('Admin PIN')).toHaveAttribute('type', 'password')
+    await expect(page.getByRole('button', { name: 'Unlock', exact: true })).toBeVisible()
+    await expect(page.getByRole('combobox')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Mark all taken' })).toHaveCount(0)
+  })
+}
 
 test('a PIN unlocks floor controls on a fresh browser and locking removes access', async ({ page, browser }) => {
   test.skip(process.env.OPENSEAT_TEST_URL && process.env.VITE_OPENSEAT_EMULATORS !== '1',

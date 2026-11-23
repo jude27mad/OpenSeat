@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import {
   ExternalLink,
   List,
+  LockKeyhole,
   Map as MapIcon,
   Menu,
   Bluetooth,
@@ -100,6 +101,7 @@ function PhoneMenu({ demo, onClose, onRoom, onFloor, onShare }) {
             <a href="./evidence/">
               <ExternalLink size={18} /> Prototype evidence
             </a>
+            <a href="./admin/"><LockKeyhole size={18} /> Admin</a>
           </nav>
         </Dialog.Content>
       </Dialog.Portal>
