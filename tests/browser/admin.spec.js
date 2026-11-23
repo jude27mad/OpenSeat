@@ -15,7 +15,8 @@ test('floor controls open with a PIN prompt', async ({ page }) => {
 test('a PIN unlocks floor controls on a fresh browser and locking removes access', async ({ page, browser }) => {
   test.skip(process.env.OPENSEAT_TEST_URL && process.env.VITE_OPENSEAT_EMULATORS !== '1',
     'PIN fixtures and floor changes require the local Firebase emulator.')
-  const pin = String(randomInt(1e12)).padStart(12, '0')
+  // Exercise a leading zero through the input and the Firebase verifier.
+  const pin = String(randomInt(100_000)).padStart(6, '0')
   const proof = createHash('sha256').update('OpenSeat admin PIN v1:' + pin).digest('hex')
   const credentialPath = '/private/adminPin/proof'
   const markerPath = (id) => '/rooms/' + id + '/events/floorAdmin/status'
@@ -41,7 +42,7 @@ test('a PIN unlocks floor controls on a fresh browser and locking removes access
     const wrong = await other.newPage()
     await page.goto('./admin/')
     await wrong.goto(page.url())
-    const differentPin = (pin[0] === '0' ? '1' : '0') + pin.slice(1)
+    const differentPin = '1' + pin.slice(1)
     await wrong.getByLabel('Admin PIN').fill(differentPin)
     await wrong.getByRole('button', { name: 'Unlock', exact: true }).click()
     await expect(wrong.getByRole('alert')).toContainText(/incorrect pin/i)

@@ -17,10 +17,14 @@ test('only one admin PIN is installed and recoverable across concurrent setup, r
     assert.deepEqual(first, second)
     const installed = await request(path)
     const pin = privateDecrypt({ key: privateKey, oaepHash: 'sha256' }, Buffer.from(first.encryptedPin, 'base64')).toString()
-    assert.match(pin, /^\d{12}$/)
+    assert.match(pin, /^\d{6}$/)
     assert.equal(installed.proof, createHash('sha256').update('OpenSeat admin PIN v1:' + pin).digest('hex'))
     assert.deepEqual(await provisionPin({ ...options, revision: 'next' }), first)
     assert.deepEqual(await request(path), installed)
+    const chosen = { proof: createHash('sha256').update(randomUUID()).digest('hex'), rotated: true }
+    await request(path, { method: 'PUT', body: chosen })
+    assert.deepEqual(await provisionPin({ ...options, revision: 'later' }), { rotated: true })
+    assert.deepEqual(await request(path), chosen)
   } finally {
     await request(path, { method: 'DELETE' })
   }

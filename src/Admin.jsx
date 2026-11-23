@@ -35,9 +35,9 @@ function PinForm() {
 
   return (
     <form className="admin-pin" onSubmit={submit}>
-      <label htmlFor="admin-pin">Admin PIN</label>
+      <label htmlFor="admin-pin">Admin PIN (6 digits)</label>
       <input id="admin-pin" name="pin" type="password" inputMode="numeric" autoComplete="current-password"
-        pattern="[0-9]{12}" title="Enter your 12-digit PIN" maxLength={12} required
+        pattern="[0-9]{6}" title="Enter your 6-digit PIN" maxLength={6} required
         value={pin} onChange={(event) => setPin(event.target.value)} disabled={busy} />
       {error && <p role="alert" className="error">{error}</p>}
       <Button type="submit" disabled={busy}>{busy ? 'Unlocking…' : 'Unlock'}</Button>
