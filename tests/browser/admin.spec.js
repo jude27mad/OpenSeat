@@ -9,6 +9,7 @@ test('floor controls require device approval', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Approve this browser on GitHub' })).toHaveAttribute('href', /admin-device\.yml$/)
   await expect(page.getByRole('combobox')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Mark all free' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Mark all taken' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Clear all statuses' })).toHaveCount(0)
 })
 
@@ -39,14 +40,14 @@ test('an approved browser can reset its selected demo and loses access after rev
     await page.getByRole('button', { name: 'Mark all free' }).click()
     expect(await readStatus()).toBe(null)
 
-    for (const [button, status] of [['Mark all free', 'free'], ['Clear all statuses', 'unknown']]) {
+    for (const [button, status] of [['Mark all free', 'free'], ['Mark all taken', 'occupied'], ['Clear all statuses', 'unknown']]) {
       page.once('dialog', async (dialog) => {
         expect(dialog.message()).toContain('166 seats on Floor 5 · demo')
         await dialog.accept()
       })
       await page.getByRole('button', { name: button }).click()
       await expect(page.getByRole('status')).toContainText('All 166 seats set')
-      expect((await readStatus()).value).toBe(status)
+      await expect.poll(async () => (await readStatus())?.value).toBe(status)
     }
   } finally {
     await approve(null)

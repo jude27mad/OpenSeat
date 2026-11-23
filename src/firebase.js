@@ -88,7 +88,7 @@ export function watchAdmin(callback, onError = () => {}) {
 export async function setFloorStatus(room, value) {
   const user = auth.currentUser
   if (!user?.isAnonymous) throw new Error('Open the floor admin page on your approved browser.')
-  if (!['free', 'unknown', 'occupied'].includes(value)) throw new Error('Unknown floor action.')
+  if (!['free', 'occupied', 'unknown'].includes(value)) throw new Error('Unknown floor action.')
   const event = {
     id: crypto.randomUUID(), at: { '.sv': 'timestamp' }, value, simulated: !room.id.startsWith('floor'),
   }

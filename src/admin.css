@@ -28,7 +28,6 @@
 }
 .admin-panel h1 { font-size: 25px; line-height: 1.2; font-weight: 700; }
 .admin-panel p { margin: 0; }
-.admin-panel > button,
 .admin-map-link { justify-self: start; }
 .admin-target > div,
 .admin-device {
@@ -47,3 +46,5 @@
   background: var(--color-background);
 }
 .admin-map-link { color: var(--soft-primary-deep); text-decoration: underline; }
+
+.admin-access { display: grid; gap: 14px; padding-top: 14px; }

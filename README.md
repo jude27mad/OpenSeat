@@ -52,7 +52,7 @@ Simple rules:
 
 Open the [admin page](https://jude27mad.github.io/OpenSeat/admin/) in the browser you want to use. Copy its browser ID. In [Approve an OpenSeat admin browser](https://github.com/jude27mad/OpenSeat/actions/workflows/admin-device.yml), choose **Run workflow**, paste the ID, leave **Approve** selected and run it. The page unlocks as soon as Firebase confirms access. Only the repository owner's GitHub account can approve or revoke a browser.
 
-Pick the floor and the demo or live map, then choose a bulk action and confirm the target. Newer seat readings and reports can change individual chairs again. To remove a browser's access, run the same workflow with its ID and select **Revoke**. Clearing site data gives the browser a new ID that needs its own approval.
+Pick the floor and the demo or live map, then confirm **Mark all free**, **Mark all taken**, or **Clear all statuses**. Clearing makes every seat show **No recent info**. On a live floor, bulk free and taken statuses expire after 15 minutes. Demo statuses persist until updated. Newer seat readings and reports can change individual chairs again. To remove a browser's access, run the same workflow with its ID and select **Revoke**. Clearing site data gives the browser a new ID that needs its own approval.
 
 ## For developers
 
