@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { known, merge, seedDemo } from './model.js'
+import { merge } from './model.js'
+import { floorEvents } from './floor-events.js'
 import { sendObservation, serverNow, watchFloor } from './firebase.js'
 export { serverNow }
 const SESSION = 'openseat.room.v1',
@@ -59,9 +60,8 @@ export function roomUrl(room, spot) {
   target.hash = params.toString()
   return target.href
 }
-const recent = (rows) => rows.filter((row) => Date.now() - row.at < 86400000)
+const recent = (rows) => rows.filter((row) => row.source === 'floorAdmin' || Date.now() - row.at < 86400000)
 export function useFloor(room) {
-  const demo = !isLive(room)
   const cache = 'openseat.cache.' + room.id
   const [updates, setUpdates] = useState(() => recent(get(cache) || []))
   const [online, setOnline] = useState('connecting')
@@ -82,8 +82,5 @@ export function useFloor(room) {
     if (current.current) setUpdates((prior) => merge(prior, [event]))
     return event
   }
-  // Old updates from sources OpenSeat no longer uses, such as QR check-ins, are left out.
-  const events = merge(demo ? seedDemo(room.anchor) : [], updates).filter(known)
-  // The demo never changes on its own, only when someone reports a seat or makes a sensor reading.
-  return { events: demo ? events.map((e) => ({ ...e, lasting: true })) : events, online, record, updates }
+  return { events: floorEvents(room, updates), online, record, updates }
 }

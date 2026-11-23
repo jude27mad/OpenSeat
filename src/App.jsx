@@ -27,6 +27,7 @@ import FloorMap, { isDim } from './FloorMap.jsx'
 import { ScannerControls, QRDialog } from './Controls.jsx'
 import SeatDetails from './SeatDetails.jsx'
 import PhoneView from './Phone.jsx'
+import OtherFloorOffer from './OtherFloorOffer.jsx'
 import { DemoBanner, Legend, SeatList, SourcesPanel } from './parts.jsx'
 
 // Phones held sideways are short rather than narrow, so they keep the phone layout.
@@ -63,10 +64,6 @@ function useMedia(query) {
     return () => list.removeEventListener('change', update)
   }, [query])
   return matches
-}
-// The chair to show first: a free one if there is one.
-function firstChair(place, model) {
-  return place.ids.find((s) => model.states.get(s).status === 'free') || place.ids[0]
 }
 function Stat({ name, value, detail, icon: Icon, tone, percent }) {
   return (
@@ -120,7 +117,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
     : null
   const place = selected ? model.locations.get(selected) : defaultPlace,
     shownId = place?.id,
-    shownSeat = place && seat?.split('-')[0] === place.id ? seat : place && firstChair(place, model)
+    shownSeat = place && (seat?.split('-')[0] === place.id ? seat : place.latestFree?.target || place.ids[0])
   const bridgeStop = useRef(null),
     detail = useRef(null),
     afterPop = useRef(null),
@@ -284,13 +281,16 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
     if (!phone) setView('map')
     pick(next, null, { focus: true, heading: true, fromFind: true })
   }
-  const findButton = choices.length > 0 && (
-    <Button className={phone ? 'wide big find' : 'desktop-find'} onClick={onFind}>
+  const findClass = phone ? 'wide big find' : 'desktop-find'
+  const findButton = choices.length > 0 ? (
+    <Button className={findClass} onClick={onFind}>
       <Sparkles />
       {seenChoices.length
         ? `Show another free spot (${seenChoices.length} of ${choices.length})`
         : 'Find me a free seat'}
     </Button>
+  ) : model.counts.free === 0 && online === 'shared' && (
+    <OtherFloorOffer room={room} now={now} className={findClass} />
   )
   const nextSuggestion = showingSuggestion && choices.length > 1
     ? {
@@ -357,6 +357,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
             setModal,
             findButton,
             nextSuggestion,
+            showingSuggestion,
             choices: choices.length,
             close,
             menu,
@@ -634,6 +635,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
               {place && <SeatDetails
                 {...{ room, place, model, now, record }}
                 seat={shownSeat}
+                isRecommendation={showingSuggestion}
                 focusKey={showingSuggestion ? headingFocus : 0}
                 next={nextSuggestion}
                 onSeat={(id) => {

@@ -4,7 +4,7 @@ import { ArrowRight, Check, ChevronDown, ChevronUp, QrCode, Radio, UserRound, X 
 import { Card } from './components/ui/card'
 import { Button } from './components/ui/button'
 import { age, fresh, placeDescription, sources, statuses } from './model.js'
-import { label } from './floor.js'
+import { arrivalCue, label } from './floor.js'
 import { PlanDrawing } from './FloorMap.jsx'
 
 export function Status({ value, children }) {
@@ -62,6 +62,7 @@ export default function SeatDetails({
   section,
   filter,
   next,
+  isRecommendation = false,
   focusKey = 0,
 }) {
   const [busy, setBusy] = useState(false),
@@ -290,7 +291,7 @@ export default function SeatDetails({
                 {placeDescription(place)}
               </Status>
               <span className="where">
-                {isTable ? 'Round table · 4 chairs' : 'Individual seat'}
+                {isRecommendation ? arrivalCue(place) : isTable ? 'Round table · 4 chairs' : 'Individual seat'}
               </span>
             </p>
           </div>

@@ -187,6 +187,45 @@ export function setFloor(number) {
 }
 setFloor(8)
 export const parentId = (id) => id?.split('-')[0]
+
+// The seat blocks follow the numbering of the traced plans. Floors 5 and 7
+// are pictured in public/floors; see docs/evidence/stage1-floor8.jpg for 8.
+// Landmarks work from any elevator door without assuming a facing direction.
+const seatLandmarks = {
+  5: [
+    [80, 'follow the elevator bank to the long rows beside the seminar room'],
+    [106, 'head past the seminar room to the short rows behind the media rooms'],
+    [166, 'cross to the rows of seats along the opposite wall'],
+  ],
+  7: [
+    [48, 'head toward the grad space and look for the rows beside its round tables'],
+    [56, 'look for the small block of eight seats between the bookable rooms near the lifts'],
+    [114, 'go around the bookable rooms to the long straight rows by the stairs'],
+    [196, 'head to the silent space on the opposite side of the floor'],
+  ],
+  8: [
+    [28, 'look for the larger of the two blocks of seats beside the elevators'],
+    [80, 'head to the long block of individual seats alongside the bookable rooms'],
+    [92, 'look for the small block of individual seats between the elevator bank and the bookable rooms'],
+  ],
+}
+export function arrivalCue(place) {
+  let landmark
+  if (place.section === 'tables') {
+    if (floor.number === 7) {
+      landmark = 'head to the round tables in the grad space'
+    } else {
+      const row = TABLE_ROWS.findIndex((points) => points.some(([x, y]) => place.x === x && place.y === y))
+      const ordinal = ['first', 'second', 'third', 'fourth', 'fifth'][row]
+      landmark = 'head to the ' + ordinal + ' row of round tables counting from the bookable rooms'
+    }
+  } else {
+    const seatNumber = Number(place.id.slice(1))
+    landmark = seatLandmarks[floor.number].find(([last]) => seatNumber <= last)?.[1]
+  }
+  return landmark ? 'From the elevators, ' + landmark + '.' : ''
+}
+
 export function label(id) {
   if (id === 'tables') return 'Round-table area'
   if (id === 'individuals') return 'Individual-seat area'

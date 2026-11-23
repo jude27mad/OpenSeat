@@ -139,6 +139,7 @@ export default function PhoneView(p) {
     setModal,
     findButton,
     nextSuggestion,
+    showingSuggestion,
     choices,
     close,
     menu,
@@ -185,17 +186,20 @@ export default function PhoneView(p) {
     const marker = document.querySelector(`.phone-map .plan-svg [data-id="${place.id}"]`),
       header = document.querySelector('.phone-top')
     if (!marker) return
-    const top = innerHeight - sheetRef.current.offsetHeight - 60,
-      ceiling = (header?.getBoundingClientRect().bottom || 56) + 12
+    // Position the marker inside the zoomed plan before measuring where it
+    // falls in the page. Leave a little room for its name within the plan.
+    const map = marker.closest('.plan-viewport')
+    if (map?.classList.contains('zoomed')) {
+      const inset = marker.getBoundingClientRect().top - map.getBoundingClientRect().top
+      if (inset < 64) map.scrollTop += inset - 80
+    }
+    const ceiling = (header?.getBoundingClientRect().bottom || 56) + 8
+    const bottom = innerHeight - sheetRef.current.offsetHeight - 8
     const r = marker.getBoundingClientRect()
-    const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
-    if (r.bottom > top) scrollBy({ top: Math.max(r.bottom - top + 24, 0), behavior })
-    else if (r.top < ceiling) scrollBy({ top: r.top - ceiling - 24, behavior })
-    // Inside a zoomed map, leave room above the seat for its name tag.
-    const map = marker.closest('.plan-viewport'),
-      edge = map?.getBoundingClientRect().top
-    if (map?.classList.contains('zoomed') && r.top - edge < 64)
-      map.scrollBy({ top: r.top - edge - 80, behavior })
+    if (r.top < ceiling || r.bottom > bottom) {
+      const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+      scrollBy({ top: (r.top + r.bottom - ceiling - bottom) / 2, behavior })
+    }
   }
   useEffect(() => {
     if (!open) return
@@ -357,6 +361,7 @@ export default function PhoneView(p) {
           <SeatDetails
             {...{ room, place, seat, model, now, record }}
             mode={sheet}
+            isRecommendation={showingSuggestion}
             focusKey={headingFocus}
             next={nextSuggestion}
             locator={view === 'list'}

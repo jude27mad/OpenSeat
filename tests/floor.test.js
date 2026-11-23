@@ -2,10 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   byId,
+  arrivalCue,
   chairs,
+  FLOORS,
   individuals,
   rooms,
   seats,
+  setFloor,
   tables,
 } from '../src/floor.js'
 import {
@@ -84,8 +87,8 @@ test('A table is free if any chair is, partly in use if some are taken, taken if
   const all = derive(['A', 'B', 'C', 'D'].map((c) => event('report', 'T08-' + c, 'occupied')), now)
   assert.equal(all.locations.get('T08').status, 'occupied')
 })
-test('There are three sources, and old QR check-ins in the database are ignored', () => {
-  assert.deepEqual(Object.keys(sources).sort(), ['ble', 'report', 'sensor'])
+test('Three data sources and admin updates are recognized, and old QR check-ins are ignored', () => {
+  assert.deepEqual(Object.keys(sources).sort(), ['admin', 'ble', 'report', 'sensor'])
   assert.equal('qr' in ttl, false)
   // A check-in saved before check-in was removed neither counts nor shows as evidence.
   const old = event('qr', 'I020', 'occupied')
@@ -219,20 +222,42 @@ test('Search understands seat names the way people type them', async () => {
   assert.equal(find('round').length, 40)
   assert.equal(find('').length, 132)
 })
-test('Suggestions put the most free chairs first, counting chairs a seat sensor reads free', async () => {
-  const { suggestions } = await import('../src/model.js')
+test('Suggestions rank the newest open chair first, then free chair count and place ID', () => {
   const m = derive(
     [
-      event('report', 'T03-A', 'free'),
-      event('report', 'T09-A', 'free'),
-      event('report', 'T09-B', 'free'),
-      event('sensor', 'T30-C', 'free'),
-      event('report', 'I005', 'occupied'),
+      event('report', 'T03-A', 'free', 840000),
+      event('report', 'T03-B', 'occupied'),
+      event('report', 'T09-A', 'free', 860000),
+      event('report', 'T09-B', 'free', 840000),
+      event('sensor', 'T30-C', 'free', 80000),
+      event('report', 'I005', 'free', 30000),
+      event('report', 'I006', 'free', 30000),
     ],
     now,
   )
-  assert.deepEqual(suggestions(m.locations, now).map((p) => p.id), ['T09', 'T03', 'T30'])
-  assert.deepEqual(suggestions(m.locations, now, 'individuals'), [])
+  assert.deepEqual(suggestions(m.locations, now).map((p) => p.id), ['I005', 'I006', 'T30', 'T09', 'T03'])
+  assert.equal(m.locations.get('T09').latestFree.target, 'T09-B')
+  assert.deepEqual(suggestions(m.locations, now, 'tables').map((p) => p.id), ['T30', 'T09', 'T03'])
+})
+test('Each suggested place has an elevator cue for its own floor and seating block', () => {
+  try {
+    for (const number of [5, 7, 8]) {
+      setFloor(number)
+      for (const place of [...FLOORS[number].individuals, ...FLOORS[number].tables]) {
+        assert.match(arrivalCue(place), /^From the elevators, [^?]+\.$/)
+        assert.doesNotMatch(arrivalCue(place), /undefined/)
+      }
+    }
+    assert.match(arrivalCue(byId.get('T01')), /first row/)
+    assert.match(arrivalCue(byId.get('T40')), /fifth row/)
+    setFloor(7)
+    assert.match(arrivalCue(byId.get('T01')), /grad space/)
+    assert.match(arrivalCue(byId.get('I196')), /silent space/)
+    setFloor(5)
+    assert.match(arrivalCue(byId.get('I001')), /seminar room/)
+  } finally {
+    setFloor(8)
+  }
 })
 test('A tap between two round tables zooms in instead of guessing', async () => {
   const { resolveTap, mapPoints } = await import('../src/hit.js')
