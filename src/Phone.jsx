@@ -7,6 +7,7 @@ import {
   Map as MapIcon,
   Menu,
   Bluetooth,
+  Footprints,
   RotateCcw,
   Search,
   Share2,
@@ -98,6 +99,7 @@ function PhoneMenu({ demo, onClose, onRoom, onFloor, onShare }) {
                 <RotateCcw size={18} /> Start the demo again
               </button>
             )}
+            <a href="./walk-drive/"><Footprints size={18} /> Walk &amp; Drive</a>
             <a href="./evidence/">
               <ExternalLink size={18} /> Prototype evidence
             </a>

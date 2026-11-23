@@ -76,7 +76,7 @@ export default defineConfig(({ command, mode }) => {
         },
       },
     ],
-    build: { rollupOptions: { input: ['index.html', 'evidence/index.html', 'classroom/index.html', 'admin/index.html'] } },
+    build: { rollupOptions: { input: ['index.html', 'evidence/index.html', 'classroom/index.html', 'admin/index.html', 'walk-drive/index.html'] } },
     server: { host: '0.0.0.0', allowedHosts: ['terminal.local'] },
   }
 })
