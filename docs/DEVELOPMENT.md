@@ -38,7 +38,7 @@ Simple rules:
 - **Sensors:** open any seat or table, pick a chair, and press **Sensor: free** or **Sensor: in use**. That seat changes colour on the map. In the demo, a seat with a sensor reading keeps it until the next sensor reading.
 - **Bluetooth** is never simulated. It only shows real readings from the scanner. See **Floor data sources** below the map for the latest floor readings.
 - **Share map** shows a QR code and a link. Open either on another device to join the same demo. A demo nobody uses for 24 hours is deleted, and its link then opens an empty demo.
-- **Restart demo** starts a fresh one.
+- **Reset demo data** in the desktop sidebar (or **Start the demo again** in the phone menu) opens a fresh demo for the current floor with the original example seats. Anyone using the previous demo link stays in that session.
 
 ## Floor controls for the owner
 
