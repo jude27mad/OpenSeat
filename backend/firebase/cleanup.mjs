@@ -1,4 +1,4 @@
-// Deletes demo rooms nobody has used for a while. The live floors are never touched.
+// Deletes idle demo rooms and expired report limits. Live floor data stays in place.
 // Runs from GitHub Actions on a schedule, since the free Firebase plan has no server code.
 //
 //   node backend/firebase/cleanup.mjs              delete demo rooms idle for over 24 hours
@@ -19,19 +19,19 @@ const demoRoom = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 // A small client for the database's REST interface.
 export function databaseClient({ base, headers = {}, ns }) {
-  return async function request(path, { method = 'GET', query = {}, body } = {}) {
+  return async function request(path, { method = 'GET', query = {}, body, headers: extraHeaders, raw = false } = {}) {
     const url = new URL(path + '.json', base)
     if (ns) url.searchParams.set('ns', ns)
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value)
     const response = await fetch(url, {
       method,
-      headers: { ...headers, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      headers: { ...headers, ...extraHeaders, ...(body ? { 'Content-Type': 'application/json' } : {}) },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(30000),
     })
-    if (!response.ok)
+    if (!response.ok && !(raw && response.status === 412))
       throw new Error(`${method} ${path} failed: ${response.status} ${(await response.text()).slice(0, 200)}`)
-    return response.json()
+    return raw ? response : response.json()
   }
 }
 export const emulatorClient = () =>
@@ -77,6 +77,37 @@ export async function cleanup({ request, now = Date.now(), maxAge = 24 * HOUR, d
       (skipped.length ? ` Left alone ${skipped.length} rooms that are not demo rooms: ${skipped.join(', ')}.` : ''),
   )
   return { checked: rooms.length, deleted: idle, skipped }
+}
+
+// Drop private spot history after a day of inactivity. Recheck each candidate
+// and condition the delete on its version so an incoming report keeps its quota.
+export async function cleanupReportLimits({ request, now = Date.now(), dryRun = false, log = console.log }) {
+  const root = '/private/reportLimits'
+  const cutoff = now - 24 * HOUR
+  const query = { orderBy: '"latest/at"', startAt: 0, endAt: cutoff - 1 }
+  const ids = Object.keys(await request(root, { query }) || {})
+  if (dryRun) {
+    log(`${ids.length} expired reporting limits would be deleted.`)
+    return ids.length
+  }
+  async function removeExpired(uid) {
+    const path = root + '/' + uid
+    const snapshot = await request(path, { raw: true, headers: { 'X-Firebase-ETag': 'true' } })
+    const at = (await snapshot.json())?.latest?.at
+    if (!Number.isFinite(at) || at >= cutoff) return false
+    const etag = snapshot.headers.get('etag')
+    if (!etag) throw new Error('Firebase did not return a version for the reporting limit.')
+    const result = await request(path, { method: 'DELETE', headers: { 'If-Match': etag }, raw: true })
+    await result.body?.cancel()
+    return result.ok
+  }
+  let deleted = 0
+  for (let i = 0; i < ids.length; i += 8) {
+    const results = await Promise.all(ids.slice(i, i + 8).map(removeExpired))
+    deleted += results.filter(Boolean).length
+  }
+  log(`${deleted} expired reporting limits deleted.`)
+  return deleted
 }
 
 // Signs in as the service account and returns a short-lived access token.
@@ -127,6 +158,7 @@ async function main(args) {
     })
   }
   await cleanup({ request, maxAge: hours * HOUR, dryRun })
+  await cleanupReportLimits({ request, dryRun })
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)

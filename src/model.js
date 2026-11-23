@@ -1,4 +1,5 @@
 import { places, chairs, seats, byId } from './floor.js'
+import { recommendationPaused } from '../backend/firebase/report-history.js'
 export const sources = {
   report: 'Student report',
   sensor: 'Seat sensor',
@@ -117,6 +118,7 @@ export function derive(events, now, floorPlaces = places) {
   const counts = { free: 0, occupied: 0, unknown: 0 }
   for (const item of states.values()) counts[item.status]++
   const locations = new Map()
+  let recommendableFree = 0
   for (const p of floorPlaces) {
     const ids = chairs(p),
       member = ids.map((id) => states.get(id)),
@@ -130,16 +132,17 @@ export function derive(events, now, floorPlaces = places) {
         : tally.occupied
           ? 'inuse'
           : 'unknown'
+    const eligible = member.filter((chair) => chair.status === 'free' && !recommendationPaused(chair.latest, now))
+    recommendableFree += eligible.length
     const evidence = member.flatMap((s) => s.evidence).sort((a, b) => b.at - a.at)
     locations.set(p.id, {
       ...p,
       ids,
       tally,
       status,
-      latestFree: member.reduce((newest, chair) => {
-        if (chair.status !== 'free' || (newest && newest.at >= chair.latest.at)) return newest
-        return chair.latest
-      }, undefined),
+      recommendableFree: eligible.length,
+      latestFree: eligible.reduce((newest, chair) =>
+        newest && newest.at >= chair.latest.at ? newest : chair.latest, undefined),
       latest:
         member
           .filter((s) => !s.stale && s.latest)
@@ -152,6 +155,7 @@ export function derive(events, now, floorPlaces = places) {
     counts,
     states,
     locations,
+    recommendableFree,
     ble: Object.fromEntries(
       ['tables', 'individuals'].map((z) => [
         z,
@@ -203,7 +207,7 @@ export function suggestions(locations, now, section = 'all') {
     .sort(
       (a, b) =>
         b.latestFree.at - a.latestFree.at ||
-        b.tally.free - a.tally.free ||
+        b.recommendableFree - a.recommendableFree ||
         a.id.localeCompare(b.id),
     )
 }

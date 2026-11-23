@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app'
 import { connectAuthEmulator, getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth'
 import { connectDatabaseEmulator, getDatabase, onValue, ref } from 'firebase/database'
 import { adminPinProof, databaseRequest, postObservation, stationPairing } from '../backend/firebase/observations.js'
+import { postLiveReport } from '../backend/firebase/live-reports.js'
 import { localSettings, readSettings } from '../backend/firebase/settings.js'
 
 const emulator = import.meta.env.VITE_OPENSEAT_EMULATORS === '1'
@@ -63,7 +64,26 @@ export async function sendObservation(room, input) {
   if (room.startsWith('floor') && ['ble', 'sensor'].includes(input.source)) {
     await pairStation(request, user.uid, input.feedKey)
   }
-  return postObservation({ request, room, input })
+  return postObservation({ request, uid: user.uid, room, input, serverNow })
+}
+
+export async function sendSeatReports(room, targets, value) {
+  const user = await visitor()
+  const token = await user.getIdToken()
+  const request = (path, options) => databaseRequest(settings, emulator, path, token, options)
+  if (room.startsWith('floor')) {
+    return postLiveReport({ request, uid: user.uid, room, targets, value, serverNow })
+  }
+  const results = await Promise.allSettled(targets.map((target) => postObservation({
+    request, room, input: { source: 'report', target, value },
+  })))
+  const failure = results.find((result) => result.status === 'rejected')
+  const events = results.filter((result) => result.status === 'fulfilled').map((result) => result.value)
+  if (failure) {
+    if (events.length) throw new Error('Saved ' + events.length + ' of ' + targets.length + ' chairs. ' + failure.reason.message)
+    throw failure.reason
+  }
+  return { events, unchanged: false }
 }
 
 // Each browser observes its own PIN session, including a lock from another tab.

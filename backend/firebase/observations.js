@@ -1,3 +1,5 @@
+import { postLiveReport } from './live-reports.js'
+
 // Shared by the dashboard and the hardware station client. Only aggregates leave the scanner.
 export async function digest(text) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
@@ -42,8 +44,13 @@ async function saveReport(request, path, event) {
   throw new Error('Another report just changed this seat. Please try again.')
 }
 
-export async function postObservation({ request, room, input }) {
+export async function postObservation({ request, uid, room, input, serverNow }) {
   const { source, target, value, measuredAt, simulated = false, id = crypto.randomUUID() } = input
+  if (source === 'report' && /^floor[578]$/.test(room)) {
+    if (simulated) throw new Error('Simulated reports belong in the demo.')
+    const result = await postLiveReport({ request, uid, room, targets: [target], value, id, serverNow })
+    return result.events[0]
+  }
   const isDevice = source === 'sensor' || source === 'ble'
   const event = { id, value, simulated, at: isDevice && !simulated ? measuredAt : { '.sv': 'timestamp' } }
   const eventPath = 'events/' + source + '/' + target
