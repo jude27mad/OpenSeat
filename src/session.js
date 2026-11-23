@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { merge } from './model.js'
 import { floorEvents } from './floor-events.js'
-import { sendObservation, serverNow, watchFloor } from './firebase.js'
+import { sendObservation, sendSeatReports, serverNow, watchFloor } from './firebase.js'
 export { serverNow }
 const SESSION = 'openseat.room.v1',
   uuid =
@@ -82,5 +82,10 @@ export function useFloor(room) {
     if (current.current) setUpdates((prior) => merge(prior, [event]))
     return event
   }
-  return { events: floorEvents(room, updates), online, record, updates }
+  async function reportSeats(targets, value) {
+    const result = await sendSeatReports(room.id, targets, value)
+    if (current.current) setUpdates((prior) => merge(prior, result.events))
+    return result
+  }
+  return { events: floorEvents(room, updates), online, record, reportSeats, updates }
 }

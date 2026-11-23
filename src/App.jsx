@@ -98,7 +98,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
     [modal, setModal] = useState(null),
     [now, setNow] = useState(serverNow),
     [bridge, setBridge] = useState('')
-  const { events, online, record } = useFloor(room),
+  const { events, online, record, reportSeats } = useFloor(room),
     model = derive(events, now)
   const [selected, setSelected] = useState(startSpot?.id || null),
     // The chair the student picked. Until they pick one, the best chair is
@@ -128,7 +128,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
   const choices = suggestions(model.locations, now, section)
   const choiceIds = new Set(choices.map((place) => place.id))
   const seenChoices = seen.filter((id) => choiceIds.has(id))
-  const showingSuggestion = !!findId && findId === selected
+  const showingSuggestion = findId === selected && choiceIds.has(findId)
   useEffect(() => {
     const t = setInterval(() => setNow(serverNow()), 4000)
     return () => {
@@ -290,7 +290,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
         ? `Show another free spot (${seenChoices.length} of ${choices.length})`
         : 'Find me a free seat'}
     </Button>
-  ) : model.counts.free === 0 && online === 'shared' && (
+  ) : model.recommendableFree === 0 && online === 'shared' && (
     <OtherFloorOffer room={room} now={now} className={findClass} />
   )
   const nextSuggestion = showingSuggestion && choices.length > 1
@@ -345,6 +345,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
             },
             pick,
             record,
+            reportSeats,
             sheet,
             setSheet,
             focus,
@@ -635,7 +636,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
             </Card>
             <div ref={detail} className="inspector-wrap">
               {place && <SeatDetails
-                {...{ room, place, model, now, record }}
+                {...{ room, place, model, now, record, reportSeats }}
                 seat={shownSeat}
                 isRecommendation={showingSuggestion}
                 focusKey={showingSuggestion ? headingFocus : 0}

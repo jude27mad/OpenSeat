@@ -11,7 +11,7 @@ function FloorOffer({ number, live, now, className, children }) {
   if (online !== 'shared') return children
   const { tables, individuals } = FLOORS[number]
   const places = [...tables, ...individuals]
-  const { free } = derive(events, now, places).counts
+  const { recommendableFree: free } = derive(events, now, places)
   if (free === 0) return children
 
   return (

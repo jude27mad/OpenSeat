@@ -2,6 +2,8 @@ import { before, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { adminPinProof, databaseRequest, digest, postObservation } from '../../backend/firebase/observations.js'
+import { recommendationPaused } from '../../backend/firebase/report-history.js'
+import { postLiveReport } from '../../backend/firebase/live-reports.js'
 import { localSettings } from '../../backend/firebase/settings.js'
 
 const room = randomUUID()
@@ -269,4 +271,187 @@ test('changing the PIN consumes a fresh current proof and revokes every prior br
   await seed(attemptPath, null)
   assert.equal((await attempt(newProof)).status, 200)
   assert.equal((await enter()).status, 200)
+})
+
+const livePath = (floor, target) => '/rooms/' + floor + '/events/report/' + target
+const ledgerPath = (user) => '/private/reportLimits/' + user.uid
+const serverTime = { '.sv': 'timestamp' }
+
+async function valueAt(path) {
+  const response = await read(path)
+  assert.equal(response.status, 200)
+  return response.json()
+}
+
+async function ledgerOf(user) {
+  const response = await user.request(ledgerPath(user))
+  assert.equal(response.status, 200)
+  return response.json()
+}
+
+// Rules and browser tests share the emulator. Put the original live seats back.
+async function isolateReports(t, floor, targets) {
+  for (const target of targets) {
+    const path = livePath(floor, target)
+    const original = await valueAt(path)
+    t.after(() => seed(path, original))
+    await seed(path, null)
+  }
+}
+
+test('live report quotas span floors and leave demo reporting unrestricted', async (t) => {
+  const visitor = await anonymous()
+  for (const floor of ['floor5', 'floor7', 'floor8']) await isolateReports(t, floor, ['I055'])
+  const first = await record(visitor, report('I055', 'free'), 'floor5')
+  await record(visitor, report('I055', 'free'), 'floor7')
+  const before = await ledgerOf(visitor)
+  assert.equal(before.latest.spot, 'floor7/I055')
+  assert.equal(before.previous.spot, 'floor5/I055')
+  await assert.rejects(record(visitor, report('I055', 'occupied'), 'floor8'), /2 (?:different |distinct )?spots/i)
+  // A browser with an incorrect clock may think its allowance already reset.
+  // Firebase still enforces the limit when the client submits that write.
+  const clockAhead = (floor, value) => postLiveReport({
+    ...visitor, room: floor, targets: ['I055'], value, serverNow: () => Date.now() + 16 * 60000,
+  })
+  await assert.rejects(clockAhead('floor8', 'occupied'))
+  assert.equal(await valueAt(livePath('floor8', 'I055')), null)
+  assert.deepEqual(await ledgerOf(visitor), before)
+
+  const correction = await record(visitor, report('I055', 'occupied'), 'floor5')
+  assert.equal(correction.lastFreeAt, first.at)
+  await assert.rejects(record(visitor, report('I055', 'free'), 'floor5'), /3 reports/i)
+  await assert.rejects(clockAhead('floor5', 'free'))
+  assert.equal((await valueAt(livePath('floor5', 'I055'))).id, correction.id)
+  assert.ok([401, 403].includes((await b.request(ledgerPath(visitor))).status))
+  for (const target of ['I001', 'I002', 'I003', 'I004'])
+    assert.equal((await record(visitor, report(target, 'free'))).value, 'free')
+})
+
+test('one whole-table action preserves unchanged chairs and repeated taps consume no allowance', async (t) => {
+  const visitor = await anonymous(), observer = await anonymous()
+  const floor = 'floor8', targets = ['T32-A', 'T32-B', 'T32-C', 'T32-D']
+  await isolateReports(t, floor, targets)
+  const batch = (user, value) => postLiveReport({ ...user, room: floor, targets, value })
+  const first = await record(visitor, report(targets[0], 'free'), floor)
+  await batch(visitor, 'free')
+  const rows = () => Promise.all(targets.map((target) => valueAt(livePath(floor, target))))
+  const original = await rows()
+  const ledger = await ledgerOf(visitor)
+  assert.equal(ledger.oldest, undefined)
+  assert.equal(ledger.previous.id, first.id)
+  assert.equal(original[0].id, first.id)
+  assert.equal(original[0].at, first.at)
+  assert.ok(original.slice(1).every((row) => row.id === ledger.latest.id && row.at === ledger.latest.at))
+  assert.ok(original.every((row) => row.value === 'free'))
+
+  assert.equal((await batch(visitor, 'free')).unchanged, true)
+  assert.deepEqual(await ledgerOf(visitor), ledger)
+  assert.deepEqual(await rows(), original)
+
+  const correction = await batch(visitor, 'occupied')
+  assert.equal(correction.unchanged, false)
+  const corrected = await rows()
+  assert.ok(corrected.every((row) => row.id === corrected[0].id && row.at === corrected[0].at))
+  assert.equal((await batch(visitor, 'occupied')).unchanged, true)
+  assert.deepEqual(await rows(), corrected)
+  // A different browser can personally confirm a still-taken table.
+  assert.equal((await batch(observer, 'occupied')).unchanged, false)
+  assert.notEqual((await rows())[0].id, corrected[0].id)
+})
+
+test('rolling quota releases actions individually as their 15-minute windows pass', async (t) => {
+  const visitor = await anonymous(), now = Date.now(), minute = 60000
+  await isolateReports(t, 'floor8', ['I064'])
+  const entry = (spot, age) => ({ id: randomUUID(), at: now - age, spot, value: 'free' })
+  const ledger = {
+    latest: entry('floor7/I063', 2 * minute),
+    previous: entry('floor5/I063', 9 * minute),
+    oldest: entry('floor5/I063', 16 * minute),
+  }
+  await seed(ledgerPath(visitor), ledger)
+  await assert.rejects(record(visitor, report('I064', 'free'), 'floor8'), /2 (?:different |distinct )?spots/i)
+  assert.deepEqual(await ledgerOf(visitor), ledger)
+  ledger.previous.at = now - 15 * minute - 1000
+  await seed(ledgerPath(visitor), ledger)
+  const fresh = await record(visitor, report('I064', 'free'), 'floor8')
+  const saved = await ledgerOf(visitor)
+  assert.equal(saved.latest.id, fresh.id)
+  assert.deepEqual(saved.previous, ledger.latest)
+})
+
+test('concurrent live submissions preserve both the two-spot and three-action limits', async (t) => {
+  const visitor = await anonymous(), floor = 'floor8', targets = ['I076', 'I077', 'I078']
+  await isolateReports(t, floor, targets)
+  const outcomes = await Promise.allSettled(targets.map((target) => record(visitor, report(target, 'free'), floor)))
+  const accepted = targets.filter((_, i) => outcomes[i].status === 'fulfilled')
+  assert.equal(accepted.length, 2, JSON.stringify(outcomes))
+  const declined = targets.find((target) => !accepted.includes(target))
+  assert.equal(await valueAt(livePath(floor, declined)), null)
+  const changes = await Promise.allSettled(accepted.map((target) => record(visitor, report(target, 'occupied'), floor)))
+  assert.equal(changes.filter((result) => result.status === 'fulfilled').length, 1, JSON.stringify(changes))
+  const ledger = await ledgerOf(visitor)
+  assert.equal(new Set(Object.values(ledger).map((e) => e.id)).size, 3)
+  const rows = await Promise.all(accepted.map((target) => valueAt(livePath(floor, target))))
+  assert.equal(rows.filter((row) => row.value === 'occupied').length, 1)
+})
+
+test('old live reports can be updated while direct writes without quota accounting are refused', async (t) => {
+  const visitor = await anonymous(), floor = 'floor8', target = 'I083', path = livePath(floor, target)
+  await isolateReports(t, floor, [target])
+  const legacy = { id: randomUUID(), at: Date.now() - 5000, simulated: false, value: 'free' }
+  await seed(path, legacy)
+  const write = (url, body, method = 'PUT') => visitor.request(url, { method, body: JSON.stringify(body) })
+  const deny = (result) => assert.ok([401, 403].includes(result.status), 'Expected permission denial, got ' + result.status)
+  const id = randomUUID()
+  deny(await write(path, { ...legacy, id, at: serverTime, lastFreeAt: serverTime }))
+  deny(await write(path + '/value', 'occupied'))
+  assert.deepEqual(await valueAt(path), legacy)
+  const occupied = await record(visitor, report(target, 'occupied'), floor)
+  assert.equal(occupied.lastFreeAt, legacy.at)
+
+  const ledger = await ledgerOf(visitor)
+  const previous = await valueAt(path)
+  const next = { id, spot: floor + '/' + target, value: 'occupied', at: serverTime }
+  // Even a well-formed action cannot refresh its own current, identical report.
+  deny(await write('/', {
+    [ledgerPath(visitor).slice(1)]: { latest: next, previous: ledger.latest },
+    [path.slice(1)]: { ...previous, id, at: serverTime },
+  }, 'PATCH'))
+  assert.deepEqual(await ledgerOf(visitor), ledger)
+  assert.deepEqual(await valueAt(path), previous)
+})
+
+test('a lost live-report acknowledgement can be retried without consuming another action', async (t) => {
+  const visitor = await anonymous(), floor = 'floor8', target = 'I085'
+  await isolateReports(t, floor, [target])
+  let committed = 0
+  async function request(path, options) {
+    const result = await visitor.request(path, options)
+    if (path === '/' && options?.method === 'PATCH' && result.ok && ++committed === 1)
+      throw new Error('Test lost the first response after the server committed the write.')
+    return result
+  }
+  const id = randomUUID()
+  const result = await postLiveReport({ request, uid: visitor.uid, room: floor, targets: [target], value: 'free', id })
+  assert.equal(committed, 1)
+  assert.equal(result.events[0].id, id)
+  const ledger = await ledgerOf(visitor)
+  assert.deepEqual(Object.keys(ledger), ['latest'])
+  assert.equal(ledger.latest.id, id)
+})
+
+test('an accepted reversal holds only that seat out of recommendations until the two-minute pause ends', async (t) => {
+  const visitor = await anonymous(), floor = 'floor8', target = 'I086'
+  await isolateReports(t, floor, [target])
+  const first = await record(visitor, report(target, 'free'), floor)
+  const middle = await record(visitor, report(target, 'occupied'), floor)
+  const last = await record(visitor, report(target, 'free'), floor)
+  assert.equal(last.cycleStart, first.at)
+  assert.equal(last.cycleEnd, last.at)
+  assert.equal(last.oppositeAt, middle.at)
+  const observer = await anonymous()
+  const confirmation = await record(observer, report(target, 'free'), floor)
+  assert.equal(confirmation.cycleEnd, last.at)
+  assert.equal(recommendationPaused(confirmation, last.at + 119999), true)
+  assert.equal(recommendationPaused(confirmation, last.at + 120000), false)
 })

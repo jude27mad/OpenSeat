@@ -53,6 +53,7 @@ export default function SeatDetails({
   model,
   now,
   record,
+  reportSeats,
   openQR,
   mode = 'panel',
   onExpand,
@@ -105,7 +106,8 @@ export default function SeatDetails({
   }
   function report(value) {
     run(async () => {
-      await record({ source: 'report', target: seat, value })
+      const { unchanged } = await reportSeats([seat], value)
+      if (unchanged) return 'Your report is already current. Its expiry time stays the same.'
       return (
         'Thanks! ' +
         label(seat) +
@@ -141,18 +143,8 @@ export default function SeatDetails({
   function reportTable(value) {
     run(async () => {
       const targets = place.ids
-      const results = await Promise.allSettled(
-        targets.map((id) => record({ source: 'report', target: id, value })),
-      )
-      const saved = results.filter((r) => r.status === 'fulfilled').length
-      if (saved < targets.length) {
-        const failure = results.find((r) => r.status === 'rejected').reason
-        throw new Error(
-          saved
-            ? 'Saved ' + saved + ' of ' + targets.length + ' chairs. ' + friendly(failure)
-            : failure?.message,
-        )
-      }
+      const { unchanged } = await reportSeats(targets, value)
+      if (unchanged) return 'Your report is already current for every chair at this table.'
       return (
         'Thanks! ' +
         label(place.id) +

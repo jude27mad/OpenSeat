@@ -128,6 +128,7 @@ export default function PhoneView(p) {
     setSeat,
     pick,
     record,
+    reportSeats,
     sheet,
     setSheet,
     focus,
@@ -361,7 +362,7 @@ export default function PhoneView(p) {
           aria-label={label(place.id) + ' details'}
         >
           <SeatDetails
-            {...{ room, place, seat, model, now, record }}
+            {...{ room, place, seat, model, now, record, reportSeats }}
             mode={sheet}
             isRecommendation={showingSuggestion}
             focusKey={headingFocus}

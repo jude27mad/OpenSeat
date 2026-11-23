@@ -28,6 +28,8 @@ Simple rules:
 - Otherwise the newest student report wins.
 - A table is free if any of its chairs is free.
 - When nothing is recent, the seat says **No recent info** instead of guessing.
+- On the live map, each anonymous browser can report up to 3 times on at most 2 different spots across all floors in any rolling 15 minutes. A table and its four chairs are one spot. A whole-table tap counts as one report. Repeating your own current report leaves its timestamp and your remaining allowance alone.
+- If student reports switch a chair from free to taken and back, or from taken to free and back, within one minute, the seat finder skips that chair for two minutes. The map still shows its reported status. Demo reports are unrestricted.
 - Bluetooth gives a count for an area, not for a single seat.
 
 ## What counts as a seat
@@ -108,7 +110,7 @@ To rotate a lost PIN, use a new recipient public key whose private key you contr
 
 ### Deleting old demo rooms
 
-Each demo saves its data in its own section of the database, called a demo room (not a real room). An automatic daily job on GitHub, **Delete idle demo rooms**, deletes demo rooms nobody has used in 24 hours. It never touches the live floors (`floor5`, `floor7`, `floor8`).
+Each demo saves its data in its own section of the database, called a demo room (not a real room). An automatic daily job on GitHub, **Delete idle demo rooms**, deletes demo rooms nobody has used in 24 hours. It never touches the live floors (`floor5`, `floor7`, `floor8`). The same job deletes a browser’s private reporting history once it has been inactive for more than 24 hours.
 
 To turn it on:
 
