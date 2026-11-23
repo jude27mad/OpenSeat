@@ -13,10 +13,13 @@ test('desktop sidebar restores the starting seats on the selected demo floor', a
 
   const reset = page.getByRole('navigation', { name: 'Workspace' }).getByRole('button', { name: 'Reset demo data' })
   await expect(reset).toBeInViewport()
+  await expect(reset.locator('+ a')).toHaveText('Walk & Drive')
+  await expect(page.getByRole('link', { name: 'Walk & Drive' })).toHaveCount(1)
   await reset.click()
   await expect(page.getByLabel('Floor', { exact: true })).toHaveValue('5')
   await expect(free).toHaveText(String(initialFree))
   expect(new URLSearchParams(new URL(page.url()).hash.slice(1)).get('demo')).not.toBe(demo)
   await page.getByLabel('Floor data mode').selectOption('live')
   await expect(reset).toHaveCount(0)
+  await expect(page.getByRole('navigation', { name: 'Workspace' }).getByRole('link', { name: 'Walk & Drive' })).toBeVisible()
 })

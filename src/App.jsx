@@ -5,6 +5,7 @@ import {
   Building2,
   ChevronRight,
   Clock3,
+  Footprints,
   LayoutDashboard,
   List,
   LockKeyhole,
@@ -449,6 +450,7 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
               <RotateCcw size={17} /> Reset demo data
             </button>
           )}
+          <a href="./walk-drive/"><Footprints size={17} /> Walk &amp; Drive</a>
         </nav>
         <span className="nav-heading floor-heading">Floors</span>
         <select
@@ -480,9 +482,6 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
           <img src="./mark.svg?v=cutout" width="32" height="32" alt="" />
           <div>
             <b>OpenSeat</b>
-            <small>
-              <a href="./walk-drive/">Walk &amp; Drive</a>
-            </small>
             <small>
               <a href="./evidence/">Prototype evidence</a>
             </small>
