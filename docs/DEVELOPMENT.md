@@ -1,6 +1,6 @@
 # OpenSeat — technical details
 
-This page keeps the setup instructions and detailed system rules from the original README. For the project story, see [README](../README.md).
+The full setup instructions and behaviour reference are here, instead of crowding the [main README](../README.md).
 
 ## Where the information comes from
 
@@ -18,6 +18,8 @@ Simple rules:
 - Otherwise the newest student report wins.
 - A table is free if any of its chairs is free.
 - When nothing is recent, the seat says **No recent info** instead of guessing.
+- On the live map, each anonymous browser can report up to 3 times on at most 2 different spots across all floors in any rolling 15 minutes. A table and its four chairs are one spot. A whole-table tap counts as one report. Repeating your own current report leaves its timestamp and your remaining allowance alone.
+- If student reports switch a chair from free to taken and back, or from taken to free and back, within one minute, the seat finder skips that chair for two minutes. The map still shows its reported status. Demo reports are unrestricted.
 - Bluetooth gives a count for an area, not for a single seat.
 
 ## What counts as a seat
@@ -37,6 +39,12 @@ Simple rules:
 - **Bluetooth** is never simulated. It only shows real readings from the scanner. See **Floor data sources** below the map for the latest floor readings.
 - **Share map** shows a QR code and a link. Open either on another device to join the same demo. A demo nobody uses for 24 hours is deleted, and its link then opens an empty demo.
 - **Restart demo** starts a fresh one.
+
+## Floor controls for the owner
+
+Open the [admin page](https://jude27mad.github.io/OpenSeat/admin/) on any device, enter your private 6-digit PIN and choose **Unlock**. Choose **Lock this browser** to end its admin session.
+
+Pick a demo floor or the shared live map. On the live map, choose one floor or **All three floors**. Confirm **Mark all free**, **Mark all taken**, or **Clear all statuses**. Clearing makes every seat show **No recent info**. On the live map, bulk free and taken statuses expire after 15 minutes. Demo statuses persist until updated. A newer seat reading or report can change an individual chair sooner.
 
 ## For developers
 
@@ -84,9 +92,15 @@ Every push to the `main` branch runs all of these tests on GitHub before the sit
 
    PROJECT_ID is the ID shown in Firebase **Project settings**. Once the `FIREBASE_SERVICE_ACCOUNT` secret is added (next section), every push to `main` publishes the rules for you.
 
+### Provisioning or rotating the admin PIN
+
+The production deployment creates the PIN once at `/private/adminPin`. The record holds its verifier and an RSA-OAEP-SHA256 delivery envelope encrypted to `backend/firebase/admin-pin-recipient.pem`. The initial deployment log prints the envelope as `OPENSEAT_PIN_ENVELOPE`. Rerunning that revision recovers the same envelope. The corresponding private key stays with the recipient.
+
+To rotate a lost PIN, use a new recipient public key whose private key you control. With project-admin access, clear `private/adminPin`, `private/adminPinSessions` and `private/adminPinAttempts` together in a single Realtime Database multi-location update, then deploy. The new PIN is available from the new envelope.
+
 ### Deleting old demo rooms
 
-Each demo saves its data in its own section of the database, called a demo room (not a real room). An automatic daily job on GitHub, **Delete idle demo rooms**, deletes demo rooms nobody has used in 24 hours. It never touches the live floors (`floor5`, `floor7`, `floor8`).
+Each demo saves its data in its own section of the database, called a demo room (not a real room). An automatic daily job on GitHub, **Delete idle demo rooms**, deletes demo rooms nobody has used in 24 hours. It never touches the live floors (`floor5`, `floor7`, `floor8`). The same job deletes a browser’s private reporting history once it has been inactive for more than 24 hours.
 
 To turn it on:
 
