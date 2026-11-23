@@ -1,0 +1,1 @@
+import"./modulepreload-polyfill-B5Qt9EMX.js";const o=document.querySelector("#journey"),n=document.querySelector("#playback");function a(){const e=o.contentDocument?.rootElement;e&&(n.hidden=!1,n.onclick=()=>{const t=e.classList.toggle("paused");t?e.pauseAnimations():e.unpauseAnimations(),n.textContent=t?"Resume animation":"Pause animation"})}o.addEventListener("load",a);a();
