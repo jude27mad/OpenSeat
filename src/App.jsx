@@ -11,6 +11,7 @@ import {
   Map as MapIcon,
   MapPin,
   Menu,
+  RotateCcw,
   Search,
   Share2,
   Sparkles,
@@ -443,6 +444,11 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
             Floor overview
           </button>
           <a href="./classroom/"><Bluetooth size={17} /> Classroom demo</a>
+          {demo && (
+            <button onClick={() => onRoom(false, true)}>
+              <RotateCcw size={17} /> Reset demo data
+            </button>
+          )}
         </nav>
         <span className="nav-heading floor-heading">Floors</span>
         <select
@@ -660,7 +666,6 @@ function Dashboard({ room, onRoom, onFloor, startSpot }) {
             <span>
               {seats.length} open seats · {floor.notCounted} not counted
             </span>
-            {demo && <button onClick={() => onRoom(false, true)}>Restart demo</button>}
           </footer>
         </main>
       </div>
