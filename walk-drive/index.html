@@ -3,25 +3,30 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#101320">
+    <meta name="theme-color" content="#f6f7f5">
     <title>Walk &amp; Drive · OpenSeat</title>
     <link rel="icon" href="../mark.svg?v=cutout" type="image/svg+xml">
+    <link rel="stylesheet" href="../src/style.css">
     <link rel="stylesheet" href="./page.css">
   </head>
-  <body>
-    <header>
-      <a class="brand" href="../"><img src="../mark.svg?v=cutout" width="32" height="32" alt="">OpenSeat</a>
-      <a class="back" href="../"><span aria-hidden="true">←</span> Back to map</a>
+  <body class="journey-page">
+    <header class="journey-header">
+      <nav aria-label="OpenSeat navigation">
+        <a class="journey-brand" href="../"><img src="../mark.svg?v=cutout" width="32" height="32" alt="">OpenSeat</a>
+        <a class="map-link" href="../"><span aria-hidden="true">←</span> Back to map</a>
+      </nav>
     </header>
-    <main>
-      <div class="heading">
-        <h1>Walk &amp; Drive</h1>
-        <button type="button" id="playback" aria-controls="journey" hidden>Pause animation</button>
-      </div>
-      <object id="journey" type="image/svg+xml" data="./walk-drive.svg" width="960" height="508"
-              role="img" aria-label="Two views of the same route at night. A man walks between the cities above. Below, a car reaches the other city first.">
-        A man walks between two cities. A car drives the same route below him.
-      </object>
+    <main class="journey-stage">
+      <section class="journey-card" aria-labelledby="journey-title">
+        <h1 id="journey-title">Walk &amp; Drive</h1>
+        <object id="journey" type="image/svg+xml" data="./walk-drive.svg" width="960" height="508"
+                role="img" aria-label="Two views of the same cities. A man walks from left to right above. Below, a car drives the same route and arrives first.">
+          A man walks between two cities. A car drives the same route below him.
+        </object>
+        <button type="button" id="playback" aria-controls="journey" hidden>
+          <span class="playback-icon" aria-hidden="true"></span><span id="playback-label">Pause animation</span>
+        </button>
+      </section>
     </main>
     <script type="module" src="./playback.js"></script>
   </body>
