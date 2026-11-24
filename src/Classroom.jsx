@@ -125,7 +125,7 @@ function Classroom() {
   return (
     <main className="classroom-page">
       <header className="classroom-bar">
-        <a href="../" className="classroom-brand"><img src="../mark.svg?v=cutout" alt="" />OpenSeat</a>
+        <a href="../" className="classroom-brand"><img src="../mark.svg?v=cutout-2" alt="" />OpenSeat</a>
         <a href="../" className="classroom-back"><ArrowLeft size={16} /> Back to map</a>
       </header>
       <div className="classroom-body">
