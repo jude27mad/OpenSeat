@@ -139,7 +139,7 @@ function Admin() {
 
   return (
     <main className="admin-page">
-      <a className="brand" href="../"><img src="../mark.svg?v=cutout" alt="" />OpenSeat</a>
+      <a className="brand" href="../"><img src="../mark.svg?v=cutout-2" alt="" />OpenSeat</a>
       <section className="admin-panel">
         <h1>Floor controls</h1>
         {!device?.uid && !error && <p role="status">Loading floor controls…</p>}

@@ -3467,7 +3467,10 @@ details[open] > :not(summary) {
 .sidebar .theme-select {
   margin-top: 0;
 }
-/* Native controls, scrollbars and form fields follow the theme. */
+/* Use the selected appearance for embedded artwork and native controls. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
 :root[data-theme='dark'] {
   color-scheme: dark;
 }

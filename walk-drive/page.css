@@ -30,8 +30,6 @@
   min-height: 44px;
 }
 .journey-brand { font-size: 20px; font-weight: 760; letter-spacing: -.055em; }
-.journey-brand img { border-radius: 8px; }
-:root[data-theme='dark'] .journey-brand img { background: #f7f6f0; }
 .map-link { color: var(--soft-primary-deep); font-size: 14px; font-weight: 600; }
 .map-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 
