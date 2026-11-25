@@ -88,6 +88,14 @@ Every release is tested automatically in desktop and phone browsers. [Release ch
 
 ## Attribution
 
-**Student design work** included the integration concept, the choice of Floor 8 and dashboard reference, the furniture inventory and map, and the Bluetooth calibration and cutoff.
+**Student contribution — Jude Ahmad**
+
+I led the development of the OpenSeat prototype, from exploring automatic sensing to directing the design, functionality and appearance of the website.
+
+My work included Bluetooth experiments and calibration, investigating TMU's existing network infrastructure, mapping 626 study seats across three floors, setting up MQTT communication and working through the transition from Floot to Firebase.
+
+I also worked on how the system handles conflicting reports, outdated information, sensor priority, misuse prevention, QR codes and seat recommendations. I directed the mobile and desktop layouts, navigation, administrative controls and OpenSeat's visual identity.
+
+Throughout development, I tested the prototype, identified problems, directed corrections, evaluated its limitations and documented the results. AI-assisted tools were used to implement the software based on these decisions.
 
 **AI-assisted development** implemented the React prototype, shared service, QR codes, simulator and tests from those design decisions, and produced this build record and screenshots.
