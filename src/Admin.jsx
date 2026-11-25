@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { createRoot } from 'react-dom/client'
+import { renderSite } from './SiteAccess.jsx'
 import { Button } from './components/ui/button'
 import { FLOORS, floorNumbers, chairs } from './floor.js'
-import { lockAdmin, setAllLiveFloorStatus, setFloorStatus, unlockAdmin, watchAdmin } from './firebase.js'
+import { lockAdmin, setAllLiveFloorStatus, setFloorStatus, setSiteClosed, unlockAdmin, watchAdmin } from './firebase.js'
 import { chosenRoom, isLive, roomUrl } from './session.js'
 import { applyTheme } from './theme.js'
 import './style.css'
@@ -45,7 +45,7 @@ function PinForm() {
   )
 }
 
-function FloorControls() {
+function FloorControls({ siteClosed }) {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -76,6 +76,18 @@ function FloorControls() {
     } catch (err) {
       setMessage('')
       setError(err.message || 'The update failed. Try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function changeSiteAccess() {
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      await setSiteClosed(!siteClosed)
+    } catch (err) {
+      setError(err.message || 'Could not change website access. Try again.')
     } finally {
       setBusy(false)
     }
@@ -117,6 +129,13 @@ function FloorControls() {
       </div>
       {error && <p role="alert" className="error">{error}</p>}
       {message && <p role="status" className="feedback">{message}</p>}
+      <section className="admin-site-access" aria-labelledby="site-access-heading">
+        <h2 id="site-access-heading">Website access</h2>
+        <p>{siteClosed ? 'Only this browser can open OpenSeat.' : 'Everyone can open OpenSeat.'}</p>
+        <Button variant={siteClosed ? 'default' : 'outline'} disabled={busy} onClick={changeSiteAccess}>
+          {siteClosed ? 'Turn on OpenSeat' : 'Turn off OpenSeat'}
+        </Button>
+      </section>
       <div className="admin-footer">
         <a className="admin-map-link" href={map}>{allFloors ? 'Open live map' : live ? 'Open this live map' : 'Open this demo'}</a>
         <Button variant="outline" onClick={lock} disabled={busy}>Lock this browser</Button>
@@ -125,7 +144,7 @@ function FloorControls() {
   )
 }
 
-function Admin() {
+function Admin({ siteClosed }) {
   const [device, setDevice] = useState(null)
   const [error, setError] = useState('')
 
@@ -144,7 +163,7 @@ function Admin() {
         <h1>Floor controls</h1>
         {!device?.uid && !error && <p role="status">Loading floor controls…</p>}
         {device?.uid && !device.approved && <PinForm />}
-        {device?.approved && <FloorControls />}
+        {device?.approved && <FloorControls siteClosed={siteClosed} />}
         {error && <p role="alert" className="error">{error}</p>}
       </section>
     </main>
@@ -152,4 +171,4 @@ function Admin() {
 }
 
 applyTheme()
-createRoot(document.getElementById('root')).render(<Admin />)
+renderSite(Admin)

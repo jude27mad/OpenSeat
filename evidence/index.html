@@ -11,18 +11,25 @@
     <link rel="stylesheet" href="./record.css">
   </head>
   <body>
-    <header>
-      <a class="brand" href="../"><img src="../mark.svg?v=cutout-2" width="30" height="30" alt="">OpenSeat</a>
-      <a href="../">Open the map</a>
-    </header>
-    <main>
-      <nav aria-label="Evidence sections">
-        <a href="#build-plan-and-materials">Build plan</a>
-        <a href="#process-evidence">Build screenshots</a>
-        <a href="#calibration-already-completed">Bluetooth readings</a>
-        <a href="#verification">Test results</a>
-      </nav>
-      <!-- prototype-evidence -->
-    </main>
+    <div id="root"></div>
+    <template id="site-content">
+      <header>
+        <a class="brand" href="../"><img src="../mark.svg?v=cutout-2" width="30" height="30" alt="">OpenSeat</a>
+        <a href="../">Open the map</a>
+      </header>
+      <main>
+        <nav aria-label="Evidence sections">
+          <a href="#build-plan-and-materials">Build plan</a>
+          <a href="#process-evidence">Build screenshots</a>
+          <a href="#calibration-already-completed">Bluetooth readings</a>
+          <a href="#verification">Test results</a>
+        </nav>
+        <!-- prototype-evidence -->
+      </main>
+    </template>
+    <script type="module">
+      import { renderStaticSite } from '../src/SiteAccess.jsx'
+      renderStaticSite()
+    </script>
   </body>
 </html>

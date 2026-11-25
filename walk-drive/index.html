@@ -10,24 +10,27 @@
     <link rel="stylesheet" href="./page.css">
   </head>
   <body class="journey-page">
-    <header class="journey-header">
-      <nav aria-label="OpenSeat navigation">
-        <a class="journey-brand" href="../"><img src="../mark.svg?v=cutout-2" width="32" height="32" alt="">OpenSeat</a>
-        <a class="map-link" href="../"><span aria-hidden="true">←</span> Back to map</a>
-      </nav>
-    </header>
-    <main class="journey-stage">
-      <section class="journey-card" aria-labelledby="journey-title">
-        <h1 id="journey-title">Walk &amp; Drive</h1>
-        <object id="journey" type="image/svg+xml" data="./walk-drive.svg" width="960" height="508"
-                role="img" aria-label="Two views of the same cities. A man walks from left to right above. Below, a car drives the same route and arrives first.">
-          A man walks between two cities. A car drives the same route below him.
-        </object>
-        <button type="button" id="playback" aria-controls="journey" hidden>
-          <span class="playback-icon" aria-hidden="true"></span><span id="playback-label">Pause animation</span>
-        </button>
-      </section>
-    </main>
+    <div id="root"></div>
+    <template id="site-content">
+      <header class="journey-header">
+        <nav aria-label="OpenSeat navigation">
+          <a class="journey-brand" href="../"><img src="../mark.svg?v=cutout-2" width="32" height="32" alt="">OpenSeat</a>
+          <a class="map-link" href="../"><span aria-hidden="true">←</span> Back to map</a>
+        </nav>
+      </header>
+      <main class="journey-stage">
+        <section class="journey-card" aria-labelledby="journey-title">
+          <h1 id="journey-title">Walk &amp; Drive</h1>
+          <object id="journey" type="image/svg+xml" data="./walk-drive.svg" width="960" height="508"
+                  role="img" aria-label="Two views of the same cities. A man walks from left to right above. Below, a car drives the same route and arrives first.">
+            A man walks between two cities. A car drives the same route below him.
+          </object>
+          <button type="button" id="playback" aria-controls="journey" hidden>
+            <span class="playback-icon" aria-hidden="true"></span><span id="playback-label">Pause animation</span>
+          </button>
+        </section>
+      </main>
+    </template>
     <script type="module" src="./playback.js"></script>
   </body>
 </html>
