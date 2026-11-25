@@ -1,10 +1,10 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, devices } from '@playwright/test'
 import { createHash, randomInt } from 'node:crypto'
 import { databaseRequest } from '../../backend/firebase/observations.js'
 import { emulatorClient } from '../../backend/firebase/cleanup.mjs'
 import { localSettings } from '../../backend/firebase/settings.js'
 
-test('turning OpenSeat off and back on reaches existing tabs and direct links', async ({ page, browser, baseURL }) => {
+test('turning OpenSeat off and back on reaches existing tabs and counts waiting visitors', async ({ page, browser, playwright, baseURL }) => {
   test.skip(process.env.VITE_OPENSEAT_EMULATORS !== '1' || !!process.env.OPENSEAT_TEST_URL,
     'The website switch is exercised only on the local emulator.')
   const request = emulatorClient()
@@ -12,7 +12,8 @@ test('turning OpenSeat off and back on reaches existing tabs and direct links', 
   const previous = await request(pinPath)
   const pin = String(randomInt(1_000_000)).padStart(6, '0')
   const guests = await browser.newContext({ baseURL })
-  const secondGuest = await browser.newContext({ baseURL })
+  const phone = await playwright[process.env.OPENSEAT_PHONE_ENGINE || 'webkit'].launch()
+  const secondGuest = await phone.newContext({ ...devices['iPhone 13'], baseURL })
   const visitorCount = page.locator('.admin-visitor-count strong')
   const closed = (tab) => tab.getByRole('heading', { name: 'Even the website couldn’t find a seat.' })
   try {
@@ -73,7 +74,7 @@ test('turning OpenSeat off and back on reaches existing tabs and direct links', 
   } finally {
     await request('/siteClosure', { method: 'DELETE' })
     await request(pinPath, { method: 'PUT', body: previous })
-    await Promise.all([guests.close(), secondGuest.close()])
+    await Promise.all([guests.close(), phone.close()])
   }
 })
 
