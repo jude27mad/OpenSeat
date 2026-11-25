@@ -12,7 +12,7 @@ test('the evidence page follows the map appearance and device changes in Auto', 
   await expect(report).toHaveCSS('background-color', darkSurface)
   await expect(report).toHaveCSS('color', 'rgb(231, 242, 235)')
   await expect(report.locator('.test-result.passed').first()).toHaveCSS('color', 'rgb(163, 230, 191)')
-  await expect(report.getByText('Not measured', { exact: true })).toHaveCSS('background-color', 'rgb(42, 53, 48)')
+  await expect(report.getByText('Not tested', { exact: true }).first()).toHaveCSS('background-color', 'rgb(42, 53, 48)')
 
   await page.emulateMedia({ colorScheme: 'dark' })
   const map = await context.newPage()
@@ -43,11 +43,24 @@ test('the evidence page keeps desktop tables and stacks long rows on iPhone', as
   await page.getByRole('link', { name: 'Prototype evidence' }).click()
   await expect(page.locator('header .brand img')).toHaveJSProperty('src', logoUrl)
   await expect(page.getByRole('heading', { name: 'OpenSeat · CEN100 prototype record' })).toBeVisible()
-  const images = page.locator('#process-evidence img')
-  await expect(images).toHaveCount(6)
+  const images = page.locator('main figure img')
+  await expect(images).toHaveCount(14)
   for (const img of await images.all()) {
     await expect.poll(() => img.evaluate((el) => el.naturalWidth)).toBeGreaterThan(0)
+    expect(await img.evaluate((el) => el.closest('a')?.href === el.currentSrc)).toBe(true)
   }
+  const floor5 = page.locator('#process-evidence .evidence-gallery').first()
+  await expect(floor5.locator('figcaption').first()).toContainText('Earlier layout')
+  await expect(floor5.locator('figcaption').last()).toContainText('166 seats')
+  const [earlier, corrected] = await floor5.locator('figure').all()
+  expect((await corrected.boundingBox()).x).toBeGreaterThan((await earlier.boundingBox()).x)
+  await expect(page.getByRole('row', { name: /Total extra cost/ })).toContainText('$0')
+  await expect(page.locator('#verification .test-result.partial')).toHaveText('Partial')
+  await expect(page.locator('#verification').getByText('Not tested', { exact: true })).toHaveCount(2)
+  const pdf = await page.getByRole('link', { name: 'Milestone 5 PDF' }).evaluate((link) => link.href)
+  const source = await page.request.get(pdf)
+  expect(source.ok()).toBe(true)
+  expect((await source.body()).subarray(0, 5).toString()).toBe('%PDF-')
   await expect(page.locator('#verification tbody tr').first()).toHaveCSS('display', 'table-row')
 
   const browser = await playwright[process.env.OPENSEAT_PHONE_ENGINE || 'webkit'].launch()
@@ -62,7 +75,7 @@ test('the evidence page keeps desktop tables and stacks long rows on iPhone', as
 
     const rows = phone.locator('.detail-table tbody tr')
     await expect(rows.first()).toBeVisible()
-    await expect(phone.locator('.test-result').filter({ hasText: 'Not measured' }).first()).toBeVisible()
+    await expect(phone.locator('.test-result').filter({ hasText: 'Not tested' }).first()).toBeVisible()
     for (const width of [390, 320]) {
       await phone.setViewportSize({ width, height: 844 })
       const allStacked = await rows.evaluateAll((elements) => elements.every((row) => {
@@ -79,6 +92,8 @@ test('the evidence page keeps desktop tables and stacks long rows on iPhone', as
         }),
       )
       expect(resultsOnOneLine, `Result labels fit at ${width}px`).toBe(true)
+      const [before, after] = await phone.locator('#process-evidence .evidence-gallery').first().locator('figure').all()
+      expect((await after.boundingBox()).y).toBeGreaterThan((await before.boundingBox()).y)
       const documentWidth = await phone.evaluate(() => document.documentElement.scrollWidth)
       expect(documentWidth, `Evidence fits at ${width}px`).toBeLessThanOrEqual(width)
     }
