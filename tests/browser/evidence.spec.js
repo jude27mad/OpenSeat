@@ -1,5 +1,37 @@
 import { test, expect, devices } from '@playwright/test'
 
+test('the evidence page follows the map appearance and device changes in Auto', async ({ page, context }) => {
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.goto('./')
+  await page.getByRole('combobox', { name: 'Appearance' }).selectOption('dark')
+  await page.getByRole('link', { name: 'Prototype evidence' }).click()
+
+  const report = page.getByRole('main').filter({ has: page.locator('#verification') })
+  const darkSurface = 'rgb(20, 33, 27)'
+  const lightSurface = 'rgb(255, 255, 255)'
+  await expect(report).toHaveCSS('background-color', darkSurface)
+  await expect(report).toHaveCSS('color', 'rgb(231, 242, 235)')
+  await expect(report.locator('.test-result.passed').first()).toHaveCSS('color', 'rgb(163, 230, 191)')
+  await expect(report.getByText('Not measured', { exact: true })).toHaveCSS('background-color', 'rgb(42, 53, 48)')
+
+  await page.emulateMedia({ colorScheme: 'dark' })
+  const map = await context.newPage()
+  await map.goto('./')
+  const appearance = map.getByRole('combobox', { name: 'Appearance' })
+  await appearance.selectOption('light')
+  await expect(report).toHaveCSS('background-color', lightSurface)
+  await page.reload()
+  await expect(report).toHaveCSS('background-color', lightSurface)
+
+  await appearance.selectOption('auto')
+  await expect(report).toHaveCSS('background-color', darkSurface)
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(report).toHaveCSS('background-color', lightSurface)
+  await page.emulateMedia({ colorScheme: 'dark', media: 'print' })
+  await expect(report).toHaveCSS('background-color', lightSurface)
+  await expect(report).toHaveCSS('color', 'rgb(28, 45, 36)')
+})
+
 test('the evidence page keeps desktop tables and stacks long rows on iPhone', async ({
   page, playwright, baseURL,
 }, testInfo) => {
@@ -55,6 +87,8 @@ test('the evidence page keeps desktop tables and stacks long rows on iPhone', as
     await phone.setViewportSize({ width: 390, height: 844 })
     await phone.locator('#verification tbody tr').first().scrollIntoViewIfNeeded()
     await phone.screenshot({ path: testInfo.outputPath('evidence-test-results.png') })
+    await phone.emulateMedia({ colorScheme: 'dark' })
+    await expect(rows.first()).toHaveCSS('background-color', 'rgb(21, 36, 29)')
   } finally {
     await browser.close()
   }

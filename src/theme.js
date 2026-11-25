@@ -25,6 +25,11 @@ export function applyTheme(choice = storedTheme()) {
   return choice
 }
 
+function syncTheme(choice = storedTheme()) {
+  applyTheme(choice)
+  listeners.forEach((listener) => listener(choice))
+}
+
 export function setTheme(choice) {
   try {
     if (choice === 'auto') localStorage.removeItem(KEY)
@@ -32,8 +37,16 @@ export function setTheme(choice) {
   } catch {
     // Storage blocked: the choice still applies until the page reloads.
   }
-  applyTheme(choice)
-  listeners.forEach((listener) => listener(choice))
+  syncTheme(choice)
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === KEY || event.key === null) syncTheme()
+  })
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) syncTheme()
+  })
 }
 
 // Follow the device when it switches between light and dark.
