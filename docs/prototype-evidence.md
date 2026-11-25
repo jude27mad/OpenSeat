@@ -177,8 +177,16 @@ The early QR check-in appeared in a second browser in **1.38 s and 1.46 s** acro
 
 ## Attribution
 
-**Jude Ahmad** worked on the Bluetooth experiments and cutoff, floor selection, furniture inventory and mapping, the dashboard reference, design decisions, website direction and testing.
+**Student contribution — Jude Ahmad**
 
-**AI-assisted development** helped implement the React prototype, shared data service, QR codes, sensor simulator and tests. AI tools also helped prepare the screenshots and documentation.
+I led the development of the OpenSeat prototype, from exploring automatic sensing to directing the design, functionality and appearance of the website.
+
+My work included Bluetooth experiments and calibration, investigating TMU's existing network infrastructure, mapping 626 study seats across three floors, setting up MQTT communication and working through the transition from Floot to Firebase.
+
+I also worked on how the system handles conflicting reports, outdated information, sensor priority, misuse prevention, QR codes and seat recommendations. I directed the mobile and desktop layouts, navigation, administrative controls and OpenSeat's visual identity.
+
+Throughout development, I tested the prototype, identified problems, directed corrections, evaluated its limitations and documented the results. AI-assisted tools were used to implement the software based on these decisions.
+
+**AI-assisted development** implemented the React prototype, shared service, QR codes, simulator and tests from those design decisions, and produced this build record and screenshots.
 
 The team notebook is the source for the remaining group members’ contributions. Those entries were pending when the November 25 record was prepared.
