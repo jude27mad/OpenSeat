@@ -21,7 +21,7 @@ export function Origin({ event, now }) {
   if (!event) return <span className="origin">No updates yet</span>
   return (
     <span className="origin">
-      {sources[event.source]} · {age(event.at, now)}
+      <span className="origin-source">{sources[event.source]}</span> · {age(event.at, now)}
       {!fresh(event, now) ? ' · Out of date' : ''}
       {event.simulated && <DemoTag />}
     </span>
@@ -315,7 +315,8 @@ export default function SeatDetails({
         )}
         {chairTiles}
         {(sensorEvent || demo) && (!peek || !isTable) && (
-          <div className="sensor-line">
+          <section className="sensor-line" aria-labelledby="seat-sensors-title">
+            <h3 className="seat-source-heading" id="seat-sensors-title">Seat sensors</h3>
             <Radio size={15} />
             <span>
               <b>{isTable ? chairName(seat) + ' sensor' : 'Seat sensor'}:</b>{' '}
@@ -343,10 +344,11 @@ export default function SeatDetails({
                 </button>
               </div>
             )}
-          </div>
+          </section>
         )}
         {(!peek || !isTable) && (
-          <section className="report-block" aria-label="Report">
+          <section className="report-block" aria-labelledby="student-reports-title">
+            <h3 className="seat-source-heading" id="student-reports-title">Student reports</h3>
             <div className="field-title report-heading" ref={actions} tabIndex={-1}>
               {isTable ? 'Is ' + chairName(seat) + ' free?' : 'Is this seat free?'}
             </div>

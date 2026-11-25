@@ -157,9 +157,11 @@ test('Floor inventory, a table QR code, and a report on a phone showing on the d
   const sheet = phone.locator('.sheet')
   await expect(sheet.getByRole('heading', { name: 'Table 17' })).toBeVisible()
   await sheet.getByRole('button', { name: /^Chair B,/ }).click()
-  await expect(sheet.getByText('Is Chair B free?')).toBeVisible()
-  await expect(sheet.getByRole('button', { name: "It's taken", exact: true })).toBeInViewport()
-  await expect(sheet.getByRole('button', { name: "It's free", exact: true })).toBeInViewport()
+  const reports = sheet.getByRole('region', { name: 'Student reports', exact: true })
+  await expect(reports.getByRole('heading', { name: 'Student reports' })).toBeVisible()
+  await expect(reports.getByText('Is Chair B free?')).toBeVisible()
+  await expect(reports.getByRole('button', { name: "It's taken", exact: true })).toBeInViewport()
+  await expect(reports.getByRole('button', { name: "It's free", exact: true })).toBeInViewport()
   await expect(phone.getByRole('button', { name: /check in|check out/i })).toHaveCount(0)
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: /^Chair B,/ }).click()
@@ -170,7 +172,7 @@ test('Floor inventory, a table QR code, and a report on a phone showing on the d
     timeout: 25000,
   })
   const t = Date.now()
-  await sheet.getByRole('button', { name: "It's taken", exact: true }).click()
+  await reports.getByRole('button', { name: "It's taken", exact: true }).click()
   // The phone's report, not the demo's example reading for the same chair.
   await expect(page.locator('.inspector .origin').first()).toHaveText(
     /^Student report · (Just now|\d+s ago)$/,
@@ -196,7 +198,9 @@ test('Floor inventory, a table QR code, and a report on a phone showing on the d
   // In the demo, a seat sensor is tried right where it shows, and it decides the chair.
   const inspector = page.locator('.inspector')
   const chair = (await inspector.locator('.chair-tabs [aria-pressed="true"] b').textContent()).trim()
-  await inspector.getByRole('button', { name: 'Sensor: in use', exact: true }).click()
+  const sensors = inspector.getByRole('region', { name: 'Seat sensors', exact: true })
+  await expect(sensors.getByRole('heading', { name: 'Seat sensors' })).toBeVisible()
+  await sensors.getByRole('button', { name: 'Sensor: in use', exact: true }).click()
   await expect(inspector.getByRole('status')).toContainText(
     'Demo sensor reading: Table 17 · Chair ' + chair + ' is in use.',
     { timeout: 17000 },
