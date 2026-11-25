@@ -3,15 +3,22 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#254b36">
+    <meta name="theme-color" content="#f6f7f5">
+    <script>
+      let appearance
+      try { appearance = localStorage.getItem('openseat.theme') } catch {}
+      const dark = appearance === 'dark' ||
+        (appearance !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+    </script>
     <title>Prototype evidence · OpenSeat</title>
     <meta name="description" content="How the OpenSeat prototype for TMU's Student Learning Centre was built and tested: build plan, screenshots, Bluetooth calibration and test results.">
     <link rel="canonical" href="https://jude27mad.github.io/OpenSeat/evidence/">
     <link rel="icon" href="../mark.svg?v=cutout-2" type="image/svg+xml">
-    <script type="module" crossorigin src="../assets/index-CsfaovzR.js"></script>
-    <link rel="modulepreload" crossorigin href="../assets/SiteAccess-jzECGtfr.js">
-    <link rel="stylesheet" crossorigin href="../assets/SiteAccess-CXcqP7gH.css">
-    <link rel="stylesheet" crossorigin href="../assets/index-D86hE7kR.css">
+    <script type="module" crossorigin src="../assets/index-Bgsk89RN.js"></script>
+    <link rel="modulepreload" crossorigin href="../assets/theme-Cfn5cEic.js">
+    <link rel="stylesheet" crossorigin href="../assets/theme-CXcqP7gH.css">
+    <link rel="stylesheet" crossorigin href="../assets/index-CxPzWSE6.css">
   </head>
   <body>
     <div id="root"></div>
