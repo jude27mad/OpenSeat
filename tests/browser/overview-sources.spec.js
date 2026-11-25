@@ -22,7 +22,7 @@ for (const width of [390, 1280]) {
     }
     await below(map)
     await panel.scrollIntoViewIfNeeded()
-    for (const name of ['Student reports', 'Bluetooth', 'Seat sensors']) {
+    for (const name of ['Student reports', 'Automatic sensing', 'Seat sensors']) {
       await expect(panel.getByText(name, { exact: true })).toBeInViewport()
     }
     await expect(panel.locator('li')).toHaveCount(3)
