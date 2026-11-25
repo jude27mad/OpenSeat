@@ -63,7 +63,7 @@ export function SourcesPanel({ model, now }) {
           </span>
           <div>
             <p className="live-name">
-              Bluetooth
+              Automatic sensing
             </p>
             {areas.length ? (
               areas.map(([area, e]) => (
