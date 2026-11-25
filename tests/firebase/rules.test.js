@@ -28,6 +28,43 @@ const qr = (value, target = 'T17-B') => ({ source: 'qr', target, value })
 const report = (target, value) => ({ source: 'report', target, value })
 before(async () => { [a, b] = await Promise.all([anonymous(), anonymous()]) })
 
+test('only the closing admin browser retains map access and can reopen the site', async (t) => {
+  const [first, second] = await Promise.all([anonymous(), anonymous()])
+  const demo = randomUUID()
+  const path = '/siteClosure'
+  const events = '/rooms/' + demo + '/events'
+  const close = (user, uid = user.uid) => user.request(path, { method: 'PUT', body: JSON.stringify(uid) })
+  const reopen = (user) => user.request(path, { method: 'DELETE' })
+  const denied = (response) => assert.ok([401, 403].includes(response.status))
+  t.after(async () => {
+    await seed(path, null)
+    await seed('/rooms/' + demo, null)
+    for (const user of [first, second]) await seed('/private/adminPinSessions/' + user.uid, null)
+  })
+  denied(await close(first))
+  for (const user of [first, second]) await seed('/private/adminPinSessions/' + user.uid, true)
+  denied(await close(first, second.uid))
+  const attempts = await Promise.all([close(first), close(second)])
+  assert.equal(attempts.filter((r) => r.ok).length, 1)
+  const [owner, other] = attempts[0].ok ? [first, second] : [second, first]
+  assert.equal(await (await read(path)).json(), owner.uid)
+  denied(await reopen(other))
+  denied(await close(other))
+  denied(await read(events))
+  denied(await other.request('/rooms/floor7/events'))
+  denied(await other.request(events))
+  const write = (user) => user.request(events + '/report/I001', { method: 'PUT', body: JSON.stringify({
+    id: randomUUID(), at: { '.sv': 'timestamp' }, value: 'occupied', simulated: false,
+  }) })
+  denied(await write(other))
+  assert.ok((await write(owner)).ok)
+  assert.ok((await owner.request(events)).ok)
+  assert.ok((await reopen(owner)).ok)
+  assert.equal(await (await read(path)).json(), null)
+  assert.ok((await read(events)).ok)
+  assert.ok((await write(other)).ok)
+})
+
 test('two visitors share reports, and QR check-ins and owners are refused', async () => {
   await record(a, report('T17-B', 'occupied'))
   const free = await record(b, report('T17-B', 'free'))

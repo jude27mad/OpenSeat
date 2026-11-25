@@ -52,3 +52,11 @@
 .admin-pin input { font-size: 16px; }
 .admin-pin button { justify-self: start; }
 .admin-footer { justify-content: space-between; }
+.admin-site-access {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--soft-line-strong);
+}
+.admin-site-access h2 { margin: 0; font-size: 18px; font-weight: 650; }

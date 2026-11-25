@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { createRoot } from 'react-dom/client'
+import { renderSite } from './SiteAccess.jsx'
 import { ArrowLeft, Bluetooth, Check, Radio, RotateCcw, UsersRound } from 'lucide-react'
 import { Button } from './components/ui/button'
 import { applyTheme } from './theme.js'
@@ -156,4 +156,4 @@ function Classroom() {
 }
 
 applyTheme()
-createRoot(document.getElementById('root')).render(<Classroom />)
+renderSite(Classroom)

@@ -1,7 +1,65 @@
 import { test, expect } from '@playwright/test'
 import { createHash, randomInt } from 'node:crypto'
 import { databaseRequest } from '../../backend/firebase/observations.js'
+import { emulatorClient } from '../../backend/firebase/cleanup.mjs'
 import { localSettings } from '../../backend/firebase/settings.js'
+
+test('turning OpenSeat off and back on reaches existing tabs and direct links', async ({ page, browser, baseURL }) => {
+  test.skip(process.env.VITE_OPENSEAT_EMULATORS !== '1' || !!process.env.OPENSEAT_TEST_URL,
+    'The website switch is exercised only on the local emulator.')
+  const request = emulatorClient()
+  const pinPath = '/private/adminPin/proof'
+  const previous = await request(pinPath)
+  const pin = String(randomInt(1_000_000)).padStart(6, '0')
+  const guests = await browser.newContext({ baseURL })
+  const closed = (tab) => tab.getByRole('heading', { name: 'Even the website couldn’t find a seat.' })
+  try {
+    await request(pinPath, {
+      method: 'PUT', body: createHash('sha256').update('OpenSeat admin PIN v1:' + pin).digest('hex'),
+    })
+    await page.goto('./admin/')
+    await page.getByLabel('Admin PIN').fill(pin)
+    await page.getByRole('button', { name: 'Unlock', exact: true }).click()
+    const student = await guests.newPage()
+    await student.goto('./#floor=7&spot=I009')
+    await expect(student.getByRole('heading', { name: 'Seat 09', exact: true })).toBeVisible()
+    const seatUrl = student.url()
+    const evidence = await guests.newPage()
+    await evidence.goto('./evidence/#verification')
+    const verification = evidence.getByRole('heading', { name: 'Verification', exact: true })
+    await expect(verification).toBeVisible()
+
+    await page.getByRole('button', { name: 'Turn off OpenSeat' }).click()
+    const turnOn = page.getByRole('button', { name: 'Turn on OpenSeat' })
+    await expect(turnOn).toBeVisible()
+    await expect(closed(student)).toBeVisible()
+    await expect(closed(evidence)).toBeVisible()
+    await expect(verification).toHaveCount(0)
+    await page.reload()
+    await expect(turnOn).toBeVisible()
+    const ownerMap = await page.context().newPage()
+    await ownerMap.goto(seatUrl)
+    await expect(ownerMap.getByRole('heading', { name: 'Seat 09', exact: true })).toBeVisible()
+
+    const direct = await guests.newPage()
+    for (const route of ['./admin/', './classroom/', './walk-drive/', './evidence/', seatUrl]) {
+      await direct.goto(route)
+      await expect(closed(direct)).toBeVisible()
+      await expect(direct.getByText('OpenSeat · Error 503')).toBeVisible()
+      await expect(direct.getByRole('button')).toHaveCount(0)
+    }
+    await page.getByRole('button', { name: 'Turn on OpenSeat' }).click()
+    await expect(page.getByRole('button', { name: 'Turn off OpenSeat' })).toBeVisible()
+    await expect(student.getByRole('heading', { name: 'Seat 09', exact: true })).toBeVisible()
+    await expect(student).toHaveURL(seatUrl)
+    await expect(verification).toBeInViewport()
+    await expect(closed(direct)).toHaveCount(0)
+  } finally {
+    await request('/siteClosure', { method: 'DELETE' })
+    await request(pinPath, { method: 'PUT', body: previous })
+    await guests.close()
+  }
+})
 
 for (const width of [390, 820, 1280]) {
   test('the last menu item opens the locked admin page at width ' + width, async ({ page }) => {

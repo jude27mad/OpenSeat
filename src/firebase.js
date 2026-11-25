@@ -31,6 +31,43 @@ async function visitor() {
   return (await signIn).user
 }
 
+// A missing closure means open. When closed, only the initiating Firebase identity has access.
+export function watchSiteAccess(receive) {
+  let owner, uid, stopClosure
+  let connected = false, failed = false
+  function publish() {
+    if (failed) receive('unavailable')
+    else if (!connected || owner === undefined || (owner !== null && uid === undefined)) receive('checking')
+    else if (owner === null) receive('open')
+    else receive(owner === uid ? 'owner' : 'closed')
+  }
+  const stopIdentity = onAuthStateChanged(auth, (user) => {
+    uid = user?.uid ?? null
+    publish()
+  })
+  const stopConnection = onValue(ref(db, '.info/connected'), (connection) => {
+    connected = connection.val() === true
+    if (!connected || !stopClosure) {
+      stopClosure?.()
+      owner = undefined
+      failed = false
+      stopClosure = onValue(ref(db, 'siteClosure'), (snapshot) => {
+        owner = snapshot.val()
+        publish()
+      }, () => { failed = true; publish() })
+    }
+    publish()
+  })
+  return () => { stopClosure?.(); stopConnection(); stopIdentity() }
+}
+
+export async function setSiteClosed(closed) {
+  const user = await visitor()
+  const result = await databaseRequest(settings, emulator, '/siteClosure', await user.getIdToken(),
+    closed ? { method: 'PUT', body: JSON.stringify(user.uid) } : { method: 'DELETE' })
+  if (!result.ok) throw new Error('OpenSeat could not change website access. Check your connection and admin access.')
+}
+
 export function watchFloor(room, receive, connection) {
   let received = false, connected = false, denied = false
   function status() {
