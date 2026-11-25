@@ -28,6 +28,35 @@ const qr = (value, target = 'T17-B') => ({ source: 'qr', target, value })
 const report = (target, value) => ({ source: 'report', target, value })
 before(async () => { [a, b] = await Promise.all([anonymous(), anonymous()]) })
 
+test('visitors can maintain their own presence and only an unlocked admin can read the count', async (t) => {
+  const [admin, guest] = await Promise.all([anonymous(), anonymous()])
+  const presence = '/visitorPresence'
+  const marker = presence + '/' + guest.uid + '/-0123456789abcdefghi'
+  const write = (who, screen) => who.request(marker, { method: 'PUT', body: JSON.stringify({ profile: guest.uid, screen }) })
+  const denied = (response) => assert.ok([401, 403].includes(response.status))
+  t.after(async () => {
+    await seed('/siteClosure', null)
+    await seed(presence + '/' + guest.uid, null)
+    await seed('/private/adminPinSessions/' + admin.uid, null)
+  })
+  denied(await read(presence))
+  denied(await guest.request(presence))
+  denied(await write(admin, 'online'))
+  denied(await write(guest, 'waiting'))
+  denied(await write(guest, 2))
+  assert.ok((await write(guest, 'online')).ok)
+  await seed('/private/adminPinSessions/' + admin.uid, true)
+  assert.deepEqual(await (await admin.request(marker)).json(), { profile: guest.uid, screen: 'online' })
+  assert.ok((await admin.request(presence)).ok)
+  await seed('/siteClosure', admin.uid)
+  assert.ok((await write(guest, 'waiting')).ok)
+  denied(await write(guest, 'online'))
+  denied(await guest.request(presence))
+  assert.deepEqual(await (await admin.request(marker)).json(), { profile: guest.uid, screen: 'waiting' })
+  assert.ok((await guest.request(marker, { method: 'DELETE' })).ok)
+  assert.equal(await (await admin.request(marker)).json(), null)
+})
+
 test('only the closing admin browser retains map access and can reopen the site', async (t) => {
   const [first, second] = await Promise.all([anonymous(), anonymous()])
   const demo = randomUUID()

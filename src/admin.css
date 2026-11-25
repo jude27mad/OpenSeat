@@ -60,3 +60,15 @@
   border-top: 1px solid var(--soft-line-strong);
 }
 .admin-site-access h2 { margin: 0; font-size: 18px; font-weight: 650; }
+.admin-visitor-count {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--soft-mint-50);
+  border-radius: 8px;
+  color: var(--soft-primary-deep);
+}
+.admin-visitor-count strong { font-variant-numeric: tabular-nums; }

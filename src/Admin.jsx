@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { renderSite } from './SiteAccess.jsx'
 import { Button } from './components/ui/button'
 import { FLOORS, floorNumbers, chairs } from './floor.js'
-import { lockAdmin, setAllLiveFloorStatus, setFloorStatus, setSiteClosed, unlockAdmin, watchAdmin } from './firebase.js'
+import { lockAdmin, setAllLiveFloorStatus, setFloorStatus, setSiteClosed, unlockAdmin, watchAdmin, watchVisitorCounts } from './firebase.js'
 import { chosenRoom, isLive, roomUrl } from './session.js'
 import { applyTheme } from './theme.js'
 import './style.css'
@@ -45,7 +45,23 @@ function PinForm() {
   )
 }
 
-function FloorControls({ siteClosed }) {
+function VisitorCount({ adminUid, siteClosed }) {
+  const [counts, setCounts] = useState()
+  useEffect(() => watchVisitorCounts(adminUid, setCounts), [adminUid])
+  const screen = siteClosed ? 'waiting' : 'online'
+  let value = 'Connecting…'
+  if (counts === null) value = 'Unavailable'
+  else if (counts) value = counts[screen] + ' ' + screen
+
+  return (
+    <p className="admin-visitor-count">
+      <span>Live visitors</span>
+      <strong aria-live="polite" aria-atomic="true">{value}</strong>
+    </p>
+  )
+}
+
+function FloorControls({ adminUid, siteClosed }) {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -132,6 +148,7 @@ function FloorControls({ siteClosed }) {
       <section className="admin-site-access" aria-labelledby="site-access-heading">
         <h2 id="site-access-heading">Website access</h2>
         <p>{siteClosed ? 'Only this browser can open OpenSeat.' : 'Everyone can open OpenSeat.'}</p>
+        <VisitorCount adminUid={adminUid} siteClosed={siteClosed} />
         <Button variant={siteClosed ? 'default' : 'outline'} disabled={busy} onClick={changeSiteAccess}>
           {siteClosed ? 'Turn on OpenSeat' : 'Turn off OpenSeat'}
         </Button>
@@ -163,7 +180,7 @@ function Admin({ siteClosed }) {
         <h1>Floor controls</h1>
         {!device?.uid && !error && <p role="status">Loading floor controls…</p>}
         {device?.uid && !device.approved && <PinForm />}
-        {device?.approved && <FloorControls siteClosed={siteClosed} />}
+        {device?.approved && <FloorControls adminUid={device.uid} siteClosed={siteClosed} />}
         {error && <p role="alert" className="error">{error}</p>}
       </section>
     </main>
