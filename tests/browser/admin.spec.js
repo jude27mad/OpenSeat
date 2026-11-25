@@ -1,10 +1,10 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, devices } from '@playwright/test'
 import { createHash, randomInt } from 'node:crypto'
 import { databaseRequest } from '../../backend/firebase/observations.js'
 import { emulatorClient } from '../../backend/firebase/cleanup.mjs'
 import { localSettings } from '../../backend/firebase/settings.js'
 
-test('turning OpenSeat off and back on reaches existing tabs and direct links', async ({ page, browser, baseURL }) => {
+test('turning OpenSeat off and back on reaches existing tabs and counts waiting visitors', async ({ page, browser, playwright, baseURL }) => {
   test.skip(process.env.VITE_OPENSEAT_EMULATORS !== '1' || !!process.env.OPENSEAT_TEST_URL,
     'The website switch is exercised only on the local emulator.')
   const request = emulatorClient()
@@ -12,6 +12,9 @@ test('turning OpenSeat off and back on reaches existing tabs and direct links', 
   const previous = await request(pinPath)
   const pin = String(randomInt(1_000_000)).padStart(6, '0')
   const guests = await browser.newContext({ baseURL })
+  const phone = await playwright[process.env.OPENSEAT_PHONE_ENGINE || 'webkit'].launch()
+  const secondGuest = await phone.newContext({ ...devices['iPhone 13'], baseURL })
+  const visitorCount = page.locator('.admin-visitor-count strong')
   const closed = (tab) => tab.getByRole('heading', { name: 'Even the website couldn’t find a seat.' })
   try {
     await request(pinPath, {
@@ -20,20 +23,22 @@ test('turning OpenSeat off and back on reaches existing tabs and direct links', 
     await page.goto('./admin/')
     await page.getByLabel('Admin PIN').fill(pin)
     await page.getByRole('button', { name: 'Unlock', exact: true }).click()
+    await expect(visitorCount).toHaveText('0 online')
     const student = await guests.newPage()
-    await student.goto('./#floor=7&spot=I009')
+    const evidence = await guests.newPage()
+    await Promise.all([student.goto('./#floor=7&spot=I009'), evidence.goto('./evidence/#verification')])
     await expect(student.getByRole('heading', { name: 'Seat 09', exact: true })).toBeVisible()
     const seatUrl = student.url()
-    const evidence = await guests.newPage()
-    await evidence.goto('./evidence/#verification')
     const verification = evidence.getByRole('heading', { name: 'Verification', exact: true })
     await expect(verification).toBeVisible()
+    await expect(visitorCount).toHaveText('1 online')
 
     await page.getByRole('button', { name: 'Turn off OpenSeat' }).click()
     const turnOn = page.getByRole('button', { name: 'Turn on OpenSeat' })
     await expect(turnOn).toBeVisible()
     await expect(closed(student)).toBeVisible()
     await expect(closed(evidence)).toBeVisible()
+    await expect(visitorCount).toHaveText('1 waiting')
     await expect(verification).toHaveCount(0)
     await page.reload()
     await expect(turnOn).toBeVisible()
@@ -41,23 +46,35 @@ test('turning OpenSeat off and back on reaches existing tabs and direct links', 
     await ownerMap.goto(seatUrl)
     await expect(ownerMap.getByRole('heading', { name: 'Seat 09', exact: true })).toBeVisible()
 
-    const direct = await guests.newPage()
+    const direct = await secondGuest.newPage()
     for (const route of ['./admin/', './classroom/', './walk-drive/', './evidence/', seatUrl]) {
       await direct.goto(route)
       await expect(closed(direct)).toBeVisible()
       await expect(direct.getByText('OpenSeat · Error 503')).toBeVisible()
       await expect(direct.getByRole('button')).toHaveCount(0)
     }
+    await expect(visitorCount).toHaveText('2 waiting')
     await page.getByRole('button', { name: 'Turn on OpenSeat' }).click()
     await expect(page.getByRole('button', { name: 'Turn off OpenSeat' })).toBeVisible()
     await expect(student.getByRole('heading', { name: 'Seat 09', exact: true })).toBeVisible()
     await expect(student).toHaveURL(seatUrl)
     await expect(verification).toBeInViewport()
     await expect(closed(direct)).toHaveCount(0)
+    await expect(visitorCount).toHaveText('2 online')
+    await student.close()
+    await expect(visitorCount).toHaveText('2 online')
+    await evidence.close()
+    await expect(visitorCount).toHaveText('1 online')
+    await direct.goto('about:blank')
+    await expect(visitorCount).toHaveText('0 online')
+    await direct.goBack()
+    await expect(visitorCount).toHaveText('1 online')
+    await direct.close()
+    await expect(visitorCount).toHaveText('0 online')
   } finally {
     await request('/siteClosure', { method: 'DELETE' })
     await request(pinPath, { method: 'PUT', body: previous })
-    await guests.close()
+    await Promise.all([guests.close(), phone.close()])
   }
 })
 
@@ -81,6 +98,7 @@ for (const width of [390, 820, 1280]) {
     await expect(page.getByRole('button', { name: 'Unlock', exact: true })).toBeVisible()
     await expect(page.getByRole('combobox')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Mark all taken' })).toHaveCount(0)
+    await expect(page.getByText('Live visitors')).toHaveCount(0)
   })
 }
 

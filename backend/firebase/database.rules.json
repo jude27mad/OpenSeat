@@ -7,6 +7,22 @@
       ".write": "auth !== null && auth.token.firebase.sign_in_provider === 'anonymous' && root.child('private/adminPinSessions').child(auth.uid).val() === true && (!data.exists() || data.val() === auth.uid) && (!newData.exists() || newData.val() === auth.uid)",
       ".validate": "newData.isString() && newData.val() === auth.uid"
     },
+    "visitorPresence": {
+      ".read": "auth !== null && root.child('private/adminPinSessions').child(auth.uid).val() === true && (!root.child('siteClosure').exists() || root.child('siteClosure').val() === auth.uid)",
+      "$uid": {
+        "$connection": {
+          ".write": "auth !== null && auth.uid === $uid && auth.token.firebase.sign_in_provider === 'anonymous' && $connection.matches(/^[A-Za-z0-9_-]{20}$/)",
+          ".validate": "newData.hasChildren(['profile', 'screen'])",
+          "profile": {
+            ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{1,128}$/) && (!data.exists() || newData.val() === data.val())"
+          },
+          "screen": {
+            ".validate": "newData.val() === ((root.child('siteClosure').exists() && root.child('siteClosure').val() !== auth.uid) ? 'waiting' : 'online')"
+          },
+          "$other": { ".validate": false }
+        }
+      }
+    },
     "rooms": {
       "$room": {
         "events": {

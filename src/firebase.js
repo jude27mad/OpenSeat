@@ -1,9 +1,10 @@
 import { initializeApp } from 'firebase/app'
 import { connectAuthEmulator, getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth'
-import { connectDatabaseEmulator, getDatabase, onValue, ref } from 'firebase/database'
+import { connectDatabaseEmulator, getDatabase, onDisconnect, onValue, push, ref, remove, set } from 'firebase/database'
 import { adminPinProof, databaseRequest, postObservation, stationPairing } from '../backend/firebase/observations.js'
 import { postLiveReport } from '../backend/firebase/live-reports.js'
 import { localSettings, readSettings } from '../backend/firebase/settings.js'
+import { visitorProfile } from './visitor-profile.js'
 
 const emulator = import.meta.env.VITE_OPENSEAT_EMULATORS === '1'
 const settings = emulator ? localSettings : readSettings(import.meta.env.VITE_OPENSEAT_FIREBASE_CONFIG)
@@ -29,6 +30,80 @@ async function visitor() {
   if (auth.currentUser) return auth.currentUser
   if (!signIn) signIn = signInAnonymously(auth).finally(() => { signIn = undefined })
   return (await signIn).user
+}
+
+// Each tab owns a connection entry. Closing one tab leaves the profile's other tabs online.
+export function trackVisitorPresence(screen) {
+  let user, entry, retry
+  let connected = false, away = false, revision = 0
+
+  function refresh() {
+    const attempt = ++revision
+    clearTimeout(retry)
+    if (entry) {
+      const old = entry
+      entry = undefined
+      // Keep server-side cleanup armed until the explicit removal is acknowledged.
+      if (auth.currentUser?.uid === old.user.uid) {
+        remove(old.connection).then(() => onDisconnect(old.connection).cancel()).catch(() => {})
+      } else {
+        // Another tab replaced the shared sign-in. Retire this entry as its original writer.
+        old.user.getIdToken().then((token) => databaseRequest(settings, emulator,
+          '/visitorPresence/' + old.user.uid + '/' + old.connection.key, token, { method: 'DELETE' })).catch(() => {})
+      }
+    }
+    if (!connected || away || user === undefined) return
+
+    function retryLater() {
+      if (attempt === revision) retry = setTimeout(refresh, 10000)
+    }
+    if (!user) {
+      visitor().catch(retryLater)
+      return
+    }
+    const connection = push(ref(db, 'visitorPresence/' + user.uid))
+    entry = { connection, user }
+    Promise.all([onDisconnect(connection).remove(), visitorProfile(user.uid)]).then(([, profile]) => {
+      if (attempt === revision) return set(connection, { screen, profile })
+    }).catch(retryLater)
+  }
+
+  const stopIdentity = onAuthStateChanged(auth, (next) => { user = next; refresh() })
+  const stopConnection = onValue(ref(db, '.info/connected'), (snapshot) => {
+    connected = snapshot.val() === true
+    refresh()
+  })
+  function leavePage() { away = true; refresh() }
+  function returnToPage() { if (away) { away = false; refresh() } }
+  window.addEventListener('pagehide', leavePage)
+  window.addEventListener('pageshow', returnToPage)
+  return () => {
+    stopIdentity()
+    stopConnection()
+    window.removeEventListener('pagehide', leavePage)
+    window.removeEventListener('pageshow', returnToPage)
+    leavePage()
+  }
+}
+
+export function watchVisitorCounts(adminUid, receive) {
+  let active = true, stop
+  visitorProfile(adminUid).then((ownProfile) => {
+    if (!active) return
+    stop = onValue(ref(db, 'visitorPresence'), (snapshot) => {
+      const online = new Set(), waiting = new Set()
+      snapshot.forEach((identity) => {
+        if (identity.key === adminUid) return
+        const tabs = Object.values(identity.val())
+        const viewer = tabs.find((tab) => tab.screen === 'online')?.profile
+        const waiter = tabs.find((tab) => tab.screen === 'waiting')?.profile
+        if (viewer && viewer !== ownProfile) online.add(viewer)
+        if (waiter && waiter !== ownProfile) waiting.add(waiter)
+      })
+      receive({ online: online.size, waiting: waiting.size })
+    }, () => receive(null))
+  })
+  return () => { active = false; stop?.() }
 }
 
 // A missing closure means open. When closed, only the initiating Firebase identity has access.

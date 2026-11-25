@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { watchSiteAccess } from './firebase.js'
+import { trackVisitorPresence, watchSiteAccess } from './firebase.js'
 import './site-access.css'
 
 function ClosedPage() {
@@ -26,7 +26,12 @@ function ClosedPage() {
 function SiteAccess({ Page }) {
   const [access, setAccess] = useState('checking')
   useEffect(() => watchSiteAccess(setAccess), [])
-  if (access === 'open' || access === 'owner') return <Page siteClosed={access === 'owner'} />
+  const canEnter = access === 'open' || access === 'owner'
+  const screen = canEnter ? 'online' : access === 'closed' ? 'waiting' : null
+  useEffect(() => {
+    if (screen) return trackVisitorPresence(screen)
+  }, [screen])
+  if (canEnter) return <Page siteClosed={access === 'owner'} />
   if (access === 'closed') return <ClosedPage />
   return <p className="site-connecting" role="status">
     {access === 'unavailable' ? 'Couldn’t check website access. Reload to try again.' : 'Connecting to OpenSeat…'}
