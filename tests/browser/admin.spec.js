@@ -22,7 +22,7 @@ test('turning OpenSeat off and back on reaches existing tabs and direct links', 
     await page.getByRole('button', { name: 'Unlock', exact: true }).click()
     const student = await guests.newPage()
     await student.goto('./#floor=7&spot=I009')
-    await expect(student.getByRole('button', { name: 'Find me a free seat', exact: true })).toBeVisible()
+    await expect(student.getByRole('heading', { name: 'Seat 09', exact: true })).toBeVisible()
     const seatUrl = student.url()
     const evidence = await guests.newPage()
     await evidence.goto('./evidence/#verification')
@@ -39,7 +39,7 @@ test('turning OpenSeat off and back on reaches existing tabs and direct links', 
     await expect(turnOn).toBeVisible()
     const ownerMap = await page.context().newPage()
     await ownerMap.goto(seatUrl)
-    await expect(ownerMap.getByRole('button', { name: 'Find me a free seat', exact: true })).toBeVisible()
+    await expect(ownerMap.getByRole('heading', { name: 'Seat 09', exact: true })).toBeVisible()
 
     const direct = await guests.newPage()
     for (const route of ['./admin/', './classroom/', './walk-drive/', './evidence/', seatUrl]) {
@@ -50,7 +50,7 @@ test('turning OpenSeat off and back on reaches existing tabs and direct links', 
     }
     await page.getByRole('button', { name: 'Turn on OpenSeat' }).click()
     await expect(page.getByRole('button', { name: 'Turn off OpenSeat' })).toBeVisible()
-    await expect(student.getByRole('button', { name: 'Find me a free seat', exact: true })).toBeVisible()
+    await expect(student.getByRole('heading', { name: 'Seat 09', exact: true })).toBeVisible()
     await expect(student).toHaveURL(seatUrl)
     await expect(verification).toBeInViewport()
     await expect(closed(direct)).toHaveCount(0)
