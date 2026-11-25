@@ -22,7 +22,7 @@ export function reportHistory(previous, value, at, resetAt = 0) {
     history.cycleStart = previous.oppositeAt
     history.cycleEnd = at
   }
-  // A later, slower cycle must not cut an existing two-minute pause short.
+  // A later, slower cycle must not cut an existing 15-minute pause short.
   const reversal = lastRapidReversal(previous)
   if (reversal !== undefined) history.holdAt = reversal
   return history
@@ -31,5 +31,5 @@ export function reportHistory(previous, value, at, resetAt = 0) {
 export function recommendationPaused(report, now) {
   if (report.source !== 'report' || report.lasting) return false
   const reversal = lastRapidReversal(report)
-  return Number.isFinite(reversal) && now < reversal + 120_000
+  return Number.isFinite(reversal) && now < reversal + 15 * 60_000
 }

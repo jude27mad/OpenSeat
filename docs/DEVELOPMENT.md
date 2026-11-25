@@ -19,7 +19,7 @@ Simple rules:
 - A table is free if any of its chairs is free.
 - When nothing is recent, the seat says **No recent info** instead of guessing.
 - On the live map, each anonymous browser can report up to 3 times on at most 2 different spots across all floors in any rolling 15 minutes. A table and its four chairs are one spot. A whole-table tap counts as one report. Repeating your own current report leaves its timestamp and your remaining allowance alone.
-- If student reports switch a chair from free to taken and back, or from taken to free and back, within one minute, the seat finder skips that chair for two minutes. The map still shows its reported status. Demo reports are unrestricted.
+- If student reports switch a chair from free to taken and back, or from taken to free and back, within one minute, the seat finder skips that chair for 15 minutes. The map still shows its reported status. Demo reports are unrestricted.
 - Bluetooth gives a count for an area, not for a single seat.
 
 ## What counts as a seat

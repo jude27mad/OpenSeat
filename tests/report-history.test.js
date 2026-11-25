@@ -16,15 +16,15 @@ function reversal(target) {
   return report('free', 60, second, target)
 }
 
-test('a rapid live reversal pauses suggestions for two minutes, even after a same-value confirmation', () => {
+test('a rapid live reversal pauses suggestions for 15 minutes, even after a same-value confirmation', () => {
   const third = reversal('I005')
   assert.equal(recommendationPaused(third, third.at), true)
   const confirmed = report('free', 100, third)
-  assert.equal(recommendationPaused(confirmed, third.at + 119_999), true)
-  assert.equal(recommendationPaused(confirmed, third.at + 120_000), false)
+  assert.equal(recommendationPaused(confirmed, third.at + 899_999), true)
+  assert.equal(recommendationPaused(confirmed, third.at + 900_000), false)
   const held = report('occupied', 135, confirmed)
   assert.equal(recommendationPaused(held, held.at), true)
-  assert.equal(recommendationPaused(held, third.at + 120_000), false)
+  assert.equal(recommendationPaused(held, third.at + 900_000), false)
 })
 
 test('a single correction and a slower sequence stay eligible; each rapid reversal extends the pause', () => {
@@ -36,8 +36,8 @@ test('a single correction and a slower sequence stay eligible; each rapid revers
   const quick = report('free', 80, slow)
   assert.equal(recommendationPaused(quick, quick.at), true)
   const again = report('occupied', 100, quick)
-  assert.equal(recommendationPaused(again, quick.at + 120_000), true)
-  assert.equal(recommendationPaused(again, again.at + 120_000), false)
+  assert.equal(recommendationPaused(again, quick.at + 900_000), true)
+  assert.equal(recommendationPaused(again, again.at + 900_000), false)
 })
 
 test('automatic picks count eligible chairs without changing the reported floor and table counts', () => {

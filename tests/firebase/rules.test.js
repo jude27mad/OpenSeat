@@ -506,7 +506,7 @@ test('a lost live-report acknowledgement can be retried without consuming anothe
   assert.equal(ledger.latest.id, id)
 })
 
-test('an accepted reversal holds only that seat out of recommendations until the two-minute pause ends', async (t) => {
+test('an accepted reversal holds only that seat out of recommendations until the 15-minute pause ends', async (t) => {
   const visitor = await anonymous(), floor = 'floor8', target = 'I086'
   await isolateReports(t, floor, [target])
   const first = await record(visitor, report(target, 'free'), floor)
@@ -518,6 +518,6 @@ test('an accepted reversal holds only that seat out of recommendations until the
   const observer = await anonymous()
   const confirmation = await record(observer, report(target, 'free'), floor)
   assert.equal(confirmation.cycleEnd, last.at)
-  assert.equal(recommendationPaused(confirmation, last.at + 119999), true)
-  assert.equal(recommendationPaused(confirmation, last.at + 120000), false)
+  assert.equal(recommendationPaused(confirmation, last.at + 899999), true)
+  assert.equal(recommendationPaused(confirmation, last.at + 900000), false)
 })
