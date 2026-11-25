@@ -1,0 +1,1 @@
+import{a,f as i}from"./theme-B5bn3_SM.js";a();i(r=>{for(const e of r.querySelectorAll("figure img")){const t=document.createElement("a");t.href=e.src,t.setAttribute("aria-label","View full size. "+e.alt),e.replaceWith(t),t.append(e)}});
