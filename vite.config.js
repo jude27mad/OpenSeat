@@ -18,8 +18,8 @@ detailRenderer.table = function ({ header, rows }) {
     const details = cells.map((cell, index) => {
       const text = renderInline(cell)
       if (header[index + 1].text === 'Result') {
-        const passed = cell.text === 'Pass' ? ' passed' : ''
-        return `<td role="cell"><span class="test-result${passed}">${text}</span></td>`
+        const statusClass = { Pass: ' passed', Partial: ' partial' }[cell.text] || ''
+        return `<td role="cell"><span class="test-result${statusClass}">${text}</span></td>`
       }
       return `<td role="cell">${text}</td>`
     }).join('')
@@ -31,7 +31,8 @@ detailRenderer.table = function ({ header, rows }) {
   </table>`
 }
 
-function renderEvidence() {
+function renderEvidence(html) {
+  if (!html.includes('<!-- prototype-evidence -->')) return html
   const source = readFileSync(evidence, 'utf8')
   // The source lives under docs/. Resolve its images from the public evidence page.
   const options = {
@@ -41,13 +42,21 @@ function renderEvidence() {
       }
     },
   }
-  return source.split(/(?=^## )/m).map((section) => {
+  const [intro, ...sections] = source.split(/(?=^## )/m)
+  // Keep links to the existing map and calibration sections working after retitling them.
+  const existingIds = {
+    'Map revisions and prototype screenshots': 'process-evidence',
+    'Bluetooth calibration': 'calibration-already-completed',
+  }
+  const body = sections.map((section) => {
     const title = section.match(/^## (.+)/)?.[1]
-    const id = title?.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const id = existingIds[title] || title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
     const stackedOnMobile = id === 'build-plan-and-materials' || id === 'verification'
-    const html = marked.parse(section, stackedOnMobile ? { ...options, renderer: detailRenderer } : options)
-    return id ? `<section id="${id}">${html}</section>` : html
+    const content = marked.parse(section, stackedOnMobile ? { ...options, renderer: detailRenderer } : options)
+    return `<section id="${id}">${content}</section>`
   }).join('\n')
+  return html.replace('<!-- evidence-overview -->', () => marked.parse(intro, options))
+    .replace('<!-- prototype-evidence -->', () => body)
 }
 
 export default defineConfig(({ command, mode }) => {
@@ -70,9 +79,7 @@ export default defineConfig(({ command, mode }) => {
         buildStart() { this.addWatchFile(evidence) },
         transformIndexHtml: {
           order: 'pre',
-          handler(html) {
-            return html.replace('<!-- prototype-evidence -->', renderEvidence)
-          },
+          handler: renderEvidence,
         },
       },
     ],

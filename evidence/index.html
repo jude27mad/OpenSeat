@@ -12,7 +12,7 @@
       document.documentElement.dataset.theme = dark ? 'dark' : 'light'
     </script>
     <title>Prototype evidence · OpenSeat</title>
-    <meta name="description" content="How the OpenSeat prototype for TMU's Student Learning Centre was built and tested: build plan, screenshots, Bluetooth calibration and test results.">
+    <meta name="description" content="OpenSeat’s Milestone 5 record for TMU’s Student Learning Centre. Compare the floor maps, inspect the Bluetooth scanner logs, and see what the $0 prototype has been tested against.">
     <link rel="canonical" href="https://jude27mad.github.io/OpenSeat/evidence/">
     <link rel="icon" href="../mark.svg?v=cutout-2" type="image/svg+xml">
     <link rel="stylesheet" href="./record.css">
@@ -25,11 +25,14 @@
         <a href="../">Open the map</a>
       </header>
       <main>
+        <!-- evidence-overview -->
         <nav aria-label="Evidence sections">
-          <a href="#build-plan-and-materials">Build plan</a>
-          <a href="#process-evidence">Build screenshots</a>
+          <a href="#process-evidence">Map revisions</a>
           <a href="#calibration-already-completed">Bluetooth readings</a>
+          <a href="#connecting-the-scanner">Scanner logs</a>
           <a href="#verification">Test results</a>
+          <a href="#build-plan-and-materials">Build plan</a>
+          <a href="./milestone-5.pdf" type="application/pdf">Milestone 5 PDF</a>
         </nav>
         <!-- prototype-evidence -->
       </main>
@@ -38,7 +41,15 @@
       import { applyTheme } from '../src/theme.js'
       import { renderStaticSite } from '../src/SiteAccess.jsx'
       applyTheme()
-      renderStaticSite()
+      renderStaticSite((record) => {
+        for (const img of record.querySelectorAll('figure img')) {
+          const link = document.createElement('a')
+          link.href = img.src
+          link.setAttribute('aria-label', 'View full size. ' + img.alt)
+          img.replaceWith(link)
+          link.append(img)
+        }
+      })
     </script>
   </body>
 </html>
