@@ -39,20 +39,24 @@ function CountDial({ scan, phase }) {
     return () => cancelAnimationFrame(frame)
   }, [range?.low, range?.high])
   const unit = range?.high === 1 ? 'estimated person' : 'estimated people'
+  // The icon, count and label are drawn on the ring's own 240-unit grid, so they
+  // grow and shrink with the circle and stay inside it on any screen.
+  // A longer range gets smaller digits, sized for the final count so they hold still while it counts up.
+  const size = Math.min(72, 240 / (range ? rangeText(range).length : 1))
+  const digits = size * .727 // height of an Inter digit
+  const top = 120 - (digits + 55) / 2
   return (
     <div className={'count-dial ' + phase}>
       <svg viewBox="0 0 240 240" aria-hidden="true">
         <circle className="dial-ticks" cx="120" cy="120" r="116" pathLength="120" />
         <circle className="dial-track" cx="120" cy="120" r="104" />
         <circle className="dial-fill" cx="120" cy="120" r="104" pathLength="100" transform="rotate(-90 120 120)" />
-      </svg>
-      <div className="dial-center" aria-hidden="true">
-        <UsersRound size={24} />
-        <strong className={range && range.low !== range.high ? 'range' : undefined}>
+        <g className="dial-icon" transform={`translate(110 ${top})`}><UsersRound size={20} /></g>
+        <text className="dial-number" x="120" y={top + 32 + digits} style={{ fontSize: size }}>
           {range ? rangeText(display) : '—'}
-        </strong>
-        <span>{unit}</span>
-      </div>
+        </text>
+        <text className="dial-label" x="120" y={top + 55 + digits}>{unit}</text>
+      </svg>
       <span className="sr-only" role="status">{range ? rangeText(range, ' to ') + ' ' + unit : 'No count yet'}</span>
     </div>
   )

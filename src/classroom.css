@@ -39,7 +39,7 @@
 .phase-label.waiting i, .phase-label.complete i { background: #b7eb95; }
 .phase-label.error i { background: #ffaf84; }
 .count-dial { position: relative; width: min(80%, 440px); margin: clamp(24px, 4vh, 48px) auto; }
-.count-dial svg { display: block; width: 100%; }
+.count-dial > svg { display: block; width: 100%; }
 .count-dial circle { fill: none; }
 .dial-ticks { stroke: #749884; stroke-width: 2; stroke-dasharray: .26 1.74; }
 .dial-track { stroke: #365549; stroke-width: 6; }
@@ -50,11 +50,11 @@
 @media (prefers-reduced-motion: reduce) {
   .count-dial .dial-fill { animation: none; transition: none; }
 }
-.dial-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #dbebd9; }
-.dial-center svg { width: 23px; color: #b9ed93; }
-.dial-center strong { font-size: clamp(64px, 8.8vw, 134px); line-height: 1.12; font-weight: 580; color: #effce7; font-variant-numeric: tabular-nums; letter-spacing: -.065em; }
-.dial-center span { font-size: clamp(15px, 1.5vw, 20px); }
-.dial-center strong.range { font-size: clamp(44px, 5.6vw, 88px); letter-spacing: -.04em; }
+/* Sizes inside the dial are in the ring's 240-unit grid, not screen pixels. */
+.count-dial text { text-anchor: middle; }
+.dial-icon { color: #b9ed93; }
+.dial-number { fill: #effce7; font-weight: 580; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.dial-label { fill: #dbebd9; font-size: 14px; }
 .count-stats { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #426355; padding-top: 16px; }
 .count-stats div + div { padding-left: 24px; border-left: 1px solid #426355; }
 .count-stats dt { font-size: 13px; color: #c2d3c7; }
@@ -76,7 +76,7 @@
   .classroom-body h1 { font-size: clamp(32px, 4vw, 48px); }
   .classroom-intro { margin: 6px 0 15px; }
   .count-panel { padding: 20px 24px; }
-  .count-dial { width: min(80%, 440px, max(150px, calc(100dvh - 400px))); margin: 14px auto; }
+  .count-dial { width: min(80%, 440px, max(200px, calc(100dvh - 400px))); margin: 14px auto; }
   .scanner-panel { padding: 22px; }
 }
 @media (max-width: 720px) {
