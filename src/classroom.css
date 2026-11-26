@@ -54,7 +54,12 @@
 .count-dial text { text-anchor: middle; }
 .dial-icon { color: #b9ed93; }
 .dial-number { fill: #effce7; font-weight: 580; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
-.dial-label { fill: #dbebd9; font-size: 14px; }
+.dial-label { fill: #dbebd9; font-size: 16px; }
+/* High-contrast themes replace the dark panel, so the count takes the theme's text colour. */
+@media (forced-colors: active) {
+  .dial-number, .dial-label { fill: CanvasText; }
+  .dial-icon { color: CanvasText; }
+}
 .count-stats { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #426355; padding-top: 16px; }
 .count-stats div + div { padding-left: 24px; border-left: 1px solid #426355; }
 .count-stats dt { font-size: 13px; color: #c2d3c7; }

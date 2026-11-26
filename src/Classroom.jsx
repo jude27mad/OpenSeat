@@ -39,18 +39,24 @@ function CountDial({ scan, phase }) {
     return () => cancelAnimationFrame(frame)
   }, [range?.low, range?.high])
   const unit = range?.high === 1 ? 'estimated person' : 'estimated people'
+  const count = range ? rangeText(display) : '—'
   // The icon, count and label are drawn on the ring's own 240-unit grid, so they
   // grow and shrink with the circle and stay inside it on any screen.
   // A longer range gets smaller digits, sized for the final count so they hold still while it counts up.
-  const size = Math.min(72, 240 / (range ? rangeText(range).length : 1))
-  const digits = size * .727 // height of an Inter digit
-  const top = 120 - (digits + 55) / 2
+  // An old, longer count can still be on show for a moment, so that is allowed for too.
+  const size = Math.min(72, 240 / Math.max(count.length, range ? rangeText(range).length : 1))
+  const digitHeight = size * .727 // an Inter digit
+  // From the top: a 20-unit icon, a 12-unit gap, the digits, then the label's baseline 25 units below theirs.
+  // The stack is centred in the ring, 2.5 units high to balance the label's descenders.
+  const top = 117.5 - (digitHeight + 57) / 2
+  const baseline = top + 32 + digitHeight
   // A browser can enlarge small text by itself, as Safari does with a minimum font size.
-  // Squeeze a line that has outgrown the ring back to a width that fits.
+  // Squeeze a line that has outgrown the ring back to a width that fits:
+  // 160 units for the count and 146 for the label clear the ring at their heights.
   const drawing = useRef(null)
   function fit() {
     for (const line of drawing.current?.querySelectorAll('text') ?? []) {
-      const widest = line.classList.contains('dial-label') ? 130 : 160
+      const widest = line.classList.contains('dial-label') ? 146 : 160
       line.removeAttribute('textLength')
       if (line.getBBox().width > widest) line.setAttribute('textLength', widest)
     }
@@ -69,10 +75,11 @@ function CountDial({ scan, phase }) {
         <circle className="dial-track" cx="120" cy="120" r="104" />
         <circle className="dial-fill" cx="120" cy="120" r="104" pathLength="100" transform="rotate(-90 120 120)" />
         <g className="dial-icon" transform={`translate(110 ${top})`}><UsersRound size={20} /></g>
-        <text className="dial-number" x="120" y={top + 32 + digits} lengthAdjust="spacingAndGlyphs" style={{ fontSize: size }}>
-          {range ? rangeText(display) : '—'}
+        {/* The dash for no count sits lower in its line than the middle of a digit, so it is raised to match. */}
+        <text className="dial-number" x="120" y={range ? baseline : baseline - 4} lengthAdjust="spacingAndGlyphs" style={{ fontSize: size }}>
+          {count}
         </text>
-        <text className="dial-label" x="120" y={top + 55 + digits} lengthAdjust="spacingAndGlyphs">{unit}</text>
+        <text className="dial-label" x="120" y={baseline + 25} lengthAdjust="spacingAndGlyphs">{unit}</text>
       </svg>
       <span className="sr-only" role="status">{range ? rangeText(range, ' to ') + ' ' + unit : 'No count yet'}</span>
     </div>

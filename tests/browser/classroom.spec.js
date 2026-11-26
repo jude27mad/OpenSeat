@@ -67,17 +67,22 @@ for (const engine of new Set(['chromium', process.env.OPENSEAT_PHONE_ENGINE || '
       await expect(page.getByText('Listening for scan')).toBeVisible()
       await page.evaluate(() => document.fonts.ready)
       let measuredAt = Date.now()
+      const dial = page.locator('.count-dial')
       for (const enlarged of [false, true]) {
-        // Safari can enlarge small text to a minimum font size. A larger label stands in for that here.
-        if (enlarged) await page.addStyleTag({ content: '.dial-label { font-size: 30px !important }' })
+        // Safari can enlarge small text to a minimum font size. A larger label on short screens stands in for that here.
+        if (enlarged) await page.addStyleTag({ content: '@media (max-height: 700px) { .dial-label { font-size: 30px !important } }' })
         for (const [width, height] of [[1920, 1080], [1366, 650], [1280, 620], [1280, 550], [1024, 600], [390, 844], [320, 568]]) {
+          const where = ` at ${width}×${height}${enlarged ? ' with enlarged text' : ''}`
           await page.setViewportSize({ width, height })
+          // A resize alone has to keep the text in the ring, before any new count arrives.
+          await expect.poll(() => dial.evaluate(ringClearance), 'after resizing' + where).toBeGreaterThan(0)
           for (const [value, count] of [[1, '1'], [22, '10–22'], [100, '46–100'], [1000, '455–1000']]) {
             scan = { value, measuredAt: ++measuredAt }
             await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
             await expect(page.locator('.dial-number')).toHaveText(count)
-            expect(await page.locator('.count-dial').evaluate(ringClearance),
-              `${count} at ${width}×${height}${enlarged ? ' with enlarged text' : ''}`).toBeGreaterThan(0)
+            expect(await dial.evaluate(ringClearance), count + where).toBeGreaterThan(0)
+            // Text at its normal size already fits, so nothing is squeezed.
+            if (!enlarged) expect(await dial.evaluate(dial => [...dial.querySelectorAll('text')].some(line => line.hasAttribute('textLength'))), count + where).toBe(false)
           }
         }
       }
