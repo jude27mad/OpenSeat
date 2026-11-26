@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { renderSite } from './SiteAccess.jsx'
 import { ArrowLeft, Bluetooth, Check, Radio, RotateCcw, UsersRound } from 'lucide-react'
 import { Button } from './components/ui/button'
@@ -45,17 +45,34 @@ function CountDial({ scan, phase }) {
   const size = Math.min(72, 240 / (range ? rangeText(range).length : 1))
   const digits = size * .727 // height of an Inter digit
   const top = 120 - (digits + 55) / 2
+  // A browser can enlarge small text by itself, as Safari does with a minimum font size.
+  // Squeeze a line that has outgrown the ring back to a width that fits.
+  const drawing = useRef(null)
+  function fit() {
+    for (const line of drawing.current?.querySelectorAll('text') ?? []) {
+      const widest = line.classList.contains('dial-label') ? 130 : 160
+      line.removeAttribute('textLength')
+      if (line.getBBox().width > widest) line.setAttribute('textLength', widest)
+    }
+  }
+  useLayoutEffect(fit)
+  useEffect(() => {
+    const resized = new ResizeObserver(fit)
+    resized.observe(drawing.current)
+    document.fonts.ready.then(fit)
+    return () => resized.disconnect()
+  }, [])
   return (
     <div className={'count-dial ' + phase}>
-      <svg viewBox="0 0 240 240" aria-hidden="true">
+      <svg ref={drawing} viewBox="0 0 240 240" aria-hidden="true">
         <circle className="dial-ticks" cx="120" cy="120" r="116" pathLength="120" />
         <circle className="dial-track" cx="120" cy="120" r="104" />
         <circle className="dial-fill" cx="120" cy="120" r="104" pathLength="100" transform="rotate(-90 120 120)" />
         <g className="dial-icon" transform={`translate(110 ${top})`}><UsersRound size={20} /></g>
-        <text className="dial-number" x="120" y={top + 32 + digits} style={{ fontSize: size }}>
+        <text className="dial-number" x="120" y={top + 32 + digits} lengthAdjust="spacingAndGlyphs" style={{ fontSize: size }}>
           {range ? rangeText(display) : '—'}
         </text>
-        <text className="dial-label" x="120" y={top + 55 + digits}>{unit}</text>
+        <text className="dial-label" x="120" y={top + 55 + digits} lengthAdjust="spacingAndGlyphs">{unit}</text>
       </svg>
       <span className="sr-only" role="status">{range ? rangeText(range, ' to ') + ' ' + unit : 'No count yet'}</span>
     </div>
